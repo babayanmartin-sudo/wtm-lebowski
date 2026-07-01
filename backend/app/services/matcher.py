@@ -87,15 +87,23 @@ def learn(db: Session, payee: str, category_id: int) -> None:
     norm = normalize(payee)
     if not norm:
         return
-    rule = db.scalar(
-        select(MappingRule).where(MappingRule.pattern == norm, MappingRule.match_kind == "exact")
-    )
-    if rule:
+    rules = db.scalars(
+        select(MappingRule)
+        .where(MappingRule.pattern == norm, MappingRule.match_kind == "exact")
+        .order_by(MappingRule.id)
+    ).all()
+    if rules:
+        rule, *extra = rules
+        for dup in extra:  # self-heal duplicates from earlier versions
+            db.delete(dup)
         rule.category_id = category_id
         rule.hit_count += 1
         rule.last_used = datetime.now(timezone.utc)
     else:
         db.add(MappingRule(pattern=norm, match_kind="exact", category_id=category_id, hit_count=1))
+        # session has autoflush off — flush so the next learn() in the same
+        # batch sees this rule instead of inserting a duplicate
+        db.flush()
 
 
 def _record_hit(db: Session, rule: MappingRule) -> None:

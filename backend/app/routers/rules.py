@@ -21,7 +21,15 @@ def list_rules(q: str | None = None, db: Session = Depends(get_db)):
 
 @router.post("", response_model=RuleOut, status_code=201)
 def create_rule(body: RuleIn, db: Session = Depends(get_db)):
-    rule = MappingRule(**_validated(db, body))
+    data = _validated(db, body)
+    existing = db.scalar(
+        select(MappingRule).where(
+            MappingRule.pattern == data["pattern"], MappingRule.match_kind == data["match_kind"]
+        )
+    )
+    if existing:
+        raise HTTPException(409, f"Rule for '{data['pattern']}' ({data['match_kind']}) already exists")
+    rule = MappingRule(**data)
     db.add(rule)
     db.commit()
     return rule

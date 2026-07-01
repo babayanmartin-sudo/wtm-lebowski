@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, CopyX, FileUp, Sparkles, Wand2 } from "lucide-react";
+import { AlertTriangle, Check, CopyX, FileUp, Pencil, Sparkles, Wand2 } from "lucide-react";
 import { useState } from "react";
 
 import { api } from "../api/client";
@@ -32,6 +32,7 @@ export default function ImportPage() {
   const [dayfirst, setDayfirst] = useState(true);
   const [negate, setNegate] = useState(false);
   const [presetName, setPresetName] = useState("");
+  const [editMapping, setEditMapping] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -39,6 +40,14 @@ export default function ImportPage() {
 
   const active = accounts.filter((a) => !a.archived);
   const account = accounts.find((a) => a.id === (imp?.account_id ?? accountId));
+
+  function loadDraftFrom(detail: ImportDetail) {
+    const m: Record<string, number | ""> = {};
+    for (const [k, v] of Object.entries(detail.mapping ?? {})) m[k] = v as number;
+    setMapping(m);
+    setDayfirst((detail.options?.dayfirst as boolean) ?? true);
+    setNegate((detail.options?.negate as boolean) ?? false);
+  }
 
   async function upload(file: File) {
     setError("");
@@ -49,9 +58,7 @@ export default function ImportPage() {
       form.append("account_id", String(accountId ?? active[0]?.id));
       const created = await api.postForm<ImportDetail>("/api/imports", form);
       setImportId(created.id);
-      const m: Record<string, number | ""> = {};
-      for (const [k, v] of Object.entries(created.mapping ?? {})) m[k] = v as number;
-      setMapping(m);
+      loadDraftFrom(created);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -70,6 +77,7 @@ export default function ImportPage() {
         options: { dayfirst, negate },
         preset_name: presetName,
       });
+      setEditMapping(false);
       refetch();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Mapping failed");
@@ -93,15 +101,29 @@ export default function ImportPage() {
     }
   }
 
+  async function cancelImport() {
+    if (importId) await api.del(`/api/imports/${importId}`).catch(() => undefined);
+    reset();
+  }
+
   function reset() {
     setImportId(null);
     setMapping({});
     setPresetName("");
+    setEditMapping(false);
     setError("");
   }
 
   const importable = (imp?.rows ?? []).filter((r) => !r.skip && !r.error && r.parsed_amount !== null);
   const dupes = (imp?.rows ?? []).filter((r) => r.is_duplicate).length;
+  const mappingIncomplete =
+    mapping["date"] === "" ||
+    mapping["date"] === undefined ||
+    ((mapping["amount"] === undefined || mapping["amount"] === "") &&
+      (mapping["debit"] === undefined || mapping["debit"] === "") &&
+      (mapping["credit"] === undefined || mapping["credit"] === ""));
+  const showMapping = imp && imp.status !== "done" && (imp.status === "mapping" || editMapping);
+  const showPreview = imp && imp.status === "preview" && !editMapping;
 
   return (
     <div>
@@ -143,8 +165,8 @@ export default function ImportPage() {
         </div>
       )}
 
-      {/* Step 2: column mapping */}
-      {imp && imp.status === "mapping" && (
+      {/* Step 2: column mapping (first time, or re-opened from preview) */}
+      {showMapping && (
         <div className="glass p-6">
           <div className="mb-4 flex items-center gap-2 text-sm text-gray-300">
             <Wand2 size={16} className="text-indigo-300" />
@@ -190,30 +212,25 @@ export default function ImportPage() {
                 placeholder={imp.filename}
               />
             </Field>
-            <button
-              className="btn-primary"
-              onClick={applyMapping}
-              disabled={
-                busy ||
-                mapping["date"] === "" ||
-                mapping["date"] === undefined ||
-                (mapping["amount"] === undefined || mapping["amount"] === "") &&
-                  (mapping["debit"] === undefined || mapping["debit"] === "") &&
-                  (mapping["credit"] === undefined || mapping["credit"] === "")
-              }
-            >
+            <button className="btn-primary" onClick={applyMapping} disabled={busy || mappingIncomplete}>
               Preview
             </button>
-            <button className="btn-ghost" onClick={reset}>
-              Cancel
-            </button>
+            {editMapping ? (
+              <button className="btn-ghost" onClick={() => setEditMapping(false)}>
+                Back to preview
+              </button>
+            ) : (
+              <button className="btn-ghost" onClick={cancelImport}>
+                Cancel
+              </button>
+            )}
           </div>
           {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
         </div>
       )}
 
       {/* Step 3: preview + commit */}
-      {imp && imp.status === "preview" && (
+      {showPreview && (
         <div className="flex flex-col gap-4">
           <div className="glass flex flex-wrap items-center gap-4 p-4 text-sm">
             <span className="flex items-center gap-2 text-gray-300">
@@ -227,11 +244,17 @@ export default function ImportPage() {
               </span>
             )}
             <span className="flex-1" />
-            <button className="btn-ghost" onClick={() => api.del(`/api/imports/${imp.id}`).then(reset)}>
-              Cancel
+            <button
+              className="btn-ghost"
+              onClick={() => {
+                loadDraftFrom(imp);
+                setEditMapping(true);
+              }}
+            >
+              <Pencil size={14} /> Edit mapping
             </button>
-            <button className="btn-ghost" onClick={() => refetch()}>
-              Refresh
+            <button className="btn-ghost" onClick={cancelImport}>
+              Cancel
             </button>
             <button className="btn-primary" onClick={doCommit} disabled={importable.length === 0}>
               <Check size={15} /> Import {importable.length} rows
@@ -248,7 +271,6 @@ export default function ImportPage() {
                   <th className="px-3 py-2">Payee</th>
                   <th className="px-3 py-2 text-right">Amount</th>
                   <th className="px-3 py-2">Category</th>
-                  <th className="px-3 py-2">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -266,7 +288,24 @@ export default function ImportPage() {
                       />
                     </td>
                     <td className="whitespace-nowrap px-3 py-1.5 text-gray-400">{r.parsed_date ?? "—"}</td>
-                    <td className="max-w-64 truncate px-3 py-1.5">{r.parsed_payee || r.parsed_note || "—"}</td>
+                    <td className="max-w-72 px-3 py-1.5">
+                      <span className="flex items-center gap-2">
+                        <span className="truncate">{r.parsed_payee || r.parsed_note || "—"}</span>
+                        {r.error && (
+                          <span
+                            title={r.error}
+                            className="flex shrink-0 items-center gap-1 rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] text-rose-300"
+                          >
+                            <AlertTriangle size={10} /> {r.error}
+                          </span>
+                        )}
+                        {!r.error && r.is_duplicate && (
+                          <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-300">
+                            duplicate
+                          </span>
+                        )}
+                      </span>
+                    </td>
                     <td
                       className={`whitespace-nowrap px-3 py-1.5 text-right tabular-nums ${
                         (r.parsed_amount ?? 0) >= 0 ? "text-emerald-300" : "text-gray-200"
@@ -297,17 +336,6 @@ export default function ImportPage() {
                             </span>
                           )}
                         </div>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-1.5 text-xs">
-                      {r.error ? (
-                        <span className="flex items-center gap-1 text-rose-400">
-                          <AlertTriangle size={12} /> {r.error}
-                        </span>
-                      ) : r.is_duplicate ? (
-                        <span className="text-amber-300">duplicate</span>
-                      ) : (
-                        <span className="text-gray-500">ok</span>
                       )}
                     </td>
                   </tr>

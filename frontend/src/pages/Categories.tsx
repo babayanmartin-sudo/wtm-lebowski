@@ -31,6 +31,7 @@ export default function CategoriesPage() {
   const { data: categories = [] } = useCategories();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
+  const [pageError, setPageError] = useState("");
 
   const keys = [["categories"], ["dashboard"], ["budgets"]];
   const save = useInvalidating(async (d: Draft) => {
@@ -46,6 +47,16 @@ export default function CategoriesPage() {
       setDraft(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
+    }
+  }
+
+  async function del(cat: Category) {
+    setPageError("");
+    if (!confirm(`Delete category “${cat.name}”?`)) return;
+    try {
+      await remove.mutateAsync(cat.id);
+    } catch (e) {
+      setPageError(e instanceof Error ? e.message : "Delete failed");
     }
   }
 
@@ -116,7 +127,7 @@ export default function CategoriesPage() {
           </button>
           <button
             className="rounded p-1 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
-            onClick={() => remove.mutate(cat.id)}
+            onClick={() => del(cat)}
           >
             <Trash2 size={13} />
           </button>
@@ -130,6 +141,9 @@ export default function CategoriesPage() {
   return (
     <div>
       <PageHeader title="Categories" subtitle="Organize spending and income, one nesting level" />
+      {pageError && (
+        <div className="glass mb-4 border-rose-400/30 p-3 text-sm text-rose-300">{pageError}</div>
+      )}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {section("expense")}
         {section("income")}

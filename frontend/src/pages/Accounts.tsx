@@ -37,6 +37,7 @@ export default function AccountsPage() {
   const { data: accounts = [] } = useAccounts();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
+  const [pageError, setPageError] = useState("");
 
   const save = useInvalidating(async (d: Draft) => {
     const body = { ...d, id: undefined };
@@ -59,6 +60,16 @@ export default function AccountsPage() {
     await save.mutateAsync({ ...acc, archived: !acc.archived });
   }
 
+  async function del(acc: Account) {
+    setPageError("");
+    if (!confirm(`Delete account “${acc.name}”?`)) return;
+    try {
+      await remove.mutateAsync(acc.id);
+    } catch (e) {
+      setPageError(e instanceof Error ? e.message : "Delete failed");
+    }
+  }
+
   const visible = [...accounts].sort((a, b) => Number(a.archived) - Number(b.archived));
 
   return (
@@ -72,6 +83,9 @@ export default function AccountsPage() {
           </button>
         }
       />
+      {pageError && (
+        <div className="glass mb-4 border-rose-400/30 p-3 text-sm text-rose-300">{pageError}</div>
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {visible.map((acc) => (
           <div key={acc.id} className={`glass glass-hover p-5 ${acc.archived ? "opacity-50" : ""}`}>
@@ -107,7 +121,7 @@ export default function AccountsPage() {
                 </button>
                 <button
                   className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
-                  onClick={() => remove.mutate(acc.id)}
+                  onClick={() => del(acc)}
                 >
                   <Trash2 size={15} />
                 </button>

@@ -12,7 +12,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     credentials: "same-origin",
     ...init,
   });
-  if (res.status === 401) {
+  // 401 on auth endpoints (e.g. wrong password) must surface its own message,
+  // not trigger the global "session expired" path
+  if (res.status === 401 && !path.startsWith("/api/auth/")) {
     window.dispatchEvent(new Event("et:unauthorized"));
     throw new ApiError(401, "Not authenticated");
   }

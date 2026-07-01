@@ -21,10 +21,17 @@ export function fmtMonth(month: string): string {
   });
 }
 
+function localISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+}
+
 export function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localISO();
 }
 
 export function currentMonth(): string {
-  return new Date().toISOString().slice(0, 7);
+  return localISO().slice(0, 7);
 }
