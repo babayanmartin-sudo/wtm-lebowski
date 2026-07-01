@@ -1,0 +1,269 @@
+import { Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+
+import { api } from "../api/client";
+import { MONEY_KEYS, useInvalidating } from "../api/hooks";
+import type { Account, Category, Transaction } from "../api/types";
+import { today } from "../lib/format";
+import { CategorySelect, Field, Modal } from "./ui";
+
+type Kind = "expense" | "income" | "transfer";
+
+interface DraftSplit {
+  category_id: number | null;
+  amount: string;
+  note: string;
+}
+
+export default function TransactionModal({
+  accounts,
+  categories,
+  existing,
+  onClose,
+}: {
+  accounts: Account[];
+  categories: Category[];
+  existing: Transaction | null;
+  onClose: () => void;
+}) {
+  const active = accounts.filter((a) => !a.archived);
+  const [kind, setKind] = useState<Kind>(existing?.kind ?? "expense");
+  const [date, setDate] = useState(existing?.date ?? today());
+  const [accountId, setAccountId] = useState<number>(existing?.account_id ?? active[0]?.id ?? 0);
+  const [amount, setAmount] = useState(existing ? String(existing.amount) : "");
+  const [toAccountId, setToAccountId] = useState<number | null>(existing?.transfer_account_id ?? null);
+  const [toAmount, setToAmount] = useState(existing?.transfer_amount ? String(existing.transfer_amount) : "");
+  const [payee, setPayee] = useState(existing?.payee ?? "");
+  const [note, setNote] = useState(existing?.note ?? "");
+  const [splits, setSplits] = useState<DraftSplit[]>(
+    existing && existing.kind !== "transfer"
+      ? existing.splits.map((s) => ({ category_id: s.category_id, amount: String(s.amount), note: s.note }))
+      : [{ category_id: null, amount: "", note: "" }],
+  );
+  const [error, setError] = useState("");
+
+  const save = useInvalidating(
+    (body: object) =>
+      existing
+        ? api.put(`/api/transactions/${existing.id}`, body)
+        : api.post("/api/transactions", body),
+    MONEY_KEYS,
+  );
+  const remove = useInvalidating(
+    () => api.del(`/api/transactions/${existing!.id}`),
+    MONEY_KEYS,
+  );
+
+  const account = active.find((a) => a.id === accountId) ?? accounts.find((a) => a.id === accountId);
+  const toAccount = accounts.find((a) => a.id === toAccountId);
+  const crossCurrency = kind === "transfer" && toAccount && account && toAccount.currency !== account.currency;
+  const amountNum = parseFloat(amount) || 0;
+  const isSplit = splits.length > 1;
+  const splitsTotal = splits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
+  const splitsMismatch = isSplit && Math.abs(splitsTotal - amountNum) > 0.005;
+
+  async function submit() {
+    setError("");
+    const body = {
+      date,
+      kind,
+      account_id: accountId,
+      amount: amountNum,
+      payee: payee.trim(),
+      note: note.trim(),
+      transfer_account_id: kind === "transfer" ? toAccountId : null,
+      transfer_amount:
+        kind === "transfer" ? (crossCurrency ? parseFloat(toAmount) || 0 : amountNum) : null,
+      splits:
+        kind === "transfer"
+          ? []
+          : (isSplit ? splits : [{ ...splits[0], amount: String(amountNum) }]).map((s) => ({
+              category_id: s.category_id,
+              amount: parseFloat(s.amount) || 0,
+              note: s.note,
+            })),
+    };
+    try {
+      await save.mutateAsync(body);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed");
+    }
+  }
+
+  async function del() {
+    await remove.mutateAsync(undefined);
+    onClose();
+  }
+
+  const kindBtn = (k: Kind, label: string, activeClass: string) => (
+    <button
+      type="button"
+      onClick={() => setKind(k)}
+      className={`flex-1 rounded-lg py-1.5 text-sm font-medium transition-colors ${
+        kind === k ? activeClass : "text-gray-400 hover:bg-white/5"
+      }`}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <Modal title={existing ? "Edit transaction" : "New transaction"} onClose={onClose}>
+      <div className="flex flex-col gap-4">
+        <div className="flex gap-1 rounded-xl bg-white/5 p-1">
+          {kindBtn("expense", "Expense", "bg-rose-500/25 text-rose-200")}
+          {kindBtn("income", "Income", "bg-emerald-500/25 text-emerald-200")}
+          {kindBtn("transfer", "Transfer", "bg-indigo-500/25 text-indigo-200")}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Date">
+            <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} />
+          </Field>
+          <Field label={kind === "transfer" ? "From account" : "Account"}>
+            <select className="input" value={accountId} onChange={(e) => setAccountId(Number(e.target.value))}>
+              {active.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name} ({a.currency})
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+
+        <Field label={`Amount${account ? ` (${account.currency})` : ""}`}>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            className="input text-lg"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            autoFocus
+          />
+        </Field>
+
+        {kind === "transfer" && (
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="To account">
+              <select
+                className="input"
+                value={toAccountId ?? ""}
+                onChange={(e) => setToAccountId(e.target.value === "" ? null : Number(e.target.value))}
+              >
+                <option value="">— choose —</option>
+                {active
+                  .filter((a) => a.id !== accountId)
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} ({a.currency})
+                    </option>
+                  ))}
+              </select>
+            </Field>
+            {crossCurrency && (
+              <Field label={`Received (${toAccount!.currency})`}>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="input"
+                  value={toAmount}
+                  onChange={(e) => setToAmount(e.target.value)}
+                />
+              </Field>
+            )}
+          </div>
+        )}
+
+        {kind !== "transfer" && (
+          <>
+            <Field label="Payee / merchant">
+              <input
+                className="input"
+                value={payee}
+                onChange={(e) => setPayee(e.target.value)}
+                placeholder="e.g. Carrefour"
+              />
+            </Field>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-400">
+                  {isSplit ? `Splits (${splitsTotal.toFixed(2)} / ${amountNum.toFixed(2)})` : "Category"}
+                </span>
+                <button
+                  type="button"
+                  className="text-xs text-indigo-300 hover:text-indigo-200"
+                  onClick={() => setSplits([...splits, { category_id: null, amount: "", note: "" }])}
+                >
+                  <Plus size={12} className="mr-0.5 inline" />
+                  Add split
+                </button>
+              </div>
+              {splits.map((s, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <CategorySelect
+                    categories={categories}
+                    kind={kind}
+                    value={s.category_id}
+                    onChange={(id) => setSplits(splits.map((x, j) => (j === i ? { ...x, category_id: id } : x)))}
+                  />
+                  {isSplit && (
+                    <>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="input w-28"
+                        placeholder="0.00"
+                        value={s.amount}
+                        onChange={(e) =>
+                          setSplits(splits.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="rounded p-1.5 text-gray-500 hover:bg-rose-500/20 hover:text-rose-300"
+                        onClick={() => setSplits(splits.filter((_, j) => j !== i))}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              ))}
+              {splitsMismatch && (
+                <p className="text-xs text-amber-400">Split amounts must add up to the total.</p>
+              )}
+            </div>
+          </>
+        )}
+
+        <Field label="Note">
+          <input className="input" value={note} onChange={(e) => setNote(e.target.value)} />
+        </Field>
+
+        {error && <p className="text-xs text-rose-400">{error}</p>}
+        <div className="flex gap-2">
+          {existing && (
+            <button className="btn-danger" onClick={del}>
+              <Trash2 size={15} /> Delete
+            </button>
+          )}
+          <button
+            className="btn-primary flex-1"
+            onClick={submit}
+            disabled={
+              amountNum <= 0 ||
+              splitsMismatch ||
+              (kind === "transfer" && (!toAccountId || (crossCurrency ? !(parseFloat(toAmount) > 0) : false)))
+            }
+          >
+            {existing ? "Save changes" : "Add transaction"}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}

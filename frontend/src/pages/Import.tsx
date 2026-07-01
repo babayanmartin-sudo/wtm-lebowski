@@ -1,0 +1,338 @@
+import { AlertTriangle, Check, CopyX, FileUp, Sparkles, Wand2 } from "lucide-react";
+import { useState } from "react";
+
+import { api } from "../api/client";
+import {
+  MONEY_KEYS,
+  useAccounts,
+  useCategories,
+  useImport,
+  useInvalidating,
+} from "../api/hooks";
+import type { ImportDetail, ImportRow } from "../api/types";
+import { CategorySelect, Field, PageHeader } from "../components/ui";
+import { fmtMoney } from "../lib/format";
+
+const FIELDS: { key: string; label: string; hint: string }[] = [
+  { key: "date", label: "Date", hint: "required" },
+  { key: "amount", label: "Amount (signed)", hint: "or use debit+credit" },
+  { key: "debit", label: "Debit (money out)", hint: "" },
+  { key: "credit", label: "Credit (money in)", hint: "" },
+  { key: "payee", label: "Payee / description", hint: "" },
+  { key: "note", label: "Note", hint: "" },
+];
+
+export default function ImportPage() {
+  const { data: accounts = [] } = useAccounts();
+  const { data: categories = [] } = useCategories();
+  const [accountId, setAccountId] = useState<number | null>(null);
+  const [importId, setImportId] = useState<number | null>(null);
+  const { data: imp, refetch } = useImport(importId);
+  const [mapping, setMapping] = useState<Record<string, number | "">>({});
+  const [dayfirst, setDayfirst] = useState(true);
+  const [negate, setNegate] = useState(false);
+  const [presetName, setPresetName] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const commit = useInvalidating(() => api.post(`/api/imports/${importId}/commit`), MONEY_KEYS);
+
+  const active = accounts.filter((a) => !a.archived);
+  const account = accounts.find((a) => a.id === (imp?.account_id ?? accountId));
+
+  async function upload(file: File) {
+    setError("");
+    setBusy(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("account_id", String(accountId ?? active[0]?.id));
+      const created = await api.postForm<ImportDetail>("/api/imports", form);
+      setImportId(created.id);
+      const m: Record<string, number | ""> = {};
+      for (const [k, v] of Object.entries(created.mapping ?? {})) m[k] = v as number;
+      setMapping(m);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function applyMapping() {
+    setError("");
+    setBusy(true);
+    try {
+      const clean: Record<string, number> = {};
+      for (const [k, v] of Object.entries(mapping)) if (v !== "") clean[k] = v as number;
+      await api.post(`/api/imports/${importId}/mapping`, {
+        mapping: clean,
+        options: { dayfirst, negate },
+        preset_name: presetName,
+      });
+      refetch();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Mapping failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function patchRow(row: ImportRow, patch: { category_id?: number | null; skip?: boolean }) {
+    await api.patch(`/api/imports/${importId}/rows/${row.id}`, patch);
+    refetch();
+  }
+
+  async function doCommit() {
+    setError("");
+    try {
+      await commit.mutateAsync(undefined);
+      refetch();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Commit failed");
+    }
+  }
+
+  function reset() {
+    setImportId(null);
+    setMapping({});
+    setPresetName("");
+    setError("");
+  }
+
+  const importable = (imp?.rows ?? []).filter((r) => !r.skip && !r.error && r.parsed_amount !== null);
+  const dupes = (imp?.rows ?? []).filter((r) => r.is_duplicate).length;
+
+  return (
+    <div>
+      <PageHeader title="Import" subtitle="Upload a bank statement (CSV or XLSX)" />
+
+      {/* Step 1: upload */}
+      {!imp && (
+        <div className="glass p-6">
+          <div className="mb-4 grid max-w-md gap-4">
+            <Field label="Into account">
+              <select
+                className="input"
+                value={accountId ?? active[0]?.id ?? ""}
+                onChange={(e) => setAccountId(Number(e.target.value))}
+              >
+                {active.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} ({a.currency})
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-white/15 p-12 text-gray-400 transition-colors hover:border-indigo-400/50 hover:text-gray-200">
+            <FileUp size={32} />
+            <span className="text-sm">{busy ? "Uploading…" : "Click to choose a .csv / .xlsx file"}</span>
+            <input
+              type="file"
+              accept=".csv,.xlsx,.xlsm,.txt"
+              className="hidden"
+              disabled={busy || active.length === 0}
+              onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
+            />
+          </label>
+          {active.length === 0 && (
+            <p className="mt-3 text-sm text-amber-400">Create an account first.</p>
+          )}
+          {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
+        </div>
+      )}
+
+      {/* Step 2: column mapping */}
+      {imp && imp.status === "mapping" && (
+        <div className="glass p-6">
+          <div className="mb-4 flex items-center gap-2 text-sm text-gray-300">
+            <Wand2 size={16} className="text-indigo-300" />
+            Map columns of <span className="font-medium text-white">{imp.filename}</span> — guessed
+            where possible, adjust as needed.
+          </div>
+          <div className="grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
+            {FIELDS.map((f) => (
+              <Field key={f.key} label={`${f.label}${f.hint ? ` (${f.hint})` : ""}`}>
+                <select
+                  className="input"
+                  value={mapping[f.key] ?? ""}
+                  onChange={(e) =>
+                    setMapping({ ...mapping, [f.key]: e.target.value === "" ? "" : Number(e.target.value) })
+                  }
+                >
+                  <option value="">— not present —</option>
+                  {imp.headers.map((h, i) => (
+                    <option key={i} value={i}>
+                      {h || `column ${i + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-6 text-sm">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={dayfirst} onChange={(e) => setDayfirst(e.target.checked)} />
+              Day-first dates (31/12/2026)
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={negate} onChange={(e) => setNegate(e.target.checked)} />
+              Flip sign (bank exports expenses as positive)
+            </label>
+          </div>
+          <div className="mt-4 flex max-w-md items-end gap-3">
+            <Field label="Save preset as (bank name)">
+              <input
+                className="input"
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                placeholder={imp.filename}
+              />
+            </Field>
+            <button
+              className="btn-primary"
+              onClick={applyMapping}
+              disabled={
+                busy ||
+                mapping["date"] === "" ||
+                mapping["date"] === undefined ||
+                (mapping["amount"] === undefined || mapping["amount"] === "") &&
+                  (mapping["debit"] === undefined || mapping["debit"] === "") &&
+                  (mapping["credit"] === undefined || mapping["credit"] === "")
+              }
+            >
+              Preview
+            </button>
+            <button className="btn-ghost" onClick={reset}>
+              Cancel
+            </button>
+          </div>
+          {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
+        </div>
+      )}
+
+      {/* Step 3: preview + commit */}
+      {imp && imp.status === "preview" && (
+        <div className="flex flex-col gap-4">
+          <div className="glass flex flex-wrap items-center gap-4 p-4 text-sm">
+            <span className="flex items-center gap-2 text-gray-300">
+              <Sparkles size={15} className="text-indigo-300" />
+              {imp.filename} → {account?.name}
+            </span>
+            <span className="text-gray-400">{importable.length} to import</span>
+            {dupes > 0 && (
+              <span className="flex items-center gap-1 text-amber-300">
+                <CopyX size={14} /> {dupes} duplicates skipped
+              </span>
+            )}
+            <span className="flex-1" />
+            <button className="btn-ghost" onClick={() => api.del(`/api/imports/${imp.id}`).then(reset)}>
+              Cancel
+            </button>
+            <button className="btn-ghost" onClick={() => refetch()}>
+              Refresh
+            </button>
+            <button className="btn-primary" onClick={doCommit} disabled={importable.length === 0}>
+              <Check size={15} /> Import {importable.length} rows
+            </button>
+          </div>
+          {error && <p className="text-sm text-rose-400">{error}</p>}
+
+          <div className="glass overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-500">
+                  <th className="px-3 py-2">Use</th>
+                  <th className="px-3 py-2">Date</th>
+                  <th className="px-3 py-2">Payee</th>
+                  <th className="px-3 py-2 text-right">Amount</th>
+                  <th className="px-3 py-2">Category</th>
+                  <th className="px-3 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {imp.rows.map((r) => (
+                  <tr
+                    key={r.id}
+                    className={`border-b border-white/5 last:border-0 ${r.skip ? "opacity-40" : ""}`}
+                  >
+                    <td className="px-3 py-1.5">
+                      <input
+                        type="checkbox"
+                        checked={!r.skip}
+                        disabled={!!r.error}
+                        onChange={(e) => patchRow(r, { skip: !e.target.checked })}
+                      />
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-1.5 text-gray-400">{r.parsed_date ?? "—"}</td>
+                    <td className="max-w-64 truncate px-3 py-1.5">{r.parsed_payee || r.parsed_note || "—"}</td>
+                    <td
+                      className={`whitespace-nowrap px-3 py-1.5 text-right tabular-nums ${
+                        (r.parsed_amount ?? 0) >= 0 ? "text-emerald-300" : "text-gray-200"
+                      }`}
+                    >
+                      {r.parsed_amount !== null ? fmtMoney(r.parsed_amount, account?.currency) : "—"}
+                    </td>
+                    <td className="px-3 py-1.5">
+                      {!r.error && (
+                        <div className="flex items-center gap-1.5">
+                          <CategorySelect
+                            categories={categories}
+                            kind={(r.parsed_amount ?? 0) < 0 ? "expense" : "income"}
+                            value={r.category_id}
+                            onChange={(id) => patchRow(r, { category_id: id })}
+                            className="input w-44 py-1 text-xs"
+                          />
+                          {r.suggestion_confidence && r.category_id === r.suggested_category_id && (
+                            <span
+                              title={`Suggested via ${r.suggestion_confidence} match`}
+                              className={`rounded-full px-1.5 py-0.5 text-[10px] ${
+                                r.suggestion_confidence === "fuzzy"
+                                  ? "bg-amber-500/20 text-amber-300"
+                                  : "bg-emerald-500/20 text-emerald-300"
+                              }`}
+                            >
+                              {r.suggestion_confidence}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-1.5 text-xs">
+                      {r.error ? (
+                        <span className="flex items-center gap-1 text-rose-400">
+                          <AlertTriangle size={12} /> {r.error}
+                        </span>
+                      ) : r.is_duplicate ? (
+                        <span className="text-amber-300">duplicate</span>
+                      ) : (
+                        <span className="text-gray-500">ok</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Done */}
+      {imp && imp.status === "done" && (
+        <div className="glass flex flex-col items-center gap-4 p-12">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300">
+            <Check size={26} />
+          </div>
+          <p className="text-sm text-gray-300">
+            Imported into <span className="font-medium text-white">{account?.name}</span>. The matcher
+            learned from your corrections.
+          </p>
+          <button className="btn-primary" onClick={reset}>
+            Import another file
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
