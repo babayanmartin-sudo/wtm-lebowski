@@ -176,6 +176,19 @@ class RuleOut(ORMModel, RuleIn):
     last_used: datetime | None
 
 
+# ---- ignore rules ----
+class IgnoreRuleIn(BaseModel):
+    pattern: str
+    match_kind: str = "contains"  # exact|contains
+    priority: int = 0
+
+
+class IgnoreRuleOut(ORMModel, IgnoreRuleIn):
+    id: int
+    hit_count: int
+    last_used: datetime | None
+
+
 # ---- rates ----
 class RateOut(ORMModel):
     date: date
@@ -196,6 +209,7 @@ class ImportRowOut(ORMModel):
     suggestion_confidence: str
     category_id: int | None
     is_duplicate: bool
+    ignored: bool
     skip: bool
     error: str
 

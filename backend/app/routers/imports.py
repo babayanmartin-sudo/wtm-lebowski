@@ -7,7 +7,7 @@ from ..db import get_db
 from ..models import Account, ColumnPreset, Import, ImportRow, Split, Transaction
 from ..schemas import ImportDetail, ImportOut, MappingIn, RowPatch
 from ..services import importer
-from ..services.matcher import learn
+from ..services.matcher import learn, learn_ignore, normalize
 from ..services.rates import to_base
 
 router = APIRouter(prefix="/api/imports", tags=["imports"], dependencies=[Depends(require_auth)])
@@ -99,12 +99,44 @@ def patch_row(import_id: int, row_id: int, body: RowPatch, db: Session = Depends
     row = db.get(ImportRow, row_id)
     if not row or row.import_id != import_id:
         raise HTTPException(404, "Row not found")
-    if body.category_id is not None:
-        row.category_id = body.category_id
-    if body.skip is not None:
+    imp = row.import_
+    fields = body.model_fields_set
+    if "category_id" in fields:
+        norm_payee = normalize(row.parsed_payee)
+        siblings = (
+            [r for r in imp.rows if not r.error and normalize(r.parsed_payee) == norm_payee]
+            if norm_payee
+            else [row]
+        )
+        for sibling in siblings:
+            sibling.category_id = body.category_id
+        if body.category_id and row.parsed_payee:
+            learn(db, row.parsed_payee, body.category_id)
+    if "skip" in fields:
         row.skip = body.skip
     db.commit()
-    return row.import_
+    return imp
+
+
+@router.post("/{import_id}/rows/{row_id}/ignore", response_model=ImportDetail)
+def ignore_row(import_id: int, row_id: int, db: Session = Depends(get_db)):
+    """Mark this row and every same-merchant row in this import as ignored,
+    and remember the merchant so future imports auto-skip it too."""
+    row = db.get(ImportRow, row_id)
+    if not row or row.import_id != import_id:
+        raise HTTPException(404, "Row not found")
+    if not row.parsed_payee:
+        raise HTTPException(400, "Row has no payee text to build an ignore rule from")
+    imp = row.import_
+    norm_payee = normalize(row.parsed_payee)
+    for sibling in imp.rows:
+        if not sibling.error and normalize(sibling.parsed_payee) == norm_payee:
+            sibling.skip = True
+            sibling.ignored = True
+            sibling.category_id = None
+    learn_ignore(db, row.parsed_payee)
+    db.commit()
+    return imp
 
 
 @router.post("/{import_id}/commit", response_model=ImportOut)

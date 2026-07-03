@@ -131,8 +131,18 @@ export interface ImportRow {
   suggestion_confidence: string;
   category_id: number | null;
   is_duplicate: boolean;
+  ignored: boolean;
   skip: boolean;
   error: string;
+}
+
+export interface IgnoreRule {
+  id: number;
+  pattern: string;
+  match_kind: "exact" | "contains";
+  priority: number;
+  hit_count: number;
+  last_used: string | null;
 }
 
 export interface ImportDetail {

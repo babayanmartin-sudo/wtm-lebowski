@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, CopyX, FileUp, Pencil, Sparkles, Wand2 } from "lucide-react";
+import { AlertTriangle, Check, CopyX, EyeOff, FileUp, Pencil, Sparkles, Wand2 } from "lucide-react";
 import { useState } from "react";
 
 import { api } from "../api/client";
@@ -89,6 +89,16 @@ export default function ImportPage() {
   async function patchRow(row: ImportRow, patch: { category_id?: number | null; skip?: boolean }) {
     await api.patch(`/api/imports/${importId}/rows/${row.id}`, patch);
     refetch();
+  }
+
+  async function ignoreRow(row: ImportRow) {
+    setError("");
+    try {
+      await api.post(`/api/imports/${importId}/rows/${row.id}/ignore`);
+      refetch();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to ignore");
+    }
   }
 
   async function doCommit() {
@@ -299,7 +309,12 @@ export default function ImportPage() {
                             <AlertTriangle size={10} /> {r.error}
                           </span>
                         )}
-                        {!r.error && r.is_duplicate && (
+                        {!r.error && r.ignored && (
+                          <span className="shrink-0 rounded-full bg-gray-500/20 px-1.5 py-0.5 text-[10px] text-gray-400">
+                            ignored
+                          </span>
+                        )}
+                        {!r.error && !r.ignored && r.is_duplicate && (
                           <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-300">
                             duplicate
                           </span>
@@ -335,6 +350,18 @@ export default function ImportPage() {
                               {r.suggestion_confidence}
                             </span>
                           )}
+                          <button
+                            title={
+                              r.parsed_payee
+                                ? "Ignore this merchant now and in future imports"
+                                : "No payee text to match on"
+                            }
+                            disabled={!r.parsed_payee}
+                            className="shrink-0 rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-300 disabled:opacity-30"
+                            onClick={() => ignoreRow(r)}
+                          >
+                            <EyeOff size={13} />
+                          </button>
                         </div>
                       )}
                     </td>

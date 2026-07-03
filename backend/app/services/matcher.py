@@ -12,7 +12,7 @@ from rapidfuzz import fuzz, process
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..models import MappingRule, Split, Transaction
+from ..models import IgnoreRule, MappingRule, Split, Transaction
 
 FUZZY_THRESHOLD = 85
 
@@ -106,6 +106,51 @@ def learn(db: Session, payee: str, category_id: int) -> None:
         db.flush()
 
 
-def _record_hit(db: Session, rule: MappingRule) -> None:
+def is_ignored(db: Session, payee: str) -> tuple[bool, str]:
+    """Returns (ignored, confidence) where confidence is exact|rule|''."""
+    norm = normalize(payee)
+    if not norm:
+        return False, ""
+
+    rules = db.scalars(
+        select(IgnoreRule).order_by(IgnoreRule.priority.desc(), IgnoreRule.id)
+    ).all()
+
+    for rule in rules:
+        if rule.match_kind == "exact" and rule.pattern == norm:
+            _record_hit(db, rule)
+            return True, "exact"
+
+    contains = [r for r in rules if r.match_kind == "contains" and r.pattern in norm]
+    if contains:
+        best = max(contains, key=lambda r: (r.priority, len(r.pattern)))
+        _record_hit(db, best)
+        return True, "rule"
+
+    return False, ""
+
+
+def learn_ignore(db: Session, payee: str) -> None:
+    """Upsert an exact ignore rule from a user's 'ignore this' action."""
+    norm = normalize(payee)
+    if not norm:
+        return
+    rules = db.scalars(
+        select(IgnoreRule)
+        .where(IgnoreRule.pattern == norm, IgnoreRule.match_kind == "exact")
+        .order_by(IgnoreRule.id)
+    ).all()
+    if rules:
+        rule, *extra = rules
+        for dup in extra:
+            db.delete(dup)
+        rule.hit_count += 1
+        rule.last_used = datetime.now(timezone.utc)
+    else:
+        db.add(IgnoreRule(pattern=norm, match_kind="exact", hit_count=1))
+        db.flush()
+
+
+def _record_hit(db: Session, rule: MappingRule | IgnoreRule) -> None:
     rule.hit_count += 1
     rule.last_used = datetime.now(timezone.utc)

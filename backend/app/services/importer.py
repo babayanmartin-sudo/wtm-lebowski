@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import ColumnPreset, Import, ImportRow, Transaction
-from .matcher import _known_payees, normalize, suggest
+from .matcher import _known_payees, is_ignored, normalize, suggest
 
 MAX_ROWS = 5000
 
@@ -187,6 +187,7 @@ def apply_mapping(db: Session, imp: Import) -> None:
         row.error = ""
         row.parsed_date = None
         row.parsed_amount = None
+        row.ignored = False
         try:
             _parse_row(row, mapping, dayfirst, negate)
         except (ValueError, OverflowError, IndexError) as e:
@@ -196,6 +197,16 @@ def apply_mapping(db: Session, imp: Import) -> None:
         row.dedupe_hash = dedupe_hash(row.parsed_date, row.parsed_amount, row.parsed_payee)
         row.is_duplicate = row.dedupe_hash in existing_hashes or row.dedupe_hash in seen_in_file
         seen_in_file.add(row.dedupe_hash)
+
+        ignored, _ = is_ignored(db, row.parsed_payee)
+        row.ignored = ignored
+        if ignored:
+            row.skip = True
+            row.category_id = None
+            row.suggested_category_id = None
+            row.suggestion_confidence = ""
+            continue
+
         row.skip = row.is_duplicate
         if row.category_id is None:
             cat, conf = suggest(db, row.parsed_payee, known)

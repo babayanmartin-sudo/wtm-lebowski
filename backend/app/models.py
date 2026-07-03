@@ -178,6 +178,18 @@ class MappingRule(Base):
     category: Mapped[Category] = relationship()
 
 
+class IgnoreRule(Base):
+    __tablename__ = "ignore_rules"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    pattern: Mapped[str] = mapped_column(String, index=True)  # normalized merchant text
+    match_kind: Mapped[str] = mapped_column(String, default="contains")  # exact|contains
+    priority: Mapped[int] = mapped_column(Integer, default=0)
+    hit_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_used: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
 class ExchangeRate(Base):
     __tablename__ = "exchange_rates"
     __table_args__ = (UniqueConstraint("date", "currency", name="uq_rate_date_currency"),)
@@ -224,6 +236,7 @@ class ImportRow(Base):
     category_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
     dedupe_hash: Mapped[str | None] = mapped_column(String, nullable=True)
     is_duplicate: Mapped[bool] = mapped_column(Boolean, default=False)
+    ignored: Mapped[bool] = mapped_column(Boolean, default=False)
     skip: Mapped[bool] = mapped_column(Boolean, default=False)
     error: Mapped[str] = mapped_column(String, default="")
 

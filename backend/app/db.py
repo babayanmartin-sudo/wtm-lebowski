@@ -26,6 +26,16 @@ def init_db() -> None:
     from . import models  # noqa: F401  ensure models are registered
 
     Base.metadata.create_all(engine)
+    _migrate()
+
+
+def _migrate() -> None:
+    """create_all() only adds new tables, never new columns on existing
+    ones — patch older sqlite files in place."""
+    with engine.begin() as conn:
+        cols = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(import_rows)")]
+        if "ignored" not in cols:
+            conn.exec_driver_sql("ALTER TABLE import_rows ADD COLUMN ignored BOOLEAN DEFAULT 0")
 
 
 def get_db():

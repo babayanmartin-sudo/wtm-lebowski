@@ -9,6 +9,7 @@ import type {
   Category,
   DashboardSummary,
   Goal,
+  IgnoreRule,
   ImportDetail,
   Rule,
   Template,
@@ -69,6 +70,14 @@ export function useRules(q: string) {
   return useQuery({
     queryKey: ["rules", q],
     queryFn: () => api.get<Rule[]>(`/api/rules${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  });
+}
+
+export function useIgnoreRules(q: string) {
+  return useQuery({
+    queryKey: ["ignore-rules", q],
+    queryFn: () =>
+      api.get<IgnoreRule[]>(`/api/ignore-rules${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   });
 }
 
