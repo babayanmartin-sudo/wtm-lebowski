@@ -206,7 +206,7 @@ def test_import_xlsx(seeded):
     wb = Workbook()
     ws = wb.active
     ws.append(["Date", "Description", "Amount"])
-    ws.append(["2026-07-01", "NOON.COM ORDER 555", -75.25])
+    ws.append(["2026-07-01", "NOON.COM ORDER", -75.25])
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
@@ -223,4 +223,4 @@ def test_import_xlsx(seeded):
     )
     row = r.json()["rows"][0]
     assert row["parsed_amount"] == -75.25
-    assert row["parsed_payee"] == "NOON.COM ORDER 555"
+    assert row["parsed_payee"] == "NOON.COM ORDER"

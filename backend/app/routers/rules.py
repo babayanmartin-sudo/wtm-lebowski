@@ -65,4 +65,5 @@ def _validated(db: Session, body: RuleIn) -> dict:
         raise HTTPException(400, "Pattern is empty after normalization")
     data = body.model_dump()
     data["pattern"] = pattern
+    data["alias"] = data["alias"].strip()
     return data

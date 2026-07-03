@@ -10,6 +10,7 @@ interface Draft {
   pattern: string;
   match_kind: "exact" | "contains";
   category_id: number | null;
+  alias: string;
   priority: number;
 }
 
@@ -79,7 +80,9 @@ export default function RulesPage() {
         actions={
           <button
             className="btn-primary"
-            onClick={() => setDraft({ pattern: "", match_kind: "contains", category_id: null, priority: 0 })}
+            onClick={() =>
+              setDraft({ pattern: "", match_kind: "contains", category_id: null, alias: "", priority: 0 })
+            }
           >
             <Plus size={16} /> Add rule
           </button>
@@ -107,6 +110,7 @@ export default function RulesPage() {
             <thead>
               <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-gray-500">
                 <th className="px-4 py-2.5">Pattern</th>
+                <th className="px-4 py-2.5">Alias</th>
                 <th className="px-4 py-2.5">Match</th>
                 <th className="px-4 py-2.5">Category</th>
                 <th className="px-4 py-2.5 text-right">Hits</th>
@@ -119,6 +123,7 @@ export default function RulesPage() {
                 return (
                   <tr key={r.id} className="group border-b border-white/5 last:border-0 hover:bg-white/5">
                     <td className="px-4 py-2 font-mono text-xs">{r.pattern}</td>
+                    <td className="px-4 py-2 text-xs text-gray-300">{r.alias || "—"}</td>
                     <td className="px-4 py-2">
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide ${
@@ -171,6 +176,14 @@ export default function RulesPage() {
                 onChange={(e) => setDraft({ ...draft, pattern: e.target.value })}
                 placeholder="e.g. CARREFOUR"
                 autoFocus
+              />
+            </Field>
+            <Field label="Alias (optional — replaces the payee shown for matches)">
+              <input
+                className="input"
+                value={draft.alias}
+                onChange={(e) => setDraft({ ...draft, alias: e.target.value })}
+                placeholder="e.g. Carrefour Supermarket"
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">

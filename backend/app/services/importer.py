@@ -26,10 +26,13 @@ _AMOUNT_JUNK_RE = re.compile(r"[^\d,.\-+()]")
 _DEBIT_VALUES = {"DEBIT", "DR", "D", "DEBET", "СПИСАНИЕ", "ДЕБЕТ", "OUT", "WITHDRAWAL"}
 _CREDIT_VALUES = {"CREDIT", "CR", "C", "ЗАЧИСЛЕНИЕ", "КРЕДИТ", "IN", "DEPOSIT"}
 
-# Some card statements append a trailing reference/terminal number to every
-# description, e.g. "STARBUCKS COFFEE 784 1561490302" (3 digits + 10 digits).
-# Strip it so the stored payee stays clean.
-_TRAILING_CARD_REF_RE = re.compile(r"\s+\d{3}\s+\d{10}\s*$")
+# Card/bank statements often append trailing reference/terminal numbers to
+# every description, e.g. "STARBUCKS COFFEE 784 1561490302" or
+# "CARREFOUR MALL BR 42" — one or more whitespace-separated digit groups at
+# the very end. Strip all of them so the stored payee stays clean; only
+# numbers glued to a word (e.g. "7-ELEVEN", "24/7") are left alone since
+# they aren't preceded by whitespace.
+_TRAILING_CARD_REF_RE = re.compile(r"(?:\s+\d+)+\s*$")
 
 
 def strip_trailing_card_ref(payee: str) -> str:
@@ -227,10 +230,12 @@ def apply_mapping(db: Session, imp: Import) -> None:
 
         row.skip = row.is_duplicate
         if row.category_id is None:
-            cat, conf = suggest(db, row.parsed_payee, known)
+            cat, conf, alias = suggest(db, row.parsed_payee, known)
             row.suggested_category_id = cat
             row.suggestion_confidence = conf
             row.category_id = cat
+            if alias:
+                row.parsed_payee = alias
     db.commit()
 
 

@@ -170,6 +170,7 @@ class MappingRule(Base):
     pattern: Mapped[str] = mapped_column(String, index=True)  # normalized merchant text
     match_kind: Mapped[str] = mapped_column(String, default="exact")  # exact|contains
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id", ondelete="CASCADE"))
+    alias: Mapped[str] = mapped_column(String, default="")  # display name to replace payee with
     priority: Mapped[int] = mapped_column(Integer, default=0)
     hit_count: Mapped[int] = mapped_column(Integer, default=0)
     last_used: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

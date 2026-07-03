@@ -49,11 +49,18 @@ def _known_payees(db: Session) -> dict[str, int]:
     return result
 
 
-def suggest(db: Session, payee: str, known: dict[str, int] | None = None) -> tuple[int | None, str]:
-    """Returns (category_id, confidence) where confidence is exact|rule|fuzzy|''."""
+def suggest(
+    db: Session, payee: str, known: dict[str, int] | None = None
+) -> tuple[int | None, str, str]:
+    """Returns (category_id, confidence, alias) where confidence is exact|rule|fuzzy|''.
+
+    alias is the rule's display-name override (empty unless an exact/contains
+    rule with one set matched — fuzzy matches have no specific rule to draw
+    an alias from).
+    """
     norm = normalize(payee)
     if not norm:
-        return None, ""
+        return None, "", ""
 
     rules = db.scalars(
         select(MappingRule).order_by(MappingRule.priority.desc(), MappingRule.id)
@@ -62,13 +69,13 @@ def suggest(db: Session, payee: str, known: dict[str, int] | None = None) -> tup
     for rule in rules:
         if rule.match_kind == "exact" and rule.pattern == norm:
             _record_hit(db, rule)
-            return rule.category_id, "exact"
+            return rule.category_id, "exact", rule.alias
 
     contains = [r for r in rules if r.match_kind == "contains" and r.pattern in norm]
     if contains:
         best = max(contains, key=lambda r: (r.priority, len(r.pattern)))
         _record_hit(db, best)
-        return best.category_id, "rule"
+        return best.category_id, "rule", best.alias
 
     if known is None:
         known = _known_payees(db)
@@ -77,9 +84,9 @@ def suggest(db: Session, payee: str, known: dict[str, int] | None = None) -> tup
             norm, known.keys(), scorer=fuzz.token_set_ratio, score_cutoff=FUZZY_THRESHOLD
         )
         if match:
-            return known[match[0]], "fuzzy"
+            return known[match[0]], "fuzzy", ""
 
-    return None, ""
+    return None, "", ""
 
 
 def learn(db: Session, payee: str, category_id: int) -> None:

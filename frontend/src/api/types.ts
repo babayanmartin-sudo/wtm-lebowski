@@ -114,6 +114,7 @@ export interface Rule {
   pattern: string;
   match_kind: "exact" | "contains";
   category_id: number;
+  alias: string;
   priority: number;
   hit_count: number;
   last_used: string | null;

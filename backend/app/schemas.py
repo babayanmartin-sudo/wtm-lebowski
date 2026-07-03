@@ -167,6 +167,7 @@ class RuleIn(BaseModel):
     pattern: str
     match_kind: str = "exact"  # exact|contains
     category_id: int
+    alias: str = ""  # replaces the transaction payee when this rule matches
     priority: int = 0
 
 

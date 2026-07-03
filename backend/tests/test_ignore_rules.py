@@ -55,7 +55,10 @@ def test_ignore_row_blocks_siblings_now_and_future(seeded):
     )
     imp = _upload_and_map(c, seeded["aed"]["id"], csv)
     rows = imp["rows"]
-    target = next(r for r in rows if "1001" in r["parsed_payee"])
+    # trailing reference numbers are stripped from parsed_payee now, so both
+    # "REF 1001" and "REF 1002" rows normalize to the same text -> pick by index
+    target = next(r for r in rows if r["parsed_amount"] == -100.0)
+    assert target["parsed_payee"] == "INTERNAL TRANSFER REF"
 
     r = c.post(f"/api/imports/{imp['id']}/rows/{target['id']}/ignore")
     assert r.status_code == 200
