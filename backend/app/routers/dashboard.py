@@ -11,6 +11,7 @@ from ..db import get_db
 from ..models import Account, Category, Split, Transaction
 from ..schemas import TransactionOut
 from ..services.balances import balance_in_base, compute_balances
+from ..services.forecast import project_net_worth
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"], dependencies=[Depends(require_auth)])
 
@@ -27,10 +28,15 @@ def summary(
     if start > end:
         raise HTTPException(400, "date_from must be on or before date_to")
 
-    balances = compute_balances(db)
+    # net worth as it stood at the end of the selected period
+    balances = compute_balances(db, as_of=end)
     accounts = db.scalars(select(Account).where(Account.archived.is_(False))).all()
     net_worth = round(
-        sum(balance_in_base(db, a, balances.get(a.id, a.initial_balance)) for a in accounts), 2
+        sum(
+            balance_in_base(db, a, balances.get(a.id, a.initial_balance), on_date=end)
+            for a in accounts
+        ),
+        2,
     )
 
     cat_ids = _category_ids_with_children(db, category_id)
@@ -50,6 +56,22 @@ def summary(
         "series": series,
         "series_granularity": granularity,
         "recent": _recent(db, account_id, cat_ids),
+    }
+
+
+@router.get("/projection")
+def projection(months: int = Query(default=12, ge=1, le=36), db: Session = Depends(get_db)):
+    """Projected net worth at each month-end, driven by active recurring
+    templates and monthly budgets."""
+    balances = compute_balances(db)
+    accounts = db.scalars(select(Account).where(Account.archived.is_(False))).all()
+    current = round(
+        sum(balance_in_base(db, a, balances.get(a.id, a.initial_balance)) for a in accounts), 2
+    )
+    return {
+        "base_currency": BASE_CURRENCY,
+        "current_net_worth": current,
+        "points": project_net_worth(db, current, months),
     }
 
 

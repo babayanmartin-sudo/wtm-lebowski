@@ -4,17 +4,21 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  RotateCcw,
   SkipForward,
   TrendingUp,
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   Cell,
   Pie,
   PieChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -30,9 +34,10 @@ import {
   useDashboard,
   useInvalidating,
   usePendingTemplates,
+  useProjection,
 } from "../api/hooks";
 import { CategorySelect, ColorDot, ProgressBar } from "../components/ui";
-import { fmtMoney } from "../lib/format";
+import { fmtMoney, fmtMonth } from "../lib/format";
 import {
   type Granularity,
   bucketLabel,
@@ -51,6 +56,8 @@ export default function DashboardPage() {
   const [customTo, setCustomTo] = useState(toISO(new Date()));
   const [accountId, setAccountId] = useState<number | null>(null);
   const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [forecastMonths, setForecastMonths] = useState(12);
+  const [drilled, setDrilled] = useState(false);
 
   const period = useMemo(() => {
     if (granularity === "month") return monthPeriod(anchor);
@@ -69,6 +76,7 @@ export default function DashboardPage() {
   const budgetMonth = period.from.slice(0, 7);
   const { data: budgetStatus = [] } = useBudgetStatus(budgetMonth);
   const { data: pending = [] } = usePendingTemplates();
+  const { data: forecast } = useProjection(forecastMonths);
 
   const postTemplate = useInvalidating(
     (id: number) => api.post(`/api/templates/${id}/post`),
@@ -86,6 +94,7 @@ export default function DashboardPage() {
 
   function setMode(g: Granularity) {
     setGranularity(g);
+    setDrilled(false);
     if (g !== "custom") setAnchor(new Date());
     else {
       setCustomFrom(period.from);
@@ -98,6 +107,15 @@ export default function DashboardPage() {
     setCustomFrom(range.from);
     setCustomTo(range.to);
     setGranularity("custom");
+    setDrilled(true);
+  }
+
+  function resetView() {
+    setGranularity("month");
+    setAnchor(new Date());
+    setDrilled(false);
+    setAccountId(null);
+    setCategoryId(null);
   }
 
   function toggleCategory(id: number | null) {
@@ -166,6 +184,12 @@ export default function DashboardPage() {
                 onChange={(e) => setCustomTo(e.target.value)}
               />
             </div>
+          )}
+
+          {(drilled || granularity === "custom" || hasFilter) && (
+            <button className="btn-ghost px-3 py-1.5 text-xs" title="Back to current month, clear filters" onClick={resetView}>
+              <RotateCcw size={13} /> Reset
+            </button>
           )}
 
           <select
@@ -356,6 +380,87 @@ export default function DashboardPage() {
             </>
           )}
         </div>
+      </div>
+
+      <div className="glass p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-300">
+            Net worth forecast
+            <span className="ml-2 text-xs font-normal text-gray-500">
+              from recurring transactions + budgets
+            </span>
+          </h2>
+          <div className="flex rounded-lg bg-white/5 p-1 text-xs">
+            {[6, 12, 24].map((m) => (
+              <button
+                key={m}
+                onClick={() => setForecastMonths(m)}
+                className={`rounded-md px-2.5 py-1 transition-colors ${
+                  forecastMonths === m ? "bg-indigo-500 text-white" : "text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                {m}m
+              </button>
+            ))}
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={200}>
+          <AreaChart data={forecast?.points ?? []}>
+            <defs>
+              <linearGradient id="nwGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#6366f1" stopOpacity={0.5} />
+                <stop offset="100%" stopColor="#6366f1" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <XAxis
+              dataKey="month"
+              tickFormatter={fmtMonth}
+              stroke="#4b5563"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              stroke="#4b5563"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+              width={70}
+              domain={["auto", "auto"]}
+              tickFormatter={(v) => new Intl.NumberFormat("en-US", { notation: "compact" }).format(v)}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "#161a26",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 12,
+                fontSize: 12,
+              }}
+              labelFormatter={fmtMonth}
+              formatter={(v) => [fmtMoney(Number(v), forecast?.base_currency), "Net worth"]}
+            />
+            {forecast && (
+              <ReferenceLine
+                y={forecast.current_net_worth}
+                stroke="#64748b"
+                strokeDasharray="4 4"
+                label={{
+                  value: "today",
+                  position: "insideTopRight",
+                  fill: "#64748b",
+                  fontSize: 10,
+                }}
+              />
+            )}
+            <Area
+              type="monotone"
+              dataKey="net_worth"
+              stroke="#818cf8"
+              strokeWidth={2}
+              fill="url(#nwGradient)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">

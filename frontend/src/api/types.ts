@@ -192,3 +192,9 @@ export interface DashboardParams {
   account_id?: number;
   category_id?: number;
 }
+
+export interface Projection {
+  base_currency: string;
+  current_net_worth: number;
+  points: { month: string; net_worth: number }[];
+}

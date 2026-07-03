@@ -12,6 +12,7 @@ import type {
   Goal,
   IgnoreRule,
   ImportDetail,
+  Projection,
   Rule,
   Template,
   TransactionPage,
@@ -90,6 +91,13 @@ export function useImport(id: number | null) {
   });
 }
 
+export function useProjection(months: number) {
+  return useQuery({
+    queryKey: ["projection", months],
+    queryFn: () => api.get<Projection>(`/api/dashboard/projection?months=${months}`),
+  });
+}
+
 export function useDashboard(params: DashboardParams) {
   const qs = new URLSearchParams();
   qs.set("date_from", params.date_from);
@@ -116,4 +124,11 @@ export function useInvalidating<TArgs, TResult = unknown>(
   });
 }
 
-export const MONEY_KEYS = [["accounts"], ["transactions"], ["dashboard"], ["budgets"], ["templates"]];
+export const MONEY_KEYS = [
+  ["accounts"],
+  ["transactions"],
+  ["dashboard"],
+  ["budgets"],
+  ["templates"],
+  ["projection"],
+];
