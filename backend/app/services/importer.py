@@ -26,6 +26,15 @@ _AMOUNT_JUNK_RE = re.compile(r"[^\d,.\-+()]")
 _DEBIT_VALUES = {"DEBIT", "DR", "D", "DEBET", "СПИСАНИЕ", "ДЕБЕТ", "OUT", "WITHDRAWAL"}
 _CREDIT_VALUES = {"CREDIT", "CR", "C", "ЗАЧИСЛЕНИЕ", "КРЕДИТ", "IN", "DEPOSIT"}
 
+# Some card statements append a trailing reference/terminal number to every
+# description, e.g. "STARBUCKS COFFEE 784 1561490302" (3 digits + 10 digits).
+# Strip it so the stored payee stays clean.
+_TRAILING_CARD_REF_RE = re.compile(r"\s+\d{3}\s+\d{10}\s*$")
+
+
+def strip_trailing_card_ref(payee: str) -> str:
+    return _TRAILING_CARD_REF_RE.sub("", payee).strip()
+
 
 def parse_file(filename: str, content: bytes) -> tuple[list[list[str]], int]:
     """Returns (all rows as strings, header_row_index)."""
@@ -264,7 +273,7 @@ def _parse_row(row: ImportRow, mapping: dict, dayfirst: bool, negate: bool) -> N
     if amount == 0:
         raise ValueError("zero amount")
     row.parsed_amount = round(amount, 2)
-    row.parsed_payee = cell("payee")
+    row.parsed_payee = strip_trailing_card_ref(cell("payee"))
     row.parsed_note = cell("note")
 
 
