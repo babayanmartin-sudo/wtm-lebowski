@@ -15,8 +15,9 @@ import { fmtMoney } from "../lib/format";
 
 const FIELDS: { key: string; label: string; hint: string }[] = [
   { key: "date", label: "Date", hint: "required" },
-  { key: "amount", label: "Amount (signed)", hint: "or use debit+credit" },
-  { key: "debit", label: "Debit (money out)", hint: "" },
+  { key: "amount", label: "Amount", hint: "signed, or unsigned + Debit/Credit column below" },
+  { key: "direction", label: "Debit/Credit column", hint: "text values like 'Debit'/'Credit', pairs with Amount" },
+  { key: "debit", label: "Debit (money out)", hint: "alternative: separate debit+credit amount columns" },
   { key: "credit", label: "Credit (money in)", hint: "" },
   { key: "payee", label: "Payee / description", hint: "" },
   { key: "note", label: "Note", hint: "" },

@@ -23,6 +23,9 @@ MAX_ROWS = 5000
 
 _AMOUNT_JUNK_RE = re.compile(r"[^\d,.\-+()]")
 
+_DEBIT_VALUES = {"DEBIT", "DR", "D", "DEBET", "СПИСАНИЕ", "ДЕБЕТ", "OUT", "WITHDRAWAL"}
+_CREDIT_VALUES = {"CREDIT", "CR", "C", "ЗАЧИСЛЕНИЕ", "КРЕДИТ", "IN", "DEPOSIT"}
+
 
 def parse_file(filename: str, content: bytes) -> tuple[list[list[str]], int]:
     """Returns (all rows as strings, header_row_index)."""
@@ -230,7 +233,18 @@ def _parse_row(row: ImportRow, mapping: dict, dayfirst: bool, negate: bool) -> N
         raise ValueError("missing date")
     row.parsed_date = parse_date_cell(date_str, dayfirst)
 
-    if "amount" in mapping:
+    if "direction" in mapping:
+        if "amount" not in mapping:
+            raise ValueError("direction column requires an amount column")
+        magnitude = abs(parse_amount(cell("amount")))
+        direction = cell("direction").upper()
+        if direction in _DEBIT_VALUES:
+            amount = -magnitude
+        elif direction in _CREDIT_VALUES:
+            amount = magnitude
+        else:
+            raise ValueError(f"unrecognized debit/credit value '{cell('direction')}'")
+    elif "amount" in mapping:
         amount = parse_amount(cell("amount"))
     else:
         debit_s, credit_s = cell("debit"), cell("credit")
