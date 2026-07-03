@@ -7,6 +7,7 @@ import type {
   Budget,
   BudgetStatus,
   Category,
+  DashboardParams,
   DashboardSummary,
   Goal,
   IgnoreRule,
@@ -89,11 +90,15 @@ export function useImport(id: number | null) {
   });
 }
 
-export function useDashboard(month?: string) {
-  const qs = month ? `?month=${month}` : "";
+export function useDashboard(params: DashboardParams) {
+  const qs = new URLSearchParams();
+  qs.set("date_from", params.date_from);
+  qs.set("date_to", params.date_to);
+  if (params.account_id) qs.set("account_id", String(params.account_id));
+  if (params.category_id) qs.set("category_id", String(params.category_id));
   return useQuery({
-    queryKey: ["dashboard", month ?? "now"],
-    queryFn: () => api.get<DashboardSummary>(`/api/dashboard/summary${qs}`),
+    queryKey: ["dashboard", qs.toString()],
+    queryFn: () => api.get<DashboardSummary>(`/api/dashboard/summary?${qs}`),
   });
 }
 

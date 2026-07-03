@@ -27,6 +27,7 @@ interface Draft {
   frequency: "daily" | "weekly" | "monthly" | "yearly";
   interval: number;
   next_due: string;
+  end_date: string;
   auto_post: boolean;
   active: boolean;
 }
@@ -47,6 +48,7 @@ export default function TemplatesPage() {
       amount: parseFloat(d.amount),
       transfer_amount: d.kind === "transfer" && d.transfer_amount ? parseFloat(d.transfer_amount) : null,
       transfer_account_id: d.kind === "transfer" ? d.transfer_account_id : null,
+      end_date: d.end_date || null,
     };
     return d.id ? api.put(`/api/templates/${d.id}`, body) : api.post("/api/templates", body);
   }, MONEY_KEYS);
@@ -59,6 +61,7 @@ export default function TemplatesPage() {
       ...t,
       amount: String(t.amount),
       transfer_amount: t.transfer_amount ? String(t.transfer_amount) : "",
+      end_date: t.end_date ?? "",
     });
   }
 
@@ -76,6 +79,7 @@ export default function TemplatesPage() {
       frequency: "monthly",
       interval: 1,
       next_due: today(),
+      end_date: "",
       auto_post: false,
       active: true,
     };
@@ -134,6 +138,7 @@ export default function TemplatesPage() {
                   every {t.interval > 1 ? `${t.interval} ` : ""}
                   {t.frequency.replace("ly", t.interval > 1 ? "s" : "")} · {accountById.get(t.account_id)?.name}
                   {t.auto_post ? " · auto" : ""}
+                  {t.end_date ? ` · until ${fmtDate(t.end_date)}` : ""}
                 </p>
               </div>
               <span className={`text-xs ${due(t) ? "font-medium text-amber-300" : "text-gray-500"}`}>
@@ -308,6 +313,15 @@ export default function TemplatesPage() {
                 />
               </Field>
             </div>
+            <Field label="End date (optional — stops recurring after this)">
+              <input
+                type="date"
+                className="input"
+                value={draft.end_date}
+                min={draft.next_due}
+                onChange={(e) => setDraft({ ...draft, end_date: e.target.value })}
+              />
+            </Field>
             <div className="flex items-center gap-6 text-sm">
               <label className="flex items-center gap-2">
                 <input

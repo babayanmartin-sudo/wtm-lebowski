@@ -343,11 +343,14 @@ def test_import_negate_and_row_patch(seeded):
 # ---------- dashboard ----------
 def test_dashboard_summary_shape(seeded):
     c = seeded["client"]
-    c.post("/api/transactions", json=_tx(seeded))
-    d = c.get("/api/dashboard/summary?month=2026-07").json()
+    c.post("/api/transactions", json=_tx(seeded, date="2026-07-05"))
+    d = c.get("/api/dashboard/summary?date_from=2026-07-01&date_to=2026-07-31").json()
     assert d["base_currency"] == "AED"
     assert d["expense"] == 10.0
-    assert len(d["monthly"]) == 6
+    assert d["date_from"] == "2026-07-01"
+    assert d["date_to"] == "2026-07-31"
+    assert d["series_granularity"] == "day"
+    assert len(d["series"]) == 31
     assert d["by_category"][0]["name"] == "Food"
     assert len(d["recent"]) == 1
     assert d["net_worth"] > 0

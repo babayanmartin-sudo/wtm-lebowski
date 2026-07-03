@@ -72,6 +72,7 @@ export interface Template {
   frequency: "daily" | "weekly" | "monthly" | "yearly";
   interval: number;
   next_due: string;
+  end_date: string | null;
   auto_post: boolean;
   active: boolean;
 }
@@ -164,13 +165,30 @@ export interface CategoryTotal {
   amount: number;
 }
 
+export interface SeriesBucket {
+  label: string; // ISO date: bucket start (day, Monday-of-week, or 1st-of-month)
+  income: number;
+  expense: number;
+}
+
 export interface DashboardSummary {
   base_currency: string;
-  month: string;
+  date_from: string;
+  date_to: string;
+  account_id: number | null;
+  category_id: number | null;
   net_worth: number;
   income: number;
   expense: number;
   by_category: CategoryTotal[];
-  monthly: { month: string; income: number; expense: number }[];
+  series: SeriesBucket[];
+  series_granularity: "day" | "week" | "month";
   recent: Transaction[];
+}
+
+export interface DashboardParams {
+  date_from: string;
+  date_to: string;
+  account_id?: number;
+  category_id?: number;
 }

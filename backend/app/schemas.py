@@ -35,6 +35,11 @@ class AccountOut(ORMModel, AccountIn):
     balance_base: float = 0.0
 
 
+class ReconcileIn(BaseModel):
+    actual_balance: float
+    on_date: date | None = None
+
+
 # ---- categories ----
 class CategoryIn(BaseModel):
     name: str
@@ -96,6 +101,11 @@ class TransactionPage(BaseModel):
     total: int
 
 
+class ReconcileResult(BaseModel):
+    account: AccountOut
+    adjustment: TransactionOut | None = None  # null when balances already matched
+
+
 # ---- templates ----
 class TemplateIn(BaseModel):
     name: str
@@ -110,6 +120,7 @@ class TemplateIn(BaseModel):
     frequency: str = "monthly"
     interval: int = Field(default=1, ge=1)
     next_due: date
+    end_date: date | None = None
     auto_post: bool = False
     active: bool = True
 

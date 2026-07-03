@@ -41,6 +41,10 @@ def _migrate() -> None:
         if "alias" not in rule_cols:
             conn.exec_driver_sql("ALTER TABLE mapping_rules ADD COLUMN alias TEXT DEFAULT ''")
 
+        template_cols = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(templates)")]
+        if "end_date" not in template_cols:
+            conn.exec_driver_sql("ALTER TABLE templates ADD COLUMN end_date DATE")
+
 
 def get_db():
     db: Session = SessionLocal()

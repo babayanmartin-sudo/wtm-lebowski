@@ -117,6 +117,7 @@ class Template(Base):
     frequency: Mapped[str] = mapped_column(String, default="monthly")  # daily|weekly|monthly|yearly
     interval: Mapped[int] = mapped_column(Integer, default=1)
     next_due: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     auto_post: Mapped[bool] = mapped_column(Boolean, default=False)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 

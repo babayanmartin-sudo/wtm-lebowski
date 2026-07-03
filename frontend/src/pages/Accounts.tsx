@@ -1,9 +1,9 @@
-import { Archive, Pencil, Plus, Trash2, Wallet } from "lucide-react";
+import { Archive, Check, Pencil, Plus, Scale, Trash2, Wallet } from "lucide-react";
 import { useState } from "react";
 
 import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useInvalidating } from "../api/hooks";
-import type { Account } from "../api/types";
+import type { Account, Transaction } from "../api/types";
 import { ColorPicker, Field, Modal, PageHeader } from "../components/ui";
 import { fmtMoney } from "../lib/format";
 
@@ -38,6 +38,10 @@ export default function AccountsPage() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
   const [pageError, setPageError] = useState("");
+  const [reconciling, setReconciling] = useState<Account | null>(null);
+  const [actualBalance, setActualBalance] = useState("");
+  const [reconcileError, setReconcileError] = useState("");
+  const [reconcileDone, setReconcileDone] = useState<Transaction | null | "noop">(null);
 
   const save = useInvalidating(async (d: Draft) => {
     const body = { ...d, id: undefined };
@@ -45,6 +49,35 @@ export default function AccountsPage() {
   }, MONEY_KEYS);
 
   const remove = useInvalidating((id: number) => api.del(`/api/accounts/${id}`), MONEY_KEYS);
+
+  const reconcile = useInvalidating(
+    (args: { id: number; actual_balance: number }) =>
+      api.post<{ account: Account; adjustment: Transaction | null }>(
+        `/api/accounts/${args.id}/reconcile`,
+        { actual_balance: args.actual_balance },
+      ),
+    MONEY_KEYS,
+  );
+
+  function openReconcile(acc: Account) {
+    setReconciling(acc);
+    setActualBalance(String(acc.balance));
+    setReconcileError("");
+    setReconcileDone(null);
+  }
+
+  async function submitReconcile() {
+    setReconcileError("");
+    try {
+      const result = await reconcile.mutateAsync({
+        id: reconciling!.id,
+        actual_balance: parseFloat(actualBalance),
+      });
+      setReconcileDone(result.adjustment ?? "noop");
+    } catch (e) {
+      setReconcileError(e instanceof Error ? e.message : "Failed");
+    }
+  }
 
   async function submit() {
     setError("");
@@ -106,6 +139,13 @@ export default function AccountsPage() {
                 </div>
               </div>
               <div className="flex gap-1">
+                <button
+                  className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+                  title="Reconcile balance"
+                  onClick={() => openReconcile(acc)}
+                >
+                  <Scale size={15} />
+                </button>
                 <button
                   className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
                   onClick={() => setDraft({ ...acc })}
@@ -193,6 +233,64 @@ export default function AccountsPage() {
               Save
             </button>
           </div>
+        </Modal>
+      )}
+
+      {reconciling && (
+        <Modal title={`Reconcile “${reconciling.name}”`} onClose={() => setReconciling(null)}>
+          {reconcileDone !== null ? (
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300">
+                <Check size={22} />
+              </div>
+              {reconcileDone === "noop" ? (
+                <p className="text-sm text-gray-300">Already matched — no adjustment needed.</p>
+              ) : (
+                <p className="text-sm text-gray-300">
+                  Posted a {reconcileDone.kind === "income" ? "+" : "−"}
+                  {fmtMoney(reconcileDone.amount, reconcileDone.currency)} adjustment.
+                </p>
+              )}
+              <button className="btn-primary" onClick={() => setReconciling(null)}>
+                Done
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm text-gray-400">
+                In the app: <span className="tabular-nums text-gray-200">{fmtMoney(reconciling.balance, reconciling.currency)}</span>.
+                Enter what the bank actually shows — the difference is posted as an adjustment.
+              </p>
+              <Field label={`Actual balance (${reconciling.currency})`}>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="input"
+                  value={actualBalance}
+                  onChange={(e) => setActualBalance(e.target.value)}
+                  autoFocus
+                />
+              </Field>
+              {(() => {
+                const delta = Math.round((parseFloat(actualBalance || "0") - reconciling.balance) * 100) / 100;
+                if (!actualBalance || Math.abs(delta) < 0.005) return null;
+                return (
+                  <p className={`text-xs ${delta > 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                    Will post {delta > 0 ? "an income" : "an expense"} adjustment of{" "}
+                    {fmtMoney(Math.abs(delta), reconciling.currency)}.
+                  </p>
+                );
+              })()}
+              {reconcileError && <p className="text-xs text-rose-400">{reconcileError}</p>}
+              <button
+                className="btn-primary"
+                onClick={submitReconcile}
+                disabled={actualBalance === "" || Number.isNaN(parseFloat(actualBalance))}
+              >
+                <Scale size={15} /> Reconcile
+              </button>
+            </div>
+          )}
         </Modal>
       )}
     </div>

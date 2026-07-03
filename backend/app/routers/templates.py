@@ -8,7 +8,7 @@ from ..auth import require_auth
 from ..db import get_db
 from ..models import Template
 from ..schemas import TemplateIn, TemplateOut
-from ..services.recurring import advance, materialize_due, pending_templates, post_template
+from ..services.recurring import advance, expire_if_past_end, materialize_due, pending_templates, post_template
 
 router = APIRouter(prefix="/api/templates", tags=["templates"], dependencies=[Depends(require_auth)])
 
@@ -32,6 +32,7 @@ def materialize(db: Session = Depends(get_db)):
 def create_template(body: TemplateIn, db: Session = Depends(get_db)):
     _validate(body)
     t = Template(**body.model_dump())
+    expire_if_past_end(t)
     db.add(t)
     db.commit()
     return t
@@ -45,6 +46,7 @@ def update_template(template_id: int, body: TemplateIn, db: Session = Depends(ge
     _validate(body)
     for key, value in body.model_dump().items():
         setattr(t, key, value)
+    expire_if_past_end(t)
     db.commit()
     return t
 
@@ -67,6 +69,7 @@ def post_now(template_id: int, db: Session = Depends(get_db)):
     on_date = min(t.next_due, date.today())
     post_template(db, t, on_date)
     t.next_due = advance(t.next_due, t.frequency, t.interval)
+    expire_if_past_end(t)
     db.commit()
     return t
 
@@ -77,6 +80,7 @@ def skip_occurrence(template_id: int, db: Session = Depends(get_db)):
     if not t:
         raise HTTPException(404, "Template not found")
     t.next_due = advance(t.next_due, t.frequency, t.interval)
+    expire_if_past_end(t)
     db.commit()
     return t
 

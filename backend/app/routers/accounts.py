@@ -1,12 +1,15 @@
+from datetime import date as date_
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..auth import require_auth
 from ..db import get_db
-from ..models import Account, Transaction
-from ..schemas import AccountIn, AccountOut
+from ..models import Account, Split, Transaction
+from ..schemas import AccountIn, AccountOut, ReconcileIn, ReconcileResult
 from ..services.balances import balance_in_base, compute_balances
+from ..services.rates import to_base
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"], dependencies=[Depends(require_auth)])
 
@@ -67,3 +70,38 @@ def delete_account(account_id: int, db: Session = Depends(get_db)):
         raise HTTPException(400, "Account has transactions — archive it instead")
     db.delete(acc)
     db.commit()
+
+
+@router.post("/{account_id}/reconcile", response_model=ReconcileResult)
+def reconcile_account(account_id: int, body: ReconcileIn, db: Session = Depends(get_db)):
+    """Adjust an account's balance to match the real-world bank balance by
+    posting a system-generated income/expense transaction for the delta."""
+    acc = db.get(Account, account_id)
+    if not acc:
+        raise HTTPException(404, "Account not found")
+
+    current_balance = compute_balances(db).get(acc.id, acc.initial_balance)
+    delta = round(body.actual_balance - current_balance, 2)
+    if abs(delta) < 0.005:
+        balances = compute_balances(db)
+        return ReconcileResult(account=_with_balance(db, acc, balances), adjustment=None)
+
+    on_date = body.on_date or date_.today()
+    kind = "income" if delta > 0 else "expense"
+    amount = abs(delta)
+    tx = Transaction(
+        date=on_date,
+        kind=kind,
+        account_id=acc.id,
+        amount=amount,
+        currency=acc.currency,
+        amount_base=to_base(db, amount, acc.currency, on_date),
+        payee="Balance adjustment",
+        note=f"Reconciled to {body.actual_balance} {acc.currency}",
+    )
+    tx.splits.append(Split(category_id=None, amount=amount, amount_base=tx.amount_base))
+    db.add(tx)
+    db.commit()
+
+    balances = compute_balances(db)
+    return ReconcileResult(account=_with_balance(db, acc, balances), adjustment=tx)

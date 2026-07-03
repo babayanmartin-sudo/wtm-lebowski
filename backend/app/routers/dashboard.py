@@ -1,8 +1,8 @@
-from datetime import date
+from datetime import date, timedelta
 
 from dateutil.relativedelta import relativedelta
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from ..auth import require_auth
@@ -16,52 +16,115 @@ router = APIRouter(prefix="/api/dashboard", tags=["dashboard"], dependencies=[De
 
 
 @router.get("/summary")
-def summary(month: str | None = Query(default=None), db: Session = Depends(get_db)):
-    month = month or date.today().strftime("%Y-%m")
+def summary(
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    account_id: int | None = Query(default=None),
+    category_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    start, end = _period(date_from, date_to)
+    if start > end:
+        raise HTTPException(400, "date_from must be on or before date_to")
+
     balances = compute_balances(db)
     accounts = db.scalars(select(Account).where(Account.archived.is_(False))).all()
     net_worth = round(
         sum(balance_in_base(db, a, balances.get(a.id, a.initial_balance)) for a in accounts), 2
     )
 
-    month_expr = func.strftime("%Y-%m", Transaction.date)
-    totals = dict(
-        db.execute(
-            select(Transaction.kind, func.sum(Transaction.amount_base))
-            .where(month_expr == month, Transaction.kind.in_(["expense", "income"]))
-            .group_by(Transaction.kind)
-        ).all()
-    )
+    cat_ids = _category_ids_with_children(db, category_id)
+    totals = _totals(db, start, end, account_id, cat_ids)
+    granularity, series = _series(db, start, end, account_id, cat_ids)
 
     return {
         "base_currency": BASE_CURRENCY,
-        "month": month,
+        "date_from": start.isoformat(),
+        "date_to": end.isoformat(),
+        "account_id": account_id,
+        "category_id": category_id,
         "net_worth": net_worth,
         "income": round(totals.get("income") or 0.0, 2),
         "expense": round(totals.get("expense") or 0.0, 2),
-        "by_category": _by_category(db, month),
-        "monthly": _monthly_series(db),
-        "recent": _recent(db),
+        "by_category": _by_category(db, start, end, account_id, category_id),
+        "series": series,
+        "series_granularity": granularity,
+        "recent": _recent(db, account_id, cat_ids),
     }
 
 
-def _by_category(db: Session, month: str) -> list[dict]:
-    """Month's expenses grouped by top-level category (children rolled up)."""
-    rows = db.execute(
+def _period(date_from: str | None, date_to: str | None) -> tuple[date, date]:
+    if date_from and date_to:
+        return date.fromisoformat(date_from), date.fromisoformat(date_to)
+    today = date.today()
+    start = today.replace(day=1)
+    end = start + relativedelta(months=1) - timedelta(days=1)
+    return start, end
+
+
+def _category_ids_with_children(db: Session, category_id: int | None) -> list[int] | None:
+    if not category_id:
+        return None
+    cat = db.get(Category, category_id)
+    ids = [category_id]
+    if cat:
+        ids += [c.id for c in cat.children]
+    return ids
+
+
+def _apply_filters(stmt, account_id: int | None, cat_ids: list[int] | None):
+    if account_id:
+        stmt = stmt.where(Transaction.account_id == account_id)
+    if cat_ids:
+        stmt = stmt.where(
+            Transaction.id.in_(select(Split.transaction_id).where(Split.category_id.in_(cat_ids)))
+        )
+    return stmt
+
+
+def _totals(
+    db: Session, start: date, end: date, account_id: int | None, cat_ids: list[int] | None
+) -> dict[str, float]:
+    stmt = select(Transaction.kind, func.sum(Transaction.amount_base)).where(
+        Transaction.date >= start, Transaction.date <= end, Transaction.kind.in_(["expense", "income"])
+    )
+    stmt = _apply_filters(stmt, account_id, cat_ids).group_by(Transaction.kind)
+    return dict(db.execute(stmt).all())
+
+
+def _by_category(
+    db: Session, start: date, end: date, account_id: int | None, category_id: int | None
+) -> list[dict]:
+    """Expense breakdown for the period. With no category filter, children
+    roll up into their top-level parent. With a category filter, breaks the
+    chosen category down into its own children (or itself if it has none)."""
+    stmt = (
         select(Split.category_id, func.sum(Split.amount_base))
         .join(Transaction, Transaction.id == Split.transaction_id)
-        .where(Transaction.kind == "expense", func.strftime("%Y-%m", Transaction.date) == month)
-        .group_by(Split.category_id)
-    ).all()
+        .where(Transaction.kind == "expense", Transaction.date >= start, Transaction.date <= end)
+    )
+    if account_id:
+        stmt = stmt.where(Transaction.account_id == account_id)
+    rows = db.execute(stmt.group_by(Split.category_id)).all()
     categories = {c.id: c for c in db.scalars(select(Category))}
-    totals: dict[int | None, float] = {}
-    for cid, amount in rows:
-        top = cid
-        if cid is not None and categories[cid].parent_id is not None:
-            top = categories[cid].parent_id
-        totals[top] = totals.get(top, 0.0) + (amount or 0.0)
+    amounts = {cid: (amt or 0.0) for cid, amt in rows}
+
+    if category_id:
+        children = [c.id for c in categories.values() if c.parent_id == category_id]
+        wanted = children or [category_id]
+        totals = {cid: amounts.get(cid, 0.0) for cid in wanted}
+    else:
+        totals: dict[int | None, float] = {}
+        for cid, amount in amounts.items():
+            top = cid
+            if cid is not None and categories[cid].parent_id is not None:
+                top = categories[cid].parent_id
+            totals[top] = totals.get(top, 0.0) + amount
+
     result = []
     for cid, total in sorted(totals.items(), key=lambda kv: -kv[1]):
+        if total == 0:
+            continue
         cat = categories.get(cid) if cid else None
         result.append(
             {
@@ -74,31 +137,63 @@ def _by_category(db: Session, month: str) -> list[dict]:
     return result
 
 
-def _monthly_series(db: Session, months: int = 6) -> list[dict]:
-    start = (date.today().replace(day=1) - relativedelta(months=months - 1)).strftime("%Y-%m")
-    month_expr = func.strftime("%Y-%m", Transaction.date)
-    rows = db.execute(
-        select(month_expr, Transaction.kind, func.sum(Transaction.amount_base))
-        .where(month_expr >= start, Transaction.kind.in_(["expense", "income"]))
-        .group_by(month_expr, Transaction.kind)
-    ).all()
-    series: dict[str, dict] = {}
-    cursor = date.today().replace(day=1) - relativedelta(months=months - 1)
-    for _ in range(months):
-        key = cursor.strftime("%Y-%m")
-        series[key] = {"month": key, "income": 0.0, "expense": 0.0}
-        cursor += relativedelta(months=1)
-    for month_key, kind, total in rows:
-        if month_key in series:
-            series[month_key][kind] = round(total or 0.0, 2)
-    return list(series.values())
+def _granularity(start: date, end: date) -> str:
+    span = (end - start).days
+    if span <= 31:
+        return "day"
+    if span <= 182:
+        return "week"
+    return "month"
 
 
-def _recent(db: Session, limit: int = 10) -> list[dict]:
-    txs = db.scalars(
-        select(Transaction)
-        .options(selectinload(Transaction.splits))
-        .order_by(Transaction.date.desc(), Transaction.id.desc())
-        .limit(limit)
-    ).all()
+def _bucket_start(d: date, granularity: str) -> date:
+    if granularity == "day":
+        return d
+    if granularity == "week":
+        return d - timedelta(days=d.weekday())
+    return d.replace(day=1)
+
+
+def _series(
+    db: Session, start: date, end: date, account_id: int | None, cat_ids: list[int] | None
+) -> tuple[str, list[dict]]:
+    granularity = _granularity(start, end)
+    step = {
+        "day": relativedelta(days=1),
+        "week": relativedelta(weeks=1),
+        "month": relativedelta(months=1),
+    }[granularity]
+
+    buckets: dict[str, dict] = {}
+    cursor = _bucket_start(start, granularity)
+    bucket_end = _bucket_start(end, granularity)
+    while cursor <= bucket_end:
+        key = cursor.isoformat()
+        buckets[key] = {"label": key, "income": 0.0, "expense": 0.0}
+        cursor += step
+
+    stmt = select(Transaction.date, Transaction.kind, Transaction.amount_base).where(
+        Transaction.date >= start, Transaction.date <= end, Transaction.kind.in_(["expense", "income"])
+    )
+    stmt = _apply_filters(stmt, account_id, cat_ids)
+    for d, kind, amount in db.execute(stmt).all():
+        key = _bucket_start(d, granularity).isoformat()
+        bucket = buckets.setdefault(key, {"label": key, "income": 0.0, "expense": 0.0})
+        bucket[kind] = round(bucket[kind] + (amount or 0.0), 2)
+
+    ordered = [buckets[k] for k in sorted(buckets.keys())]
+    return granularity, ordered
+
+
+def _recent(db: Session, account_id: int | None, cat_ids: list[int] | None, limit: int = 10) -> list[dict]:
+    stmt = select(Transaction).options(selectinload(Transaction.splits))
+    if account_id:
+        stmt = stmt.where(
+            or_(Transaction.account_id == account_id, Transaction.transfer_account_id == account_id)
+        )
+    if cat_ids:
+        stmt = stmt.where(
+            Transaction.id.in_(select(Split.transaction_id).where(Split.category_id.in_(cat_ids)))
+        )
+    txs = db.scalars(stmt.order_by(Transaction.date.desc(), Transaction.id.desc()).limit(limit)).all()
     return [TransactionOut.model_validate(t).model_dump(mode="json") for t in txs]

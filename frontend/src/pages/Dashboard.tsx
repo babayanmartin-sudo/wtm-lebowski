@@ -1,5 +1,14 @@
-import { ArrowDownRight, ArrowUpRight, Check, SkipForward, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  SkipForward,
+  TrendingUp,
+  X,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -22,15 +31,43 @@ import {
   useInvalidating,
   usePendingTemplates,
 } from "../api/hooks";
-import { ColorDot, ProgressBar } from "../components/ui";
-import { currentMonth, fmtMoney, fmtMonth } from "../lib/format";
+import { CategorySelect, ColorDot, ProgressBar } from "../components/ui";
+import { fmtMoney } from "../lib/format";
+import {
+  type Granularity,
+  bucketLabel,
+  bucketRange,
+  monthPeriod,
+  periodLabel,
+  shiftAnchor,
+  toISO,
+  weekPeriod,
+} from "../lib/period";
 
 export default function DashboardPage() {
-  const [month, setMonth] = useState(currentMonth());
-  const { data } = useDashboard(month);
+  const [granularity, setGranularity] = useState<Granularity>("month");
+  const [anchor, setAnchor] = useState(new Date());
+  const [customFrom, setCustomFrom] = useState(toISO(new Date()));
+  const [customTo, setCustomTo] = useState(toISO(new Date()));
+  const [accountId, setAccountId] = useState<number | null>(null);
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+
+  const period = useMemo(() => {
+    if (granularity === "month") return monthPeriod(anchor);
+    if (granularity === "week") return weekPeriod(anchor);
+    return { from: customFrom, to: customTo };
+  }, [granularity, anchor, customFrom, customTo]);
+
+  const { data } = useDashboard({
+    date_from: period.from,
+    date_to: period.to,
+    account_id: accountId ?? undefined,
+    category_id: categoryId ?? undefined,
+  });
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
-  const { data: budgetStatus = [] } = useBudgetStatus(month);
+  const budgetMonth = period.from.slice(0, 7);
+  const { data: budgetStatus = [] } = useBudgetStatus(budgetMonth);
   const { data: pending = [] } = usePendingTemplates();
 
   const postTemplate = useInvalidating(
@@ -45,21 +82,137 @@ export default function DashboardPage() {
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   const activeAccounts = accounts.filter((a) => !a.archived);
   const donut = (data?.by_category ?? []).slice(0, 8);
+  const granularityData = data?.series_granularity ?? "day";
+
+  function setMode(g: Granularity) {
+    setGranularity(g);
+    if (g !== "custom") setAnchor(new Date());
+    else {
+      setCustomFrom(period.from);
+      setCustomTo(period.to);
+    }
+  }
+
+  function drillInto(label: string) {
+    const range = bucketRange(label, granularityData);
+    setCustomFrom(range.from);
+    setCustomTo(range.to);
+    setGranularity("custom");
+  }
+
+  function toggleCategory(id: number | null) {
+    if (id === null) return;
+    setCategoryId((prev) => (prev === id ? null : id));
+  }
+
+  const hasFilter = accountId !== null || categoryId !== null;
+  const filterAccount = accounts.find((a) => a.id === accountId);
+  const filterCategory = categoryId ? categoryById.get(categoryId) : null;
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-end justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-400">Your money at a glance</p>
+          <p className="mt-1 text-sm text-gray-400">
+            {data ? periodLabel(granularity, data.date_from, data.date_to) : "…"}
+          </p>
         </div>
-        <input
-          type="month"
-          className="input w-40"
-          value={month}
-          onChange={(e) => setMonth(e.target.value || currentMonth())}
-        />
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-lg bg-white/5 p-1 text-sm">
+            {(["month", "week", "custom"] as Granularity[]).map((g) => (
+              <button
+                key={g}
+                onClick={() => setMode(g)}
+                className={`rounded-md px-3 py-1 capitalize transition-colors ${
+                  granularity === g ? "bg-indigo-500 text-white" : "text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+
+          {granularity !== "custom" ? (
+            <div className="flex items-center gap-1">
+              <button
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+                onClick={() => setAnchor(shiftAnchor(anchor, granularity, -1))}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+                onClick={() => setAnchor(shiftAnchor(anchor, granularity, 1))}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                className="input w-36"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+              />
+              <span className="text-gray-500">–</span>
+              <input
+                type="date"
+                className="input w-36"
+                value={customTo}
+                min={customFrom}
+                onChange={(e) => setCustomTo(e.target.value)}
+              />
+            </div>
+          )}
+
+          <select
+            className="input w-40"
+            value={accountId ?? ""}
+            onChange={(e) => setAccountId(e.target.value === "" ? null : Number(e.target.value))}
+          >
+            <option value="">All accounts</option>
+            {activeAccounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+
+          <CategorySelect
+            categories={categories}
+            value={categoryId}
+            onChange={setCategoryId}
+            emptyLabel="All categories"
+            className="input w-40"
+          />
+        </div>
       </div>
+
+      {hasFilter && (
+        <div className="flex items-center gap-2 text-xs text-gray-400">
+          Filtering by
+          {filterAccount && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              {filterAccount.name}
+              <button onClick={() => setAccountId(null)}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {filterCategory && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              <ColorDot color={filterCategory.color} />
+              {filterCategory.name}
+              <button onClick={() => setCategoryId(null)}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+        </div>
+      )}
 
       {pending.length > 0 && (
         <div className="glass border-amber-400/30 p-4">
@@ -90,13 +243,13 @@ export default function DashboardPage() {
           tint="from-indigo-500/25"
         />
         <StatCard
-          label={`Income · ${fmtMonth(month)}`}
+          label="Income"
           value={data ? fmtMoney(data.income, data.base_currency) : "…"}
           icon={<ArrowUpRight size={18} />}
           tint="from-emerald-500/25"
         />
         <StatCard
-          label={`Spent · ${fmtMonth(month)}`}
+          label="Spent"
           value={data ? fmtMoney(data.expense, data.base_currency) : "…"}
           icon={<ArrowDownRight size={18} />}
           tint="from-rose-500/25"
@@ -105,12 +258,23 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="glass p-5 xl:col-span-2">
-          <h2 className="mb-4 text-sm font-semibold text-gray-300">Income vs spending</h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-300">Income vs spending</h2>
+            <span className="text-xs text-gray-500">Click a bar to zoom in</span>
+          </div>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={data?.monthly ?? []} barGap={4}>
+            <BarChart
+              data={data?.series ?? []}
+              barGap={4}
+              onClick={(state) => {
+                const label = state?.activeLabel;
+                if (typeof label === "string") drillInto(label);
+              }}
+              className="cursor-pointer"
+            >
               <XAxis
-                dataKey="month"
-                tickFormatter={fmtMonth}
+                dataKey="label"
+                tickFormatter={(v) => bucketLabel(v, granularityData)}
                 stroke="#4b5563"
                 fontSize={11}
                 tickLine={false}
@@ -125,7 +289,7 @@ export default function DashboardPage() {
                   borderRadius: 12,
                   fontSize: 12,
                 }}
-                labelFormatter={fmtMonth}
+                labelFormatter={(v) => bucketLabel(String(v), granularityData)}
               />
               <Bar dataKey="income" fill="#34d399" radius={[4, 4, 0, 0]} />
               <Bar dataKey="expense" fill="#f43f5e" radius={[4, 4, 0, 0]} />
@@ -134,9 +298,12 @@ export default function DashboardPage() {
         </div>
 
         <div className="glass p-5">
-          <h2 className="mb-2 text-sm font-semibold text-gray-300">Spending by category</h2>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-300">Spending by category</h2>
+            {donut.length > 0 && <span className="text-xs text-gray-500">Click to filter</span>}
+          </div>
           {donut.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-500">No expenses this month.</p>
+            <p className="py-10 text-center text-sm text-gray-500">No expenses in this period.</p>
           ) : (
             <>
               <ResponsiveContainer width="100%" height={160}>
@@ -149,9 +316,15 @@ export default function DashboardPage() {
                     outerRadius={70}
                     paddingAngle={3}
                     strokeWidth={0}
+                    onClick={(entry) => toggleCategory(entry.category_id)}
+                    className="cursor-pointer"
                   >
                     {donut.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
+                      <Cell
+                        key={entry.name}
+                        fill={entry.color}
+                        opacity={categoryId && entry.category_id !== categoryId ? 0.35 : 1}
+                      />
                     ))}
                   </Pie>
                   <Tooltip
@@ -167,11 +340,17 @@ export default function DashboardPage() {
               </ResponsiveContainer>
               <div className="mt-2 flex flex-col gap-1.5">
                 {donut.map((c) => (
-                  <div key={c.name} className="flex items-center gap-2 text-xs">
+                  <button
+                    key={c.name}
+                    onClick={() => toggleCategory(c.category_id)}
+                    className={`flex items-center gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-white/5 ${
+                      categoryId && c.category_id !== categoryId ? "opacity-40" : ""
+                    }`}
+                  >
                     <ColorDot color={c.color} />
                     <span className="flex-1 text-gray-300">{c.name}</span>
                     <span className="tabular-nums text-gray-400">{fmtMoney(c.amount)}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </>
@@ -184,18 +363,24 @@ export default function DashboardPage() {
           <h2 className="mb-3 text-sm font-semibold text-gray-300">Accounts</h2>
           <div className="flex flex-col gap-2.5">
             {activeAccounts.map((a) => (
-              <div key={a.id} className="flex items-center gap-2 text-sm">
+              <button
+                key={a.id}
+                onClick={() => setAccountId((prev) => (prev === a.id ? null : a.id))}
+                className={`flex w-full items-center gap-2 rounded px-1 py-0.5 text-left text-sm hover:bg-white/5 ${
+                  accountId && accountId !== a.id ? "opacity-40" : ""
+                }`}
+              >
                 <ColorDot color={a.color} />
                 <span className="flex-1 text-gray-300">{a.name}</span>
                 <span className="tabular-nums">{fmtMoney(a.balance, a.currency)}</span>
-              </div>
+              </button>
             ))}
             {activeAccounts.length === 0 && <p className="text-sm text-gray-500">No accounts yet.</p>}
           </div>
         </div>
 
         <div className="glass p-5">
-          <h2 className="mb-3 text-sm font-semibold text-gray-300">Budgets · {fmtMonth(month)}</h2>
+          <h2 className="mb-3 text-sm font-semibold text-gray-300">Budgets · {budgetMonth}</h2>
           <div className="flex flex-col gap-3">
             {budgetStatus.map((b) => {
               const cat = categoryById.get(b.category_id);
