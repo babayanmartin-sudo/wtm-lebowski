@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import ColumnPreset, Import, ImportRow, Transaction
-from .matcher import _known_payees, is_ignored, normalize, suggest
+from .matcher import _known_payees, is_ignored, suggest
 
 MAX_ROWS = 5000
 
@@ -140,8 +140,14 @@ def header_signature(headers: list[str]) -> str:
     return hashlib.sha1(joined.encode()).hexdigest()
 
 
-def dedupe_hash(d: date, amount: float, payee: str) -> str:
-    key = f"{d.isoformat()}|{round(abs(amount), 2)}|{normalize(payee)}"
+def dedupe_hash(d: date, amount: float) -> str:
+    """Duplicate detection key: date + exact signed amount.
+
+    Deliberately ignores payee text — the same real-world transaction can
+    show up with different descriptions across a bank's own re-exports or
+    between a card/bank/marketplace statement for the same purchase.
+    """
+    key = f"{d.isoformat()}|{round(amount, 2)}"
     return hashlib.sha1(key.encode()).hexdigest()
 
 
@@ -197,7 +203,7 @@ def apply_mapping(db: Session, imp: Import) -> None:
             row.error = str(e)[:200]
             row.skip = True
             continue
-        row.dedupe_hash = dedupe_hash(row.parsed_date, row.parsed_amount, row.parsed_payee)
+        row.dedupe_hash = dedupe_hash(row.parsed_date, row.parsed_amount)
         row.is_duplicate = row.dedupe_hash in existing_hashes or row.dedupe_hash in seen_in_file
         seen_in_file.add(row.dedupe_hash)
 
