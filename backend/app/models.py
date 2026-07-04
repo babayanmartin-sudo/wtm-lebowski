@@ -131,7 +131,8 @@ class Budget(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id", ondelete="CASCADE"), unique=True)
-    amount: Mapped[float] = mapped_column(Float)  # monthly limit in base currency
+    amount: Mapped[float] = mapped_column(Float)  # limit in base currency, per `period`
+    period: Mapped[str] = mapped_column(String, default="monthly")  # monthly|yearly
 
     category: Mapped[Category] = relationship()
 

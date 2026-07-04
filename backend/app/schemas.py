@@ -101,6 +101,17 @@ class TransactionPage(BaseModel):
     total: int
 
 
+class BulkTransactionIn(BaseModel):
+    ids: list[int] = Field(min_length=1)
+    action: str  # set_category | set_account | delete
+    category_id: int | None = None  # for set_category; null = uncategorized
+    account_id: int | None = None  # for set_account
+
+
+class BulkTransactionResult(BaseModel):
+    updated: int
+
+
 class ReconcileResult(BaseModel):
     account: AccountOut
     adjustment: TransactionOut | None = None  # null when balances already matched
@@ -133,6 +144,7 @@ class TemplateOut(ORMModel, TemplateIn):
 class BudgetIn(BaseModel):
     category_id: int
     amount: float = Field(gt=0)
+    period: str = "monthly"  # monthly|yearly
 
 
 class BudgetOut(ORMModel, BudgetIn):
@@ -143,6 +155,7 @@ class BudgetStatus(BaseModel):
     budget_id: int
     category_id: int
     amount: float
+    period: str
     spent: float
     month: str
 

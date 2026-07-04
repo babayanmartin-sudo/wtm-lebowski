@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { api } from "../api/client";
 import { useBudgets, useBudgetStatus, useCategories, useInvalidating } from "../api/hooks";
+import type { BudgetPeriod } from "../api/types";
 import { CategorySelect, ColorDot, EmptyState, Field, Modal, PageHeader, ProgressBar } from "../components/ui";
 import { currentMonth, fmtMoney, fmtMonth } from "../lib/format";
 
@@ -10,6 +11,7 @@ interface Draft {
   id?: number;
   category_id: number | null;
   amount: string;
+  period: BudgetPeriod;
 }
 
 export default function BudgetsPage() {
@@ -20,12 +22,12 @@ export default function BudgetsPage() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
 
-  const keys = [["budgets"], ["dashboard"]];
+  const keys = [["budgets"], ["dashboard"], ["projection"]];
   const save = useInvalidating(
-    (d: Draft) =>
-      d.id
-        ? api.put(`/api/budgets/${d.id}`, { category_id: d.category_id, amount: parseFloat(d.amount) })
-        : api.post("/api/budgets", { category_id: d.category_id, amount: parseFloat(d.amount) }),
+    (d: Draft) => {
+      const body = { category_id: d.category_id, amount: parseFloat(d.amount), period: d.period };
+      return d.id ? api.put(`/api/budgets/${d.id}`, body) : api.post("/api/budgets", body);
+    },
     keys,
   );
   const remove = useInvalidating((id: number) => api.del(`/api/budgets/${id}`), keys);
@@ -34,8 +36,14 @@ export default function BudgetsPage() {
   const statusById = new Map(status.map((s) => [s.budget_id, s]));
   const budgeted = new Set(budgets.map((b) => b.category_id));
 
-  const totalLimit = budgets.reduce((s, b) => s + b.amount, 0);
-  const totalSpent = status.reduce((s, b) => s + b.spent, 0);
+  // yearly budgets are amortized to a monthly-equivalent so the combined total stays meaningful
+  const monthlyEquivalent = (amount: number, period: BudgetPeriod) =>
+    period === "yearly" ? amount / 12 : amount;
+  const totalLimit = budgets.reduce((s, b) => s + monthlyEquivalent(b.amount, b.period), 0);
+  const totalSpent = budgets.reduce((s, b) => {
+    const spent = statusById.get(b.id)?.spent ?? 0;
+    return s + monthlyEquivalent(spent, b.period);
+  }, 0);
 
   async function submit() {
     setError("");
@@ -51,7 +59,7 @@ export default function BudgetsPage() {
     <div>
       <PageHeader
         title="Budgets"
-        subtitle="Monthly spending limits per category (AED)"
+        subtitle="Monthly or yearly spending limits per category (AED)"
         actions={
           <>
             <input
@@ -60,7 +68,10 @@ export default function BudgetsPage() {
               value={month}
               onChange={(e) => setMonth(e.target.value || currentMonth())}
             />
-            <button className="btn-primary" onClick={() => setDraft({ category_id: null, amount: "" })}>
+            <button
+              className="btn-primary"
+              onClick={() => setDraft({ category_id: null, amount: "", period: "monthly" })}
+            >
               <Plus size={16} /> Add budget
             </button>
           </>
@@ -70,7 +81,9 @@ export default function BudgetsPage() {
       {budgets.length > 0 && (
         <div className="glass mb-4 p-5">
           <div className="mb-2 flex items-center justify-between text-sm">
-            <span className="font-medium text-gray-300">Total · {fmtMonth(month)}</span>
+            <span className="font-medium text-gray-300">
+              Total · {fmtMonth(month)} <span className="text-xs text-gray-500">(monthly-equivalent)</span>
+            </span>
             <span className={`tabular-nums ${totalSpent > totalLimit ? "text-rose-400" : "text-gray-400"}`}>
               {fmtMoney(totalSpent)} / {fmtMoney(totalLimit)} AED
             </span>
@@ -80,7 +93,7 @@ export default function BudgetsPage() {
       )}
 
       {budgets.length === 0 ? (
-        <EmptyState text="No budgets yet. Set a monthly limit for a category to start tracking." />
+        <EmptyState text="No budgets yet. Set a monthly or yearly limit for a category to start tracking." />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {budgets.map((b) => {
@@ -89,12 +102,16 @@ export default function BudgetsPage() {
             const spent = st?.spent ?? 0;
             const ratio = b.amount > 0 ? spent / b.amount : 0;
             const left = b.amount - spent;
+            const suffix = b.period === "yearly" ? "/yr" : "/mo";
             return (
               <div key={b.id} className="glass glass-hover p-5">
                 <div className="mb-3 flex items-center justify-between">
                   <span className="flex items-center gap-2 font-medium">
                     {cat && <ColorDot color={cat.color} />}
                     {cat?.name ?? "?"}
+                    <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-wide text-gray-400">
+                      {b.period}
+                    </span>
                     {ratio >= 1 && (
                       <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-xs text-rose-300">
                         over budget
@@ -104,7 +121,14 @@ export default function BudgetsPage() {
                   <div className="flex gap-1">
                     <button
                       className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
-                      onClick={() => setDraft({ id: b.id, category_id: b.category_id, amount: String(b.amount) })}
+                      onClick={() =>
+                        setDraft({
+                          id: b.id,
+                          category_id: b.category_id,
+                          amount: String(b.amount),
+                          period: b.period,
+                        })
+                      }
                     >
                       <Pencil size={14} />
                     </button>
@@ -120,6 +144,7 @@ export default function BudgetsPage() {
                 <div className="mt-2 flex items-center justify-between text-sm">
                   <span className="tabular-nums text-gray-400">
                     {fmtMoney(spent)} of {fmtMoney(b.amount)}
+                    {suffix}
                   </span>
                   <span className={`tabular-nums ${left < 0 ? "text-rose-400" : "text-emerald-300"}`}>
                     {left < 0 ? `${fmtMoney(-left)} over` : `${fmtMoney(left)} left`}
@@ -145,17 +170,29 @@ export default function BudgetsPage() {
                 />
               </Field>
             )}
-            <Field label="Monthly limit (AED)">
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                className="input"
-                value={draft.amount}
-                onChange={(e) => setDraft({ ...draft, amount: e.target.value })}
-                autoFocus
-              />
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Period">
+                <select
+                  className="input"
+                  value={draft.period}
+                  onChange={(e) => setDraft({ ...draft, period: e.target.value as BudgetPeriod })}
+                >
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </Field>
+              <Field label={`${draft.period === "yearly" ? "Yearly" : "Monthly"} limit (AED)`}>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="input"
+                  value={draft.amount}
+                  onChange={(e) => setDraft({ ...draft, amount: e.target.value })}
+                  autoFocus
+                />
+              </Field>
+            </div>
             {error && <p className="text-xs text-rose-400">{error}</p>}
             <button
               className="btn-primary"

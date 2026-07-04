@@ -45,6 +45,10 @@ def _migrate() -> None:
         if "end_date" not in template_cols:
             conn.exec_driver_sql("ALTER TABLE templates ADD COLUMN end_date DATE")
 
+        budget_cols = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(budgets)")]
+        if "period" not in budget_cols:
+            conn.exec_driver_sql("ALTER TABLE budgets ADD COLUMN period TEXT DEFAULT 'monthly'")
+
 
 def get_db():
     db: Session = SessionLocal()

@@ -77,16 +77,20 @@ export interface Template {
   active: boolean;
 }
 
+export type BudgetPeriod = "monthly" | "yearly";
+
 export interface Budget {
   id: number;
   category_id: number;
   amount: number;
+  period: BudgetPeriod;
 }
 
 export interface BudgetStatus {
   budget_id: number;
   category_id: number;
   amount: number;
+  period: BudgetPeriod;
   spent: number;
   month: string;
 }

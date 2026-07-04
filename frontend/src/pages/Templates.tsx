@@ -101,7 +101,7 @@ export default function TemplatesPage() {
   return (
     <div>
       <PageHeader
-        title="Recurring"
+        title="Recurring/Planned"
         subtitle="Templates that post automatically or ask for confirmation"
         actions={
           <button className="btn-primary" onClick={() => setDraft(fresh())}>

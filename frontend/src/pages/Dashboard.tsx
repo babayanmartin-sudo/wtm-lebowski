@@ -499,6 +499,7 @@ export default function DashboardPage() {
                     </span>
                     <span className={`tabular-nums ${ratio >= 1 ? "text-rose-400" : "text-gray-400"}`}>
                       {fmtMoney(b.spent)} / {fmtMoney(b.amount)}
+                      {b.period === "yearly" ? "/yr" : "/mo"}
                     </span>
                   </div>
                   <ProgressBar value={ratio} />

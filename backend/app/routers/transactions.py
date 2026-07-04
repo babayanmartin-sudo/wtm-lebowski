@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, selectinload
 from ..auth import require_auth
 from ..db import get_db
 from ..models import Account, Category, Split, Transaction
-from ..schemas import TransactionIn, TransactionOut, TransactionPage
+from ..schemas import BulkTransactionIn, BulkTransactionResult, TransactionIn, TransactionOut, TransactionPage
 from ..services.matcher import learn
 from ..services.rates import to_base
 
@@ -85,6 +85,52 @@ def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, "Transaction not found")
     db.delete(tx)
     db.commit()
+
+
+@router.post("/bulk", response_model=BulkTransactionResult)
+def bulk_action(body: BulkTransactionIn, db: Session = Depends(get_db)):
+    txs = db.scalars(select(Transaction).where(Transaction.id.in_(body.ids))).all()
+    missing = set(body.ids) - {t.id for t in txs}
+    if missing:
+        raise HTTPException(404, f"Transactions not found: {sorted(missing)}")
+
+    if body.action == "delete":
+        for t in txs:
+            db.delete(t)
+        db.commit()
+        return BulkTransactionResult(updated=len(txs))
+
+    if body.action == "set_category":
+        if body.category_id is not None and not db.get(Category, body.category_id):
+            raise HTTPException(400, "Category not found")
+        count = 0
+        for t in txs:
+            if t.kind == "transfer":
+                continue  # transfers carry no category
+            t.splits.clear()
+            t.splits.append(
+                Split(category_id=body.category_id, amount=t.amount, amount_base=t.amount_base, note="")
+            )
+            count += 1
+        db.commit()
+        return BulkTransactionResult(updated=count)
+
+    if body.action == "set_account":
+        account = db.get(Account, body.account_id) if body.account_id else None
+        if not account:
+            raise HTTPException(400, "Account not found")
+        for t in txs:
+            if t.transfer_account_id == account.id:
+                raise HTTPException(400, "Cannot move a transfer onto its own destination account")
+            t.account_id = account.id
+            t.currency = account.currency
+            t.amount_base = to_base(db, t.amount, account.currency, t.date)
+            for s in t.splits:
+                s.amount_base = to_base(db, s.amount, account.currency, t.date)
+        db.commit()
+        return BulkTransactionResult(updated=len(txs))
+
+    raise HTTPException(400, "Invalid action")
 
 
 def _build(db: Session, body: TransactionIn, tx: Transaction) -> Transaction:

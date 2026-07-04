@@ -47,7 +47,7 @@ def project_net_worth(db: Session, start_net_worth: float, months: int) -> list[
             ]
             recurring_in_budget = sum(cat_expenses.get(c, 0.0) for c in covered)
             counted.update(covered)
-            limit = budget.amount
+            limit = budget.amount / 12 if budget.period == "yearly" else budget.amount
             if i == 0:  # partial current month: only what's left of the limit
                 limit = max(0.0, limit - spent_now.get(budget.category_id, 0.0))
             expense_total += max(limit, recurring_in_budget)
