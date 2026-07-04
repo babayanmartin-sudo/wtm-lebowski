@@ -4,6 +4,11 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { useAuthStatus } from "./api/hooks";
 import Layout from "./components/Layout";
+import { useIsMobile } from "./hooks/useIsMobile";
+import MobileAccounts from "./mobile/MobileAccounts";
+import MobileDashboard from "./mobile/MobileDashboard";
+import MobileShell from "./mobile/MobileShell";
+import MobileTransactions from "./mobile/MobileTransactions";
 import AccountsPage from "./pages/Accounts";
 import BudgetsPage from "./pages/Budgets";
 import CategoriesPage from "./pages/Categories";
@@ -18,6 +23,7 @@ import TransactionsPage from "./pages/Transactions";
 export default function App() {
   const { data: auth, isLoading } = useAuthStatus();
   const qc = useQueryClient();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const onUnauthorized = () => qc.invalidateQueries({ queryKey: ["auth"] });
@@ -33,6 +39,25 @@ export default function App() {
 
   if (!auth || auth.setup_required || !auth.authenticated) {
     return <LoginPage setupRequired={auth?.setup_required ?? false} />;
+  }
+
+  if (isMobile) {
+    return (
+      <MobileShell>
+        <Routes>
+          <Route path="/" element={<MobileDashboard />} />
+          <Route path="/transactions" element={<MobileTransactions />} />
+          <Route path="/accounts" element={<MobileAccounts />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/budgets" element={<BudgetsPage />} />
+          <Route path="/goals" element={<GoalsPage />} />
+          <Route path="/templates" element={<TemplatesPage />} />
+          <Route path="/import" element={<ImportPage />} />
+          <Route path="/rules" element={<RulesPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </MobileShell>
+    );
   }
 
   return (

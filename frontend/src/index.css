@@ -67,3 +67,40 @@ body {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ---- mobile shell (lime-accent alt UI) ---- */
+@keyframes mobileFadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes mobileSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes mobileBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.m-page-transition {
+  animation: mobileFadeSlide 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.m-sheet-backdrop {
+  animation: mobileBackdropIn 0.2s ease-out;
+}
+.m-sheet {
+  animation: mobileSlideUp 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
