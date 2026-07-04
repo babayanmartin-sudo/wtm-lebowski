@@ -5,7 +5,6 @@ import {
   LogOut,
   Menu as MenuIcon,
   PiggyBank,
-  Plus,
   Repeat,
   Tags,
   Target,
@@ -18,8 +17,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { api } from "../api/client";
-import { useAccounts, useCategories } from "../api/hooks";
-import TransactionModal from "../components/TransactionModal";
 
 const MENU_ITEMS = [
   { to: "/categories", label: "Categories", icon: Tags },
@@ -34,9 +31,6 @@ export default function MobileShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { data: accounts = [] } = useAccounts();
-  const { data: categories = [] } = useCategories();
-  const [adding, setAdding] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   async function logout() {
@@ -46,13 +40,13 @@ export default function MobileShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-full flex-col bg-[#0a0b08] text-white">
-      <main className="min-h-0 flex-1 overflow-y-auto pb-28">
+      <main className="min-h-0 flex-1 overflow-y-auto pb-24">
         <div key={location.pathname} className="m-page-transition">
           {children}
         </div>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 flex items-end justify-around border-t border-white/5 bg-[#111309]/95 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] backdrop-blur-lg">
+      <nav className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-around border-t border-white/5 bg-[#111309]/95 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] backdrop-blur-lg">
         <TabButton
           icon={LayoutDashboard}
           label="Home"
@@ -65,12 +59,6 @@ export default function MobileShell({ children }: { children: ReactNode }) {
           active={location.pathname === "/transactions"}
           onClick={() => navigate("/transactions")}
         />
-        <button
-          onClick={() => setAdding(true)}
-          className="-mt-6 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#c6f135] text-black shadow-lg shadow-[#c6f135]/30 transition-transform active:scale-90"
-        >
-          <Plus size={26} />
-        </button>
         <TabButton
           icon={Wallet}
           label="Accounts"
@@ -79,10 +67,6 @@ export default function MobileShell({ children }: { children: ReactNode }) {
         />
         <TabButton icon={MenuIcon} label="Menu" active={menuOpen} onClick={() => setMenuOpen(true)} />
       </nav>
-
-      {adding && (
-        <TransactionModal accounts={accounts} categories={categories} existing={null} onClose={() => setAdding(false)} />
-      )}
 
       {menuOpen && (
         <div
@@ -141,7 +125,7 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex w-14 flex-col items-center gap-1 rounded-xl py-1.5 transition-colors ${
+      className={`flex w-16 flex-col items-center gap-1 rounded-xl py-1.5 transition-colors ${
         active ? "text-[#c6f135]" : "text-gray-500"
       }`}
     >

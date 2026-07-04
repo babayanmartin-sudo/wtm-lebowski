@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useState } from "react";
 
 import { useAccounts, useCategories, useTransactions } from "../api/hooks";
@@ -13,6 +13,7 @@ export default function MobileTransactions() {
   const { data: categories = [] } = useCategories();
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<Transaction | null>(null);
+  const [creating, setCreating] = useState(false);
   const { data } = useTransactions({ q, limit: PAGE_SIZE, offset: 0 });
 
   const categoryById = new Map(categories.map((c) => [c.id, c]));
@@ -27,7 +28,15 @@ export default function MobileTransactions() {
 
   return (
     <div className="flex flex-col gap-4 px-4 pt-6">
-      <h1 className="text-xl font-semibold">Activity</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">Activity</h1>
+        <button
+          onClick={() => setCreating(true)}
+          className="flex items-center gap-1.5 rounded-full bg-[#c6f135] px-3 py-1.5 text-xs font-semibold text-black active:scale-95"
+        >
+          <Plus size={14} /> Add
+        </button>
+      </div>
       <div className="relative">
         <Search size={15} className="absolute top-3 left-3 text-gray-500" />
         <input
@@ -89,8 +98,16 @@ export default function MobileTransactions() {
         ))
       )}
 
-      {editing && (
-        <TransactionModal accounts={accounts} categories={categories} existing={editing} onClose={() => setEditing(null)} />
+      {(creating || editing) && (
+        <TransactionModal
+          accounts={accounts}
+          categories={categories}
+          existing={editing}
+          onClose={() => {
+            setCreating(false);
+            setEditing(null);
+          }}
+        />
       )}
     </div>
   );

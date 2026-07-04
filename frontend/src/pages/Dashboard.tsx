@@ -1,11 +1,9 @@
 import {
   ArrowDownRight,
   ArrowUpRight,
-  Check,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
-  SkipForward,
   TrendingUp,
   X,
 } from "lucide-react";
@@ -25,17 +23,7 @@ import {
   YAxis,
 } from "recharts";
 
-import { api } from "../api/client";
-import {
-  MONEY_KEYS,
-  useAccounts,
-  useBudgetStatus,
-  useCategories,
-  useDashboard,
-  useInvalidating,
-  usePendingTemplates,
-  useProjection,
-} from "../api/hooks";
+import { useAccounts, useBudgetStatus, useCategories, useDashboard, useProjection } from "../api/hooks";
 import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ColorDot, ProgressBar } from "../components/ui";
 import { fmtMoney, fmtMonth } from "../lib/format";
@@ -71,17 +59,7 @@ export default function DashboardPage() {
   const { data: categories = [] } = useCategories();
   const budgetMonth = period.from.slice(0, 7);
   const { data: budgetStatus = [] } = useBudgetStatus(budgetMonth);
-  const { data: pending = [] } = usePendingTemplates();
   const { data: forecast } = useProjection(forecastMonths);
-
-  const postTemplate = useInvalidating(
-    (id: number) => api.post(`/api/templates/${id}/post`),
-    MONEY_KEYS,
-  );
-  const skipTemplate = useInvalidating(
-    (id: number) => api.post(`/api/templates/${id}/skip`),
-    MONEY_KEYS,
-  );
 
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   const activeAccounts = accounts.filter((a) => !a.archived);
@@ -188,27 +166,6 @@ export default function DashboardPage() {
               </button>
             </span>
           )}
-        </div>
-      )}
-
-      {pending.length > 0 && (
-        <div className="glass border-amber-400/30 p-4">
-          <p className="mb-2 text-sm font-medium text-amber-300">Recurring due</p>
-          <div className="flex flex-col gap-2">
-            {pending.map((t) => (
-              <div key={t.id} className="flex items-center gap-3 text-sm">
-                <span className="flex-1">
-                  {t.name} · {fmtMoney(t.amount)} · due {t.next_due}
-                </span>
-                <button className="btn-ghost px-2 py-1 text-xs" onClick={() => postTemplate.mutate(t.id)}>
-                  <Check size={13} /> Post
-                </button>
-                <button className="btn-ghost px-2 py-1 text-xs" onClick={() => skipTemplate.mutate(t.id)}>
-                  <SkipForward size={13} /> Skip
-                </button>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 

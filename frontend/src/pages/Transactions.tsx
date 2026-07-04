@@ -21,6 +21,7 @@ export default function TransactionsPage() {
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selectedKinds, setSelectedKinds] = useState<Map<number, Transaction["kind"]>>(new Map());
   const [bulkCategory, setBulkCategory] = useState<number | null>(null);
   const [bulkAccount, setBulkAccount] = useState<number | "">("");
   const [bulkError, setBulkError] = useState("");
@@ -44,26 +45,36 @@ export default function TransactionsPage() {
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   const items = data?.items ?? [];
 
-  function toggleOne(id: number, e: React.MouseEvent) {
+  function toggleOne(tx: Transaction, e: React.MouseEvent) {
     e.stopPropagation();
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(tx.id)) next.delete(tx.id);
+      else next.add(tx.id);
+      return next;
+    });
+    setSelectedKinds((prev) => {
+      const next = new Map(prev);
+      if (next.has(tx.id)) next.delete(tx.id);
+      else next.set(tx.id, tx.kind);
       return next;
     });
   }
 
   function toggleAllOnPage() {
-    setSelected((prev) => {
-      const allSelected = items.length > 0 && items.every((t) => prev.has(t.id));
-      if (allSelected) return new Set();
-      return new Set(items.map((t) => t.id));
-    });
+    const allSelected = items.length > 0 && items.every((t) => selected.has(t.id));
+    if (allSelected) {
+      setSelected(new Set());
+      setSelectedKinds(new Map());
+      return;
+    }
+    setSelected(new Set(items.map((t) => t.id)));
+    setSelectedKinds(new Map(items.map((t) => [t.id, t.kind])));
   }
 
   function clearSelection() {
     setSelected(new Set());
+    setSelectedKinds(new Map());
     setBulkCategory(null);
     setBulkAccount("");
     setBulkError("");
@@ -126,6 +137,16 @@ export default function TransactionsPage() {
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const allOnPageSelected = items.length > 0 && items.every((t) => selected.has(t.id));
 
+  const kindsInSelection = new Set(selectedKinds.values());
+  const categoryBlocked = kindsInSelection.has("expense") && kindsInSelection.has("income");
+  const bulkCategoryKind = categoryBlocked
+    ? undefined
+    : kindsInSelection.has("income")
+      ? "income"
+      : kindsInSelection.has("expense")
+        ? "expense"
+        : undefined;
+
   return (
     <div>
       <PageHeader
@@ -143,12 +164,19 @@ export default function TransactionsPage() {
           <span className="text-sm font-medium text-gray-200">{selected.size} selected</span>
           <CategorySelect
             categories={categories}
+            kind={bulkCategoryKind}
             value={bulkCategory}
             onChange={setBulkCategory}
             emptyLabel="Uncategorized"
             className="input w-44"
+            disabled={categoryBlocked}
           />
-          <button className="btn-ghost px-3 py-1.5 text-xs" onClick={applyBulkCategory}>
+          <button
+            className="btn-ghost px-3 py-1.5 text-xs"
+            onClick={applyBulkCategory}
+            disabled={categoryBlocked}
+            title={categoryBlocked ? "Select only Expense or only Income to set a category" : undefined}
+          >
             Set category
           </button>
           <select
@@ -173,6 +201,11 @@ export default function TransactionsPage() {
           <button className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10" onClick={clearSelection}>
             <X size={15} />
           </button>
+          {categoryBlocked && (
+            <p className="w-full text-xs text-amber-400">
+              Expense and Income are both selected — pick only one kind to set a category.
+            </p>
+          )}
           {bulkError && <p className="w-full text-xs text-rose-400">{bulkError}</p>}
         </div>
       ) : (
@@ -256,7 +289,7 @@ export default function TransactionsPage() {
                 <input
                   type="checkbox"
                   checked={selected.has(tx.id)}
-                  onClick={(e) => toggleOne(tx.id, e)}
+                  onClick={(e) => toggleOne(tx, e)}
                   onChange={() => {}}
                 />
                 <span className="w-24 shrink-0 text-xs text-gray-500">{fmtDate(tx.date)}</span>

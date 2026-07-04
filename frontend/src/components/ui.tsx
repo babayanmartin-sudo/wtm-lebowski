@@ -94,6 +94,7 @@ export function CategorySelect({
   allowEmpty = true,
   emptyLabel = "— uncategorized —",
   className = "input",
+  disabled = false,
 }: {
   categories: Category[];
   value: number | null;
@@ -102,6 +103,7 @@ export function CategorySelect({
   allowEmpty?: boolean;
   emptyLabel?: string;
   className?: string;
+  disabled?: boolean;
 }) {
   const active = categories.filter((c) => !c.archived && (!kind || c.kind === kind));
   const tops = active.filter((c) => c.parent_id === null);
@@ -109,6 +111,7 @@ export function CategorySelect({
     <select
       className={className}
       value={value ?? ""}
+      disabled={disabled}
       onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
     >
       {allowEmpty && <option value="">{emptyLabel}</option>}
