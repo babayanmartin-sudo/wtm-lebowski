@@ -83,11 +83,20 @@ def _recurring_occurrences(
 
 
 def _budget_context(db: Session) -> tuple[list[Budget], dict[int, int]]:
-    budgets = db.scalars(select(Budget)).all()
+    """One effective budget per category. A category can carry both a
+    monthly and a yearly budget (kept consistent by the API's validation),
+    but counting both here would double the planned spend — the monthly one
+    wins since it's the more precise figure."""
+    by_category: dict[int, Budget] = {}
+    for b in db.scalars(select(Budget)):
+        existing = by_category.get(b.category_id)
+        if existing is None or (existing.period == "yearly" and b.period == "monthly"):
+            by_category[b.category_id] = b
+
     parent_of = {
         c.id: c.parent_id for c in db.scalars(select(Category)) if c.parent_id is not None
     }
-    return budgets, parent_of
+    return list(by_category.values()), parent_of
 
 
 def _spent_this_month(db: Session, today: date) -> dict[int, float]:

@@ -1,5 +1,6 @@
 import { ArrowLeftRight, ArrowRight, Plus, Search, Trash2, X } from "lucide-react";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useCategories, useInvalidating, useTransactions } from "../api/hooks";
@@ -13,7 +14,8 @@ const PAGE_SIZE = 50;
 export default function TransactionsPage() {
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
-  const [accountId, setAccountId] = useState("");
+  const [searchParams] = useSearchParams();
+  const [accountId, setAccountId] = useState(searchParams.get("account") ?? "");
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [kind, setKind] = useState("");
   const [q, setQ] = useState("");

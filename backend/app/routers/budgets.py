@@ -12,6 +12,7 @@ from ..schemas import BudgetIn, BudgetOut, BudgetStatus
 router = APIRouter(prefix="/api/budgets", tags=["budgets"], dependencies=[Depends(require_auth)])
 
 _PERIODS = ("monthly", "yearly")
+_EPS = 0.005
 
 
 @router.get("", response_model=list[BudgetOut])
@@ -23,10 +24,14 @@ def list_budgets(db: Session = Depends(get_db)):
 def create_budget(body: BudgetIn, db: Session = Depends(get_db)):
     if body.period not in _PERIODS:
         raise HTTPException(400, "period must be 'monthly' or 'yearly'")
-    if not db.get(Category, body.category_id):
+    category = db.get(Category, body.category_id)
+    if not category:
         raise HTTPException(400, "Category not found")
-    if db.scalar(select(Budget).where(Budget.category_id == body.category_id)):
-        raise HTTPException(409, "Budget for this category already exists")
+    if db.scalar(
+        select(Budget).where(Budget.category_id == body.category_id, Budget.period == body.period)
+    ):
+        raise HTTPException(409, f"A {body.period} budget for this category already exists")
+    _validate_budget(db, category, body.period, body.amount, exclude_budget_id=None)
     b = Budget(**body.model_dump())
     db.add(b)
     db.commit()
@@ -40,6 +45,11 @@ def update_budget(budget_id: int, body: BudgetIn, db: Session = Depends(get_db))
         raise HTTPException(404, "Budget not found")
     if body.period not in _PERIODS:
         raise HTTPException(400, "period must be 'monthly' or 'yearly'")
+    if body.period != b.period and db.scalar(
+        select(Budget).where(Budget.category_id == b.category_id, Budget.period == body.period)
+    ):
+        raise HTTPException(409, f"A {body.period} budget for this category already exists")
+    _validate_budget(db, b.category, body.period, body.amount, exclude_budget_id=b.id)
     b.amount = body.amount
     b.period = body.period
     db.commit()
@@ -98,3 +108,62 @@ def _spent_by_category(db: Session, date_filter) -> dict[int, float]:
         .group_by(Split.category_id)
     ).all()
     return {cid: (total or 0.0) for cid, total in rows}
+
+
+def _validate_budget(
+    db: Session, category: Category, period: str, amount: float, exclude_budget_id: int | None
+) -> None:
+    """Enforce two consistency rules across a category's budgets:
+    1. For the same category, a yearly budget can't exceed 12x its monthly one.
+    2. For a parent/child category pair, the children's budgets (same period)
+       can't sum to more than the parent's budget for that period.
+    """
+    other_period = "yearly" if period == "monthly" else "monthly"
+    other = db.scalar(
+        select(Budget).where(Budget.category_id == category.id, Budget.period == other_period)
+    )
+    if other:
+        monthly = amount if period == "monthly" else other.amount
+        yearly = amount if period == "yearly" else other.amount
+        if yearly > monthly * 12 + _EPS:
+            raise HTTPException(
+                400,
+                f"Yearly budget ({yearly:g}) can't exceed 12x the monthly budget "
+                f"({monthly:g} x 12 = {monthly * 12:g})",
+            )
+
+    exclude_id = exclude_budget_id if exclude_budget_id is not None else -1
+
+    if category.parent_id is None:
+        child_ids = [c.id for c in category.children]
+        if not child_ids:
+            return
+        children_sum = db.scalar(
+            select(func.sum(Budget.amount)).where(
+                Budget.category_id.in_(child_ids), Budget.period == period, Budget.id != exclude_id
+            )
+        ) or 0.0
+        if children_sum > amount + _EPS:
+            raise HTTPException(
+                400,
+                f"Subcategory {period} budgets already total {children_sum:g}, "
+                f"more than this {amount:g} limit",
+            )
+    else:
+        parent_budget = db.scalar(
+            select(Budget).where(Budget.category_id == category.parent_id, Budget.period == period)
+        )
+        if not parent_budget:
+            return
+        sibling_ids = [c.id for c in category.parent.children if c.id != category.id]
+        siblings_sum = db.scalar(
+            select(func.sum(Budget.amount)).where(
+                Budget.category_id.in_(sibling_ids), Budget.period == period, Budget.id != exclude_id
+            )
+        ) or 0.0
+        if siblings_sum + amount > parent_budget.amount + _EPS:
+            raise HTTPException(
+                400,
+                f"Subcategory {period} budgets would total {siblings_sum + amount:g}, "
+                f"more than the parent's {parent_budget.amount:g} limit",
+            )

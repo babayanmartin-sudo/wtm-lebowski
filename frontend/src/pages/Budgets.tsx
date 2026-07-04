@@ -37,7 +37,16 @@ export default function BudgetsPage() {
 
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   const statusById = new Map(status.map((s) => [s.budget_id, s]));
-  const budgeted = new Set(budgets.map((b) => b.category_id));
+
+  // a category can carry one budget per period — track which periods are taken
+  const budgetedPeriods = new Map<number, Set<BudgetPeriod>>();
+  for (const b of budgets) {
+    const set = budgetedPeriods.get(b.category_id) ?? new Set<BudgetPeriod>();
+    set.add(b.period);
+    budgetedPeriods.set(b.category_id, set);
+  }
+  const availableFor = (period: BudgetPeriod) =>
+    categories.filter((c) => c.kind === "expense" && !c.archived && !budgetedPeriods.get(c.id)?.has(period));
 
   // yearly budgets are amortized to a monthly-equivalent so the combined total stays meaningful
   const monthlyEquivalent = (amount: number, period: BudgetPeriod) =>
@@ -69,9 +78,7 @@ export default function BudgetsPage() {
             <button
               className="btn-primary"
               onClick={() => {
-                const firstAvailable = categories.find(
-                  (c) => c.kind === "expense" && !c.archived && !budgeted.has(c.id),
-                );
+                const firstAvailable = availableFor("monthly")[0];
                 setDraft({ category_id: firstAvailable?.id ?? null, amount: "", period: "monthly" });
               }}
             >
@@ -165,7 +172,7 @@ export default function BudgetsPage() {
             {!draft.id && (
               <Field label="Category">
                 <CategorySelect
-                  categories={categories.filter((c) => !budgeted.has(c.id))}
+                  categories={availableFor(draft.period)}
                   kind="expense"
                   value={draft.category_id}
                   onChange={(id) => setDraft({ ...draft, category_id: id })}
@@ -178,7 +185,17 @@ export default function BudgetsPage() {
                 <select
                   className="input"
                   value={draft.period}
-                  onChange={(e) => setDraft({ ...draft, period: e.target.value as BudgetPeriod })}
+                  onChange={(e) => {
+                    const period = e.target.value as BudgetPeriod;
+                    setDraft((prev) => {
+                      if (!prev) return prev;
+                      if (prev.id) return { ...prev, period }; // editing: category is fixed
+                      const stillValid =
+                        prev.category_id !== null && !budgetedPeriods.get(prev.category_id)?.has(period);
+                      const category_id = stillValid ? prev.category_id : (availableFor(period)[0]?.id ?? null);
+                      return { ...prev, period, category_id };
+                    });
+                  }}
                 >
                   <option value="monthly">Monthly</option>
                   <option value="yearly">Yearly</option>

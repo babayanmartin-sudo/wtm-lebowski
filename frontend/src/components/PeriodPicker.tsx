@@ -20,11 +20,13 @@ export default function PeriodPicker({
   date,
   modes = ["day", "week", "month", "year"],
   onChange,
+  triggerClassName = "w-56",
 }: {
   mode: PickerMode;
   date: string; // ISO anchor date
   modes?: PickerMode[];
   onChange: (mode: PickerMode, date: string) => void;
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [viewYear, setViewYear] = useState(() => parseISO(date).getFullYear());
@@ -71,7 +73,10 @@ export default function PeriodPicker({
 
   return (
     <div className="relative" ref={rootRef}>
-      <button className="input flex w-56 items-center gap-2 text-left" onClick={() => setOpen((v) => !v)}>
+      <button
+        className={`input flex items-center gap-2 text-left ${triggerClassName}`}
+        onClick={() => setOpen((v) => !v)}
+      >
         <Calendar size={14} className="shrink-0 text-gray-500" />
         <span className="truncate">{periodLabel(mode, date)}</span>
       </button>

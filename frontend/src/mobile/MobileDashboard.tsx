@@ -1,26 +1,56 @@
-import { ArrowDownRight, ArrowUpRight, Wallet } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, Wallet } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { useAccounts, useDashboard } from "../api/hooks";
 import { fmtMoney } from "../lib/format";
-import { monthPeriod, toISO } from "../lib/period";
+import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
+import PeriodPicker from "../components/PeriodPicker";
+
+const ALL_MODES: PickerMode[] = ["day", "week", "month", "year"];
 
 export default function MobileDashboard() {
-  const period = monthPeriod(new Date());
+  const [pickerMode, setPickerMode] = useState<PickerMode>("month");
+  const [pickerDate, setPickerDate] = useState(toISO(new Date()));
+  const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate)), [pickerMode, pickerDate]);
   const { data } = useDashboard({ date_from: period.from, date_to: period.to });
   const { data: accounts = [] } = useAccounts();
 
   const activeAccounts = accounts.filter((a) => !a.archived);
-  const monthLabel = toISO(new Date()).slice(0, 7);
   const donut = (data?.by_category ?? []).slice(0, 6);
 
   return (
     <div className="flex flex-col gap-5 px-4 pt-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-400">Overview</p>
-          <h1 className="text-xl font-semibold">Your money, {monthLabel}</h1>
+      <div>
+        <p className="text-sm text-gray-400">Overview</p>
+        <h1 className="text-xl font-semibold">{periodLabel(pickerMode, period.from)}</h1>
+      </div>
+
+      <div className="flex items-center gap-1">
+        <button
+          className="rounded-full bg-white/5 p-2 text-gray-400 active:bg-white/10"
+          onClick={() => setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, -1)))}
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <div className="flex-1">
+          <PeriodPicker
+            mode={pickerMode}
+            date={pickerDate}
+            modes={ALL_MODES}
+            triggerClassName="w-full"
+            onChange={(m, d) => {
+              setPickerMode(m);
+              setPickerDate(d);
+            }}
+          />
         </div>
+        <button
+          className="rounded-full bg-white/5 p-2 text-gray-400 active:bg-white/10"
+          onClick={() => setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, 1)))}
+        >
+          <ChevronRight size={16} />
+        </button>
       </div>
 
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#c6f135] to-[#8fd11a] p-5 text-black">

@@ -128,9 +128,10 @@ class Template(Base):
 
 class Budget(Base):
     __tablename__ = "budgets"
+    __table_args__ = (UniqueConstraint("category_id", "period", name="uq_budget_category_period"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id", ondelete="CASCADE"), unique=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id", ondelete="CASCADE"))
     amount: Mapped[float] = mapped_column(Float)  # limit in base currency, per `period`
     period: Mapped[str] = mapped_column(String, default="monthly")  # monthly|yearly
 

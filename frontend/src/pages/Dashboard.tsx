@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Area,
   AreaChart,
@@ -387,7 +388,13 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="glass p-5">
-          <h2 className="mb-3 text-sm font-semibold text-gray-300">Accounts</h2>
+          <Link
+            to="/accounts"
+            className="mb-3 flex items-center justify-between text-sm font-semibold text-gray-300 transition-colors hover:text-lime-300"
+          >
+            Accounts
+            <ChevronRight size={14} className="text-gray-500" />
+          </Link>
           <div className="flex flex-col gap-2.5">
             {activeAccounts.map((a) => (
               <button
@@ -407,7 +414,13 @@ export default function DashboardPage() {
         </div>
 
         <div className="glass p-5">
-          <h2 className="mb-3 text-sm font-semibold text-gray-300">Budgets · {budgetMonth}</h2>
+          <Link
+            to="/budgets"
+            className="mb-3 flex items-center justify-between text-sm font-semibold text-gray-300 transition-colors hover:text-lime-300"
+          >
+            Budgets · {budgetMonth}
+            <ChevronRight size={14} className="text-gray-500" />
+          </Link>
           <div className="flex flex-col gap-3">
             {budgetStatus.map((b) => {
               const cat = categoryById.get(b.category_id);
@@ -433,7 +446,13 @@ export default function DashboardPage() {
         </div>
 
         <div className="glass p-5">
-          <h2 className="mb-3 text-sm font-semibold text-gray-300">Recent</h2>
+          <Link
+            to="/transactions"
+            className="mb-3 flex items-center justify-between text-sm font-semibold text-gray-300 transition-colors hover:text-lime-300"
+          >
+            Recent transactions
+            <ChevronRight size={14} className="text-gray-500" />
+          </Link>
           <div className="flex flex-col gap-2">
             {(data?.recent ?? []).slice(0, 7).map((tx) => (
               <div key={tx.id} className="flex items-center gap-2 text-sm">

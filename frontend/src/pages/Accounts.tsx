@@ -1,5 +1,6 @@
 import { Archive, Check, Pencil, Plus, Scale, Trash2, Wallet } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useInvalidating } from "../api/hooks";
@@ -34,6 +35,7 @@ const empty: Draft = {
 };
 
 export default function AccountsPage() {
+  const navigate = useNavigate();
   const { data: accounts = [] } = useAccounts();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
@@ -121,7 +123,12 @@ export default function AccountsPage() {
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {visible.map((acc) => (
-          <div key={acc.id} className={`glass glass-hover p-5 ${acc.archived ? "opacity-50" : ""}`}>
+          <div
+            key={acc.id}
+            onClick={() => navigate(`/transactions?account=${acc.id}`)}
+            title="View transactions for this account"
+            className={`glass glass-hover cursor-pointer p-5 ${acc.archived ? "opacity-50" : ""}`}
+          >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div
@@ -138,7 +145,7 @@ export default function AccountsPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                 <button
                   className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
                   title="Reconcile balance"

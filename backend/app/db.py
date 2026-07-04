@@ -49,6 +49,48 @@ def _migrate() -> None:
         if "period" not in budget_cols:
             conn.exec_driver_sql("ALTER TABLE budgets ADD COLUMN period TEXT DEFAULT 'monthly'")
 
+        _migrate_budget_uniqueness(conn)
+
+
+def _migrate_budget_uniqueness(conn) -> None:
+    """Older DBs have a single-column UNIQUE(category_id) on budgets (one
+    budget per category, any period). Rebuild the table with
+    UNIQUE(category_id, period) instead so a category can carry both a
+    monthly and a yearly budget."""
+    indexes = conn.exec_driver_sql("PRAGMA index_list(budgets)").fetchall()
+    has_single_col_unique = False
+    has_composite_unique = False
+    for idx in indexes:
+        idx_name, is_unique = idx[1], idx[2]
+        if not is_unique:
+            continue
+        cols = [r[2] for r in conn.exec_driver_sql(f"PRAGMA index_info({idx_name})").fetchall()]
+        if cols == ["category_id"]:
+            has_single_col_unique = True
+        elif set(cols) == {"category_id", "period"}:
+            has_composite_unique = True
+
+    if not has_single_col_unique or has_composite_unique:
+        return
+
+    conn.exec_driver_sql("ALTER TABLE budgets RENAME TO budgets_old")
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE budgets (
+            id INTEGER PRIMARY KEY,
+            category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+            amount FLOAT NOT NULL,
+            period TEXT NOT NULL DEFAULT 'monthly',
+            UNIQUE (category_id, period)
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "INSERT INTO budgets (id, category_id, amount, period) "
+        "SELECT id, category_id, amount, period FROM budgets_old"
+    )
+    conn.exec_driver_sql("DROP TABLE budgets_old")
+
 
 def get_db():
     db: Session = SessionLocal()
