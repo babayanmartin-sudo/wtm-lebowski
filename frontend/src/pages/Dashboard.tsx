@@ -284,7 +284,16 @@ export default function DashboardPage() {
         <div className="glass p-5 xl:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-300">Income vs spending</h2>
-            <span className="text-xs text-gray-500">Click a bar to zoom in</span>
+            {drilled ? (
+              <button
+                className="btn-ghost px-2.5 py-1 text-xs"
+                onClick={() => setMode("month")}
+              >
+                <RotateCcw size={12} /> Reset zoom
+              </button>
+            ) : (
+              <span className="text-xs text-gray-500">Click a bar to zoom in</span>
+            )}
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart
