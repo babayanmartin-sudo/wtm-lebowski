@@ -2,6 +2,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftRight,
   BookOpen,
+  ChevronsLeft,
+  ChevronsRight,
   LayoutDashboard,
   LogOut,
   PiggyBank,
@@ -11,7 +13,7 @@ import {
   Upload,
   Wallet,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { NavLink } from "react-router-dom";
 
 import { api } from "../api/client";
@@ -28,22 +30,38 @@ const NAV = [
   { to: "/rules", label: "Rules", icon: BookOpen },
 ];
 
+const COLLAPSE_KEY = "et_sidebar_collapsed";
+
 export default function Layout({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSE_KEY) === "1");
 
   async function logout() {
     await api.post("/api/auth/logout");
     qc.invalidateQueries({ queryKey: ["auth"] });
   }
 
+  function toggleCollapsed() {
+    setCollapsed((prev) => {
+      localStorage.setItem(COLLAPSE_KEY, prev ? "0" : "1");
+      return !prev;
+    });
+  }
+
   return (
     <div className="flex h-full">
-      <aside className="glass m-3 flex w-56 shrink-0 flex-col rounded-2xl p-3">
-        <div className="mb-6 flex items-center gap-2 px-2 pt-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 text-sm font-bold text-white">
+      <aside
+        className={`glass m-3 flex shrink-0 flex-col rounded-2xl p-3 transition-[width] duration-200 ${
+          collapsed ? "w-16" : "w-56"
+        }`}
+      >
+        <div className={`mb-6 flex items-center pt-2 ${collapsed ? "justify-center" : "gap-2 px-2"}`}>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 text-sm font-bold text-white">
             ET
           </div>
-          <span className="text-base font-semibold tracking-tight">ExpenseTracker</span>
+          {!collapsed && (
+            <span className="truncate text-base font-semibold tracking-tight">ExpenseTracker</span>
+          )}
         </div>
         <nav className="flex flex-1 flex-col gap-1">
           {NAV.map(({ to, label, icon: Icon }) => (
@@ -51,21 +69,33 @@ export default function Layout({ children }: { children: ReactNode }) {
               key={to}
               to={to}
               end={to === "/"}
+              title={collapsed ? label : undefined}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  collapsed ? "justify-center" : ""
+                } ${
                   isActive
                     ? "bg-indigo-500/20 text-indigo-200"
                     : "text-gray-400 hover:bg-white/5 hover:text-gray-100"
                 }`
               }
             >
-              <Icon size={17} />
-              {label}
+              <Icon size={17} className="shrink-0" />
+              {!collapsed && <span className="truncate">{label}</span>}
             </NavLink>
           ))}
         </nav>
-        <button onClick={logout} className="btn-ghost mt-4 w-full text-gray-400">
-          <LogOut size={15} /> Lock
+        <button
+          onClick={toggleCollapsed}
+          title={collapsed ? "Expand menu" : "Collapse menu"}
+          className={`btn-ghost mb-1 w-full text-gray-400 ${collapsed ? "px-0" : ""}`}
+        >
+          {collapsed ? <ChevronsRight size={15} /> : <ChevronsLeft size={15} />}
+          {!collapsed && "Collapse"}
+        </button>
+        <button onClick={logout} className={`btn-ghost w-full text-gray-400 ${collapsed ? "px-0" : ""}`}>
+          <LogOut size={15} />
+          {!collapsed && "Lock"}
         </button>
       </aside>
       <main className="min-w-0 flex-1 overflow-y-auto p-6">{children}</main>

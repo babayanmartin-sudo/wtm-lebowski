@@ -4,8 +4,10 @@ import { useState } from "react";
 import { api } from "../api/client";
 import { useBudgets, useBudgetStatus, useCategories, useInvalidating } from "../api/hooks";
 import type { BudgetPeriod } from "../api/types";
+import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ColorDot, EmptyState, Field, Modal, PageHeader, ProgressBar } from "../components/ui";
-import { currentMonth, fmtMoney, fmtMonth } from "../lib/format";
+import { fmtMoney, fmtMonth } from "../lib/format";
+import { toISO } from "../lib/period";
 
 interface Draft {
   id?: number;
@@ -15,7 +17,8 @@ interface Draft {
 }
 
 export default function BudgetsPage() {
-  const [month, setMonth] = useState(currentMonth());
+  const [periodDate, setPeriodDate] = useState(toISO(new Date()));
+  const month = periodDate.slice(0, 7);
   const { data: budgets = [] } = useBudgets();
   const { data: status = [] } = useBudgetStatus(month);
   const { data: categories = [] } = useCategories();
@@ -62,15 +65,15 @@ export default function BudgetsPage() {
         subtitle="Monthly or yearly spending limits per category (AED)"
         actions={
           <>
-            <input
-              type="month"
-              className="input w-40"
-              value={month}
-              onChange={(e) => setMonth(e.target.value || currentMonth())}
-            />
+            <PeriodPicker mode="month" date={periodDate} modes={["month"]} onChange={(_m, d) => setPeriodDate(d)} />
             <button
               className="btn-primary"
-              onClick={() => setDraft({ category_id: null, amount: "", period: "monthly" })}
+              onClick={() => {
+                const firstAvailable = categories.find(
+                  (c) => c.kind === "expense" && !c.archived && !budgeted.has(c.id),
+                );
+                setDraft({ category_id: firstAvailable?.id ?? null, amount: "", period: "monthly" });
+              }}
             >
               <Plus size={16} /> Add budget
             </button>

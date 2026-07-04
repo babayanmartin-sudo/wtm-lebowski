@@ -36,34 +36,30 @@ import {
   usePendingTemplates,
   useProjection,
 } from "../api/hooks";
+import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ColorDot, ProgressBar } from "../components/ui";
 import { fmtMoney, fmtMonth } from "../lib/format";
 import {
-  type Granularity,
+  type PickerMode,
   bucketLabel,
-  bucketRange,
-  monthPeriod,
+  granularityToMode,
+  parseISO,
+  periodFor,
   periodLabel,
   shiftAnchor,
   toISO,
-  weekPeriod,
 } from "../lib/period";
 
+const ALL_MODES: PickerMode[] = ["day", "week", "month", "year"];
+
 export default function DashboardPage() {
-  const [granularity, setGranularity] = useState<Granularity>("month");
-  const [anchor, setAnchor] = useState(new Date());
-  const [customFrom, setCustomFrom] = useState(toISO(new Date()));
-  const [customTo, setCustomTo] = useState(toISO(new Date()));
+  const [pickerMode, setPickerMode] = useState<PickerMode>("month");
+  const [pickerDate, setPickerDate] = useState(toISO(new Date()));
   const [accountId, setAccountId] = useState<number | null>(null);
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [forecastMonths, setForecastMonths] = useState(12);
-  const [drilled, setDrilled] = useState(false);
 
-  const period = useMemo(() => {
-    if (granularity === "month") return monthPeriod(anchor);
-    if (granularity === "week") return weekPeriod(anchor);
-    return { from: customFrom, to: customTo };
-  }, [granularity, anchor, customFrom, customTo]);
+  const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate)), [pickerMode, pickerDate]);
 
   const { data } = useDashboard({
     date_from: period.from,
@@ -92,28 +88,18 @@ export default function DashboardPage() {
   const donut = (data?.by_category ?? []).slice(0, 8);
   const granularityData = data?.series_granularity ?? "day";
 
-  function setMode(g: Granularity) {
-    setGranularity(g);
-    setDrilled(false);
-    if (g !== "custom") setAnchor(new Date());
-    else {
-      setCustomFrom(period.from);
-      setCustomTo(period.to);
-    }
+  function goToMonth() {
+    setPickerMode("month");
+    setPickerDate(toISO(new Date()));
   }
 
   function drillInto(label: string) {
-    const range = bucketRange(label, granularityData);
-    setCustomFrom(range.from);
-    setCustomTo(range.to);
-    setGranularity("custom");
-    setDrilled(true);
+    setPickerMode(granularityToMode(granularityData));
+    setPickerDate(label);
   }
 
   function resetView() {
-    setGranularity("month");
-    setAnchor(new Date());
-    setDrilled(false);
+    goToMonth();
     setAccountId(null);
     setCategoryId(null);
   }
@@ -123,6 +109,7 @@ export default function DashboardPage() {
     setCategoryId((prev) => (prev === id ? null : id));
   }
 
+  const zoomed = pickerMode !== "month";
   const hasFilter = accountId !== null || categoryId !== null;
   const filterAccount = accounts.find((a) => a.id === accountId);
   const filterCategory = categoryId ? categoryById.get(categoryId) : null;
@@ -132,61 +119,27 @@ export default function DashboardPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-400">
-            {data ? periodLabel(granularity, data.date_from, data.date_to) : "…"}
-          </p>
+          <p className="mt-1 text-sm text-gray-400">{periodLabel(pickerMode, period.from)}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-lg bg-white/5 p-1 text-sm">
-            {(["month", "week", "custom"] as Granularity[]).map((g) => (
-              <button
-                key={g}
-                onClick={() => setMode(g)}
-                className={`rounded-md px-3 py-1 capitalize transition-colors ${
-                  granularity === g ? "bg-indigo-500 text-white" : "text-gray-400 hover:text-gray-200"
-                }`}
-              >
-                {g}
-              </button>
-            ))}
+          <div className="flex items-center gap-1">
+            <button
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+              onClick={() => setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, -1)))}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <PeriodPicker mode={pickerMode} date={pickerDate} modes={ALL_MODES} onChange={(m, d) => { setPickerMode(m); setPickerDate(d); }} />
+            <button
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+              onClick={() => setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, 1)))}
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
 
-          {granularity !== "custom" ? (
-            <div className="flex items-center gap-1">
-              <button
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
-                onClick={() => setAnchor(shiftAnchor(anchor, granularity, -1))}
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
-                onClick={() => setAnchor(shiftAnchor(anchor, granularity, 1))}
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                className="input w-36"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-              />
-              <span className="text-gray-500">–</span>
-              <input
-                type="date"
-                className="input w-36"
-                value={customTo}
-                min={customFrom}
-                onChange={(e) => setCustomTo(e.target.value)}
-              />
-            </div>
-          )}
-
-          {(drilled || granularity === "custom" || hasFilter) && (
+          {(zoomed || hasFilter) && (
             <button className="btn-ghost px-3 py-1.5 text-xs" title="Back to current month, clear filters" onClick={resetView}>
               <RotateCcw size={13} /> Reset
             </button>
@@ -284,11 +237,8 @@ export default function DashboardPage() {
         <div className="glass p-5 xl:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-300">Income vs spending</h2>
-            {drilled ? (
-              <button
-                className="btn-ghost px-2.5 py-1 text-xs"
-                onClick={() => setMode("month")}
-              >
+            {zoomed ? (
+              <button className="btn-ghost px-2.5 py-1 text-xs" onClick={goToMonth}>
                 <RotateCcw size={12} /> Reset
               </button>
             ) : (

@@ -1,4 +1,4 @@
-export type Granularity = "month" | "week" | "custom";
+export type PickerMode = "day" | "week" | "month" | "year";
 export type SeriesGranularity = "day" | "week" | "month";
 
 export interface Period {
@@ -15,10 +15,9 @@ export function parseISO(s: string): Date {
   return new Date(y, m - 1, d);
 }
 
-export function monthPeriod(anchor: Date): Period {
-  const from = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
-  const to = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
-  return { from: toISO(from), to: toISO(to) };
+export function dayPeriod(anchor: Date): Period {
+  const s = toISO(anchor);
+  return { from: s, to: s };
 }
 
 export function weekPeriod(anchor: Date): Period {
@@ -29,19 +28,42 @@ export function weekPeriod(anchor: Date): Period {
   return { from: toISO(monday), to: toISO(sunday) };
 }
 
-export function shiftAnchor(anchor: Date, granularity: "month" | "week", dir: 1 | -1): Date {
-  if (granularity === "month") return new Date(anchor.getFullYear(), anchor.getMonth() + dir, 1);
-  return new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + dir * 7);
+export function monthPeriod(anchor: Date): Period {
+  const from = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+  const to = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
+  return { from: toISO(from), to: toISO(to) };
 }
 
-export function periodLabel(granularity: Granularity, from: string, to: string): string {
-  const f = parseISO(from);
-  const t = parseISO(to);
-  if (granularity === "month") {
-    return f.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-  }
-  const fromStr = f.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-  const toStr = t.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+export function yearPeriod(anchor: Date): Period {
+  const from = new Date(anchor.getFullYear(), 0, 1);
+  const to = new Date(anchor.getFullYear(), 11, 31);
+  return { from: toISO(from), to: toISO(to) };
+}
+
+export function periodFor(mode: PickerMode, anchor: Date): Period {
+  if (mode === "day") return dayPeriod(anchor);
+  if (mode === "week") return weekPeriod(anchor);
+  if (mode === "year") return yearPeriod(anchor);
+  return monthPeriod(anchor);
+}
+
+export function shiftAnchor(anchor: Date, mode: PickerMode, dir: 1 | -1): Date {
+  if (mode === "day") return new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + dir);
+  if (mode === "week") return new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + dir * 7);
+  if (mode === "year") return new Date(anchor.getFullYear() + dir, anchor.getMonth(), 1);
+  return new Date(anchor.getFullYear(), anchor.getMonth() + dir, 1);
+}
+
+export function periodLabel(mode: PickerMode, anchorOrFrom: string): string {
+  const f = parseISO(anchorOrFrom);
+  if (mode === "day") return f.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  if (mode === "year") return String(f.getFullYear());
+  if (mode === "month") return f.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const week = weekPeriod(f);
+  const from = parseISO(week.from);
+  const to = parseISO(week.to);
+  const fromStr = from.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const toStr = to.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   return `${fromStr} – ${toStr}`;
 }
 
@@ -51,13 +73,42 @@ export function bucketLabel(iso: string, granularity: SeriesGranularity): string
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
-export function bucketRange(iso: string, granularity: SeriesGranularity): Period {
-  const d = parseISO(iso);
-  if (granularity === "day") return { from: iso, to: iso };
-  if (granularity === "week") {
-    const end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 6);
-    return { from: iso, to: toISO(end) };
+/** Series buckets are always exactly a day/week/month — maps 1:1 onto a picker mode. */
+export function granularityToMode(g: SeriesGranularity): PickerMode {
+  return g;
+}
+
+// ---- calendar grid helpers (Monday-first, matching weekPeriod) ----
+
+export const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+export const WEEKDAY_NAMES = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+
+/** Weeks (each 7 dates) covering the full calendar-grid view of a month,
+ * including the leading/trailing days of neighboring months needed to fill
+ * complete Monday-first rows. */
+export function monthGrid(year: number, month: number): Date[][] {
+  const first = new Date(year, month, 1);
+  const startOffset = (first.getDay() + 6) % 7; // days since most recent Monday
+  const gridStart = new Date(year, month, 1 - startOffset);
+  const weeks: Date[][] = [];
+  let cursor = gridStart;
+  for (let w = 0; w < 6; w++) {
+    const week: Date[] = [];
+    for (let d = 0; d < 7; d++) {
+      week.push(cursor);
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1);
+    }
+    weeks.push(week);
   }
-  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-  return { from: iso, to: toISO(end) };
+  return weeks;
+}
+
+export function sameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+export function isSameWeek(a: Date, b: Date): boolean {
+  return weekPeriod(a).from === weekPeriod(b).from;
 }
