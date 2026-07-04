@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0c0e14;
-  --color-panel: #12151f;
-  --color-accent: #6366f1;
-  --color-accent-2: #22d3ee;
+  --color-bg: #0a0b08;
+  --color-panel: #12130d;
+  --color-accent: #c6f135;
+  --color-accent-2: #8fd11a;
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
@@ -15,8 +15,8 @@ body,
 }
 
 body {
-  background: radial-gradient(1200px 800px at 80% -10%, rgba(99, 102, 241, 0.14), transparent 60%),
-    radial-gradient(900px 600px at -10% 110%, rgba(34, 211, 238, 0.1), transparent 55%),
+  background: radial-gradient(1200px 800px at 80% -10%, rgba(198, 241, 53, 0.1), transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, rgba(143, 209, 26, 0.08), transparent 55%),
     var(--color-bg);
   color: #e5e7eb;
   font-family: var(--font-sans);
@@ -38,7 +38,7 @@ body {
 }
 
 .input {
-  @apply w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-indigo-400/60 focus:bg-white/10;
+  @apply w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-lime-400/60 focus:bg-white/10;
 }
 
 .btn-primary,
@@ -47,7 +47,7 @@ body {
   @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
 }
 .btn-primary {
-  @apply bg-indigo-500 text-white hover:bg-indigo-400;
+  @apply bg-lime-400 text-black hover:bg-lime-300;
 }
 .btn-ghost {
   @apply border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10;

@@ -116,7 +116,7 @@ export default function TransactionsPage() {
     if (tx.kind === "transfer") {
       const to = accountById.get(tx.transfer_account_id ?? -1);
       return (
-        <span className="flex items-center gap-1.5 text-indigo-300">
+        <span className="flex items-center gap-1.5 text-sky-300">
           <ArrowLeftRight size={13} /> to {to?.name ?? "?"}
         </span>
       );
@@ -283,7 +283,7 @@ export default function TransactionsPage() {
                 key={tx.id}
                 onClick={() => setEditing(tx)}
                 className={`flex w-full cursor-pointer items-center gap-4 border-b border-white/5 px-4 py-3 text-left transition-colors last:border-0 hover:bg-white/5 ${
-                  selected.has(tx.id) ? "bg-indigo-500/10" : ""
+                  selected.has(tx.id) ? "bg-lime-500/10" : ""
                 }`}
               >
                 <input
@@ -305,7 +305,7 @@ export default function TransactionsPage() {
                     tx.kind === "income"
                       ? "text-emerald-300"
                       : tx.kind === "transfer"
-                        ? "text-indigo-300"
+                        ? "text-sky-300"
                         : "text-gray-200"
                   }`}
                 >

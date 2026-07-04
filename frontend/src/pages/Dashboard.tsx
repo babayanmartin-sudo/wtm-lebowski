@@ -174,7 +174,7 @@ export default function DashboardPage() {
           label="Net worth"
           value={data ? fmtMoney(data.net_worth, data.base_currency) : "…"}
           icon={<TrendingUp size={18} />}
-          tint="from-indigo-500/25"
+          tint="from-lime-500/25"
         />
         <StatCard
           label="Income"
@@ -318,7 +318,7 @@ export default function DashboardPage() {
                 key={m}
                 onClick={() => setForecastMonths(m)}
                 className={`rounded-md px-2.5 py-1 transition-colors ${
-                  forecastMonths === m ? "bg-indigo-500 text-white" : "text-gray-400 hover:text-gray-200"
+                  forecastMonths === m ? "bg-lime-400 text-black" : "text-gray-400 hover:text-gray-200"
                 }`}
               >
                 {m}m
@@ -330,8 +330,8 @@ export default function DashboardPage() {
           <AreaChart data={forecast?.points ?? []}>
             <defs>
               <linearGradient id="nwGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#6366f1" stopOpacity={0.5} />
-                <stop offset="100%" stopColor="#6366f1" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="#c6f135" stopOpacity={0.5} />
+                <stop offset="100%" stopColor="#c6f135" stopOpacity={0.02} />
               </linearGradient>
             </defs>
             <XAxis
@@ -377,7 +377,7 @@ export default function DashboardPage() {
             <Area
               type="monotone"
               dataKey="net_worth"
-              stroke="#818cf8"
+              stroke="#c6f135"
               strokeWidth={2}
               fill="url(#nwGradient)"
             />
@@ -446,7 +446,7 @@ export default function DashboardPage() {
                     tx.kind === "income"
                       ? "text-emerald-300"
                       : tx.kind === "transfer"
-                        ? "text-indigo-300"
+                        ? "text-sky-300"
                         : "text-gray-300"
                   }`}
                 >

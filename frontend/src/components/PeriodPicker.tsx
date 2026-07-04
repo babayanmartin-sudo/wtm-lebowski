@@ -85,7 +85,7 @@ export default function PeriodPicker({
                   key={m}
                   onClick={() => onChange(m, date)}
                   className={`flex-1 rounded-md py-1 transition-colors ${
-                    mode === m ? "bg-indigo-500 text-white" : "text-gray-400 hover:text-gray-200"
+                    mode === m ? "bg-lime-400 text-black" : "text-gray-400 hover:text-gray-200"
                   }`}
                 >
                   {MODE_LABEL[m]}
@@ -119,7 +119,7 @@ export default function PeriodPicker({
                 return (
                   <div
                     key={wi}
-                    className={`grid grid-cols-7 gap-0.5 rounded ${weekActive ? "bg-indigo-500/20" : ""}`}
+                    className={`grid grid-cols-7 gap-0.5 rounded ${weekActive ? "bg-lime-500/20" : ""}`}
                   >
                     {week.map((d) => {
                       const inMonth = d.getMonth() === viewMonth;
@@ -130,7 +130,7 @@ export default function PeriodPicker({
                           onClick={() => pick(mode, d)}
                           className={`rounded py-1.5 text-xs tabular-nums transition-colors ${
                             !inMonth ? "text-gray-600" : "text-gray-200"
-                          } ${isSel ? "bg-indigo-500 text-white" : "hover:bg-white/10"}`}
+                          } ${isSel ? "bg-lime-400 text-black" : "hover:bg-white/10"}`}
                         >
                           {d.getDate()}
                         </button>
@@ -167,7 +167,7 @@ export default function PeriodPicker({
                       key={name}
                       onClick={() => pick("month", new Date(viewYear, i, 1))}
                       className={`rounded-lg py-2 text-xs transition-colors ${
-                        isSel ? "bg-indigo-500 text-white" : "text-gray-200 hover:bg-white/10"
+                        isSel ? "bg-lime-400 text-black" : "text-gray-200 hover:bg-white/10"
                       }`}
                     >
                       {name}
@@ -203,7 +203,7 @@ export default function PeriodPicker({
                     key={y}
                     onClick={() => pick("year", new Date(y, 0, 1))}
                     className={`rounded-lg py-2 text-xs tabular-nums transition-colors ${
-                      y === selected.getFullYear() ? "bg-indigo-500 text-white" : "text-gray-200 hover:bg-white/10"
+                      y === selected.getFullYear() ? "bg-lime-400 text-black" : "text-gray-200 hover:bg-white/10"
                     }`}
                   >
                     {y}

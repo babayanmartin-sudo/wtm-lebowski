@@ -158,7 +158,7 @@ export default function ImportPage() {
               </select>
             </Field>
           </div>
-          <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-white/15 p-12 text-gray-400 transition-colors hover:border-indigo-400/50 hover:text-gray-200">
+          <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-white/15 p-12 text-gray-400 transition-colors hover:border-lime-400/50 hover:text-gray-200">
             <FileUp size={32} />
             <span className="text-sm">{busy ? "Uploading…" : "Click to choose a .csv / .xlsx file"}</span>
             <input
@@ -180,7 +180,7 @@ export default function ImportPage() {
       {showMapping && (
         <div className="glass p-6">
           <div className="mb-4 flex items-center gap-2 text-sm text-gray-300">
-            <Wand2 size={16} className="text-indigo-300" />
+            <Wand2 size={16} className="text-lime-300" />
             Map columns of <span className="font-medium text-white">{imp.filename}</span> — guessed
             where possible, adjust as needed.
           </div>
@@ -245,7 +245,7 @@ export default function ImportPage() {
         <div className="flex flex-col gap-4">
           <div className="glass flex flex-wrap items-center gap-4 p-4 text-sm">
             <span className="flex items-center gap-2 text-gray-300">
-              <Sparkles size={15} className="text-indigo-300" />
+              <Sparkles size={15} className="text-lime-300" />
               {imp.filename} → {account?.name}
             </span>
             <span className="text-gray-400">{importable.length} to import</span>

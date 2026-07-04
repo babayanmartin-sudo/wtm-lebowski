@@ -114,7 +114,7 @@ export default function TransactionModal({
         <div className="flex gap-1 rounded-xl bg-white/5 p-1">
           {kindBtn("expense", "Expense", "bg-rose-500/25 text-rose-200")}
           {kindBtn("income", "Income", "bg-emerald-500/25 text-emerald-200")}
-          {kindBtn("transfer", "Transfer", "bg-indigo-500/25 text-indigo-200")}
+          {kindBtn("transfer", "Transfer", "bg-sky-500/25 text-sky-200")}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -195,7 +195,7 @@ export default function TransactionModal({
                 </span>
                 <button
                   type="button"
-                  className="text-xs text-indigo-300 hover:text-indigo-200"
+                  className="text-xs text-lime-300 hover:text-lime-200"
                   onClick={() => setSplits([...splits, { category_id: null, amount: "", note: "" }])}
                 >
                   <Plus size={12} className="mr-0.5 inline" />

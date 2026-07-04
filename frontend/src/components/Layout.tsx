@@ -56,7 +56,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         }`}
       >
         <div className={`mb-6 flex items-center pt-2 ${collapsed ? "justify-center" : "gap-2 px-2"}`}>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 text-sm font-bold text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-lime-400 to-lime-600 text-sm font-bold text-black">
             ET
           </div>
           {!collapsed && (
@@ -75,7 +75,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   collapsed ? "justify-center" : ""
                 } ${
                   isActive
-                    ? "bg-indigo-500/20 text-indigo-200"
+                    ? "bg-lime-500/15 text-lime-300"
                     : "text-gray-400 hover:bg-white/5 hover:text-gray-100"
                 }`
               }

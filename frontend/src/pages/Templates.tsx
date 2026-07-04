@@ -126,7 +126,7 @@ export default function TemplatesPage() {
                   t.kind === "income"
                     ? "bg-emerald-500/20 text-emerald-300"
                     : t.kind === "transfer"
-                      ? "bg-indigo-500/20 text-indigo-300"
+                      ? "bg-sky-500/20 text-sky-300"
                       : "bg-rose-500/20 text-rose-300"
                 }`}
               >

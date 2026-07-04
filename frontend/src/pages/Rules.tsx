@@ -129,7 +129,7 @@ export default function RulesPage() {
                         className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide ${
                           r.match_kind === "exact"
                             ? "bg-emerald-500/15 text-emerald-300"
-                            : "bg-indigo-500/15 text-indigo-300"
+                            : "bg-sky-500/15 text-sky-300"
                         }`}
                       >
                         {r.match_kind}
@@ -279,7 +279,7 @@ export default function RulesPage() {
                       className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide ${
                         r.match_kind === "exact"
                           ? "bg-emerald-500/15 text-emerald-300"
-                          : "bg-indigo-500/15 text-indigo-300"
+                          : "bg-sky-500/15 text-sky-300"
                       }`}
                     >
                       {r.match_kind}

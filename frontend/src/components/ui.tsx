@@ -133,7 +133,7 @@ export function CategorySelect({
 }
 
 export const PALETTE = [
-  "#6366f1", "#22d3ee", "#a78bfa", "#f472b6", "#fb923c",
+  "#c6f135", "#6366f1", "#22d3ee", "#a78bfa", "#f472b6", "#fb923c",
   "#facc15", "#34d399", "#f43f5e", "#38bdf8", "#c084fc",
 ];
 

@@ -27,7 +27,7 @@ const empty: Draft = {
   type: "bank",
   currency: "AED",
   initial_balance: 0,
-  color: "#6366f1",
+  color: "#c6f135",
   icon: "wallet",
   archived: false,
   sort_order: 0,

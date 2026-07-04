@@ -33,7 +33,7 @@ export default function LoginPage({ setupRequired }: { setupRequired: boolean })
     <div className="flex h-full items-center justify-center">
       <form onSubmit={submit} className="glass w-80 p-8">
         <div className="mb-6 flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 text-white">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-lime-400 to-lime-600 text-black">
             <KeyRound size={22} />
           </div>
           <h1 className="text-lg font-semibold">
