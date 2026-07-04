@@ -289,7 +289,7 @@ export default function DashboardPage() {
                 className="btn-ghost px-2.5 py-1 text-xs"
                 onClick={() => setMode("month")}
               >
-                <RotateCcw size={12} /> Reset zoom
+                <RotateCcw size={12} /> Reset
               </button>
             ) : (
               <span className="text-xs text-gray-500">Click a bar to zoom in</span>
@@ -333,7 +333,13 @@ export default function DashboardPage() {
         <div className="glass p-5">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-300">Spending by category</h2>
-            {donut.length > 0 && <span className="text-xs text-gray-500">Click to filter</span>}
+            {categoryId ? (
+              <button className="btn-ghost px-2.5 py-1 text-xs" onClick={() => setCategoryId(null)}>
+                <RotateCcw size={12} /> Reset
+              </button>
+            ) : (
+              donut.length > 0 && <span className="text-xs text-gray-500">Click to filter</span>
+            )}
           </div>
           {donut.length === 0 ? (
             <p className="py-10 text-center text-sm text-gray-500">No expenses in this period.</p>
