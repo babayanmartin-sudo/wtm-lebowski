@@ -95,6 +95,7 @@ export function CategorySelect({
   emptyLabel = "— uncategorized —",
   className = "input",
   disabled = false,
+  disabledIds,
 }: {
   categories: Category[];
   value: number | null;
@@ -104,6 +105,7 @@ export function CategorySelect({
   emptyLabel?: string;
   className?: string;
   disabled?: boolean;
+  disabledIds?: Set<number>;
 }) {
   const active = categories.filter((c) => !c.archived && (!kind || c.kind === kind));
   const tops = active.filter((c) => c.parent_id === null);
@@ -119,9 +121,11 @@ export function CategorySelect({
         const children = active.filter((c) => c.parent_id === top.id);
         return (
           <optgroup key={top.id} label={top.name}>
-            <option value={top.id}>{top.name}</option>
+            <option value={top.id} disabled={disabledIds?.has(top.id)}>
+              {top.name}
+            </option>
             {children.map((c) => (
-              <option key={c.id} value={c.id}>
+              <option key={c.id} value={c.id} disabled={disabledIds?.has(c.id)}>
                 {top.name} / {c.name}
               </option>
             ))}

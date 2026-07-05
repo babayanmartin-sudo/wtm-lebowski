@@ -83,6 +83,8 @@ export default function TransactionsPage() {
   }
 
   async function applyBulkCategory() {
+    const catName = bulkCategory ? (categoryById.get(bulkCategory)?.name ?? "?") : "Uncategorized";
+    if (!confirm(`Set category to "${catName}" for ${selected.size} transaction(s)?`)) return;
     setBulkError("");
     try {
       await bulk.mutateAsync({ ids: [...selected], action: "set_category", category_id: bulkCategory });
@@ -119,18 +121,32 @@ export default function TransactionsPage() {
       const to = accountById.get(tx.transfer_account_id ?? -1);
       return (
         <span className="flex items-center gap-1.5 text-sky-300">
-          <ArrowLeftRight size={13} /> to {to?.name ?? "?"}
+          <ArrowLeftRight size={10} className="shrink-0" />
+          <span className="truncate">to {to?.name ?? "?"}</span>
         </span>
       );
     }
     if (tx.splits.length > 1) {
-      return <span className="text-gray-400">{tx.splits.length} splits</span>;
+      return (
+        <span className="flex items-center gap-1.5 text-gray-400">
+          <span className="inline-block h-2.5 w-2.5 shrink-0" />
+          <span className="truncate">{tx.splits.length} splits</span>
+        </span>
+      );
     }
     const cat = categoryById.get(tx.splits[0]?.category_id ?? -1);
-    if (!cat) return <span className="text-gray-500">Uncategorized</span>;
+    if (!cat) {
+      return (
+        <span className="flex items-center gap-1.5 text-gray-500">
+          <span className="inline-block h-2.5 w-2.5 shrink-0" />
+          <span className="truncate">Uncategorized</span>
+        </span>
+      );
+    }
     return (
       <span className="flex items-center gap-1.5">
-        <ColorDot color={cat.color} /> {cat.name}
+        <ColorDot color={cat.color} />
+        <span className="truncate">{cat.name}</span>
       </span>
     );
   }

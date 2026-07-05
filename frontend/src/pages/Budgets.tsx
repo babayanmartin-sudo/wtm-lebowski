@@ -47,6 +47,8 @@ export default function BudgetsPage() {
   }
   const availableFor = (period: BudgetPeriod) =>
     categories.filter((c) => c.kind === "expense" && !c.archived && !budgetedPeriods.get(c.id)?.has(period));
+  const disabledIdsFor = (period: BudgetPeriod) =>
+    new Set(categories.filter((c) => budgetedPeriods.get(c.id)?.has(period)).map((c) => c.id));
 
   // yearly budgets are amortized to a monthly-equivalent so the combined total stays meaningful
   const monthlyEquivalent = (amount: number, period: BudgetPeriod) =>
@@ -172,11 +174,12 @@ export default function BudgetsPage() {
             {!draft.id && (
               <Field label="Category">
                 <CategorySelect
-                  categories={availableFor(draft.period)}
+                  categories={categories}
                   kind="expense"
                   value={draft.category_id}
                   onChange={(id) => setDraft({ ...draft, category_id: id })}
                   allowEmpty={false}
+                  disabledIds={disabledIdsFor(draft.period)}
                 />
               </Field>
             )}
