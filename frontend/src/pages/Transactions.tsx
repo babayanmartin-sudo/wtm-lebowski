@@ -319,7 +319,7 @@ export default function TransactionsPage() {
                 </span>
                 <span className="hidden w-44 shrink-0 text-xs sm:block">{categoryLabel(tx)}</span>
                 <span
-                  className={`shrink-0 text-sm font-medium tabular-nums ${
+                  className={`w-36 shrink-0 text-right text-sm font-medium tabular-nums ${
                     tx.kind === "income"
                       ? "text-emerald-300"
                       : tx.kind === "transfer"
