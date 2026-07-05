@@ -39,6 +39,111 @@ def test_learn_same_payee_twice_in_one_commit_no_duplicate_rule(seeded):
     assert len(rules) == 1
 
 
+def test_editing_transaction_category_creates_rule(seeded):
+    c = seeded["client"]
+    tx = c.post(
+        "/api/transactions",
+        json={
+            "date": "2026-07-01",
+            "kind": "expense",
+            "account_id": seeded["aed"]["id"],
+            "amount": 10,
+            "payee": "NEW MERCHANT 42",
+            "splits": [{"category_id": None, "amount": 10, "note": ""}],
+        },
+    ).json()
+    assert not any(r["pattern"] == "NEW MERCHANT" for r in c.get("/api/rules").json())
+
+    c.put(
+        f"/api/transactions/{tx['id']}",
+        json={
+            "date": "2026-07-01",
+            "kind": "expense",
+            "account_id": seeded["aed"]["id"],
+            "amount": 10,
+            "payee": "NEW MERCHANT 42",
+            "splits": [{"category_id": seeded["food"]["id"], "amount": 10, "note": ""}],
+        },
+    )
+    rules = [r for r in c.get("/api/rules").json() if r["pattern"] == "NEW MERCHANT"]
+    assert len(rules) == 1
+    assert rules[0]["category_id"] == seeded["food"]["id"]
+
+
+def test_editing_income_transaction_category_creates_rule(seeded):
+    c = seeded["client"]
+    tx = c.post(
+        "/api/transactions",
+        json={
+            "date": "2026-07-01",
+            "kind": "income",
+            "account_id": seeded["aed"]["id"],
+            "amount": 500,
+            "payee": "EMPLOYER LTD",
+            "splits": [{"category_id": None, "amount": 500, "note": ""}],
+        },
+    ).json()
+    c.put(
+        f"/api/transactions/{tx['id']}",
+        json={
+            "date": "2026-07-01",
+            "kind": "income",
+            "account_id": seeded["aed"]["id"],
+            "amount": 500,
+            "payee": "EMPLOYER LTD",
+            "splits": [{"category_id": seeded["salary"]["id"], "amount": 500, "note": ""}],
+        },
+    )
+    rules = [r for r in c.get("/api/rules").json() if r["pattern"] == "EMPLOYER LTD"]
+    assert len(rules) == 1
+    assert rules[0]["category_id"] == seeded["salary"]["id"]
+
+
+def test_bulk_category_change_creates_rule(seeded):
+    c = seeded["client"]
+    ids = [
+        c.post(
+            "/api/transactions",
+            json={
+                "date": "2026-07-01",
+                "kind": "expense",
+                "account_id": seeded["aed"]["id"],
+                "amount": 10,
+                "payee": "BULK MERCHANT 9",
+                "splits": [{"category_id": None, "amount": 10, "note": ""}],
+            },
+        ).json()["id"]
+        for _ in range(2)
+    ]
+    c.post(
+        "/api/transactions/bulk",
+        json={"ids": ids, "action": "set_category", "category_id": seeded["grocery"]["id"]},
+    )
+    rules = [r for r in c.get("/api/rules").json() if r["pattern"] == "BULK MERCHANT"]
+    assert len(rules) == 1
+    assert rules[0]["category_id"] == seeded["grocery"]["id"]
+
+
+def test_bulk_category_change_to_uncategorized_does_not_create_rule(seeded):
+    c = seeded["client"]
+    tx_id = c.post(
+        "/api/transactions",
+        json={
+            "date": "2026-07-01",
+            "kind": "expense",
+            "account_id": seeded["aed"]["id"],
+            "amount": 10,
+            "payee": "CLEARME MERCHANT",
+            "splits": [{"category_id": None, "amount": 10, "note": ""}],
+        },
+    ).json()["id"]
+    c.post(
+        "/api/transactions/bulk",
+        json={"ids": [tx_id], "action": "set_category", "category_id": None},
+    )
+    assert not any(r["pattern"] == "CLEARME MERCHANT" for r in c.get("/api/rules").json())
+
+
 def test_duplicate_manual_rule_rejected(seeded):
     c = seeded["client"]
     body = {"pattern": "STARBUCKS", "match_kind": "contains", "category_id": seeded["food"]["id"]}

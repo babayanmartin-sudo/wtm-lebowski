@@ -158,6 +158,35 @@ def test_transaction_crud_filters_pagination(seeded):
     assert r.status_code == 400
 
 
+def test_uncategorized_filter(seeded):
+    c = seeded["client"]
+    categorized = c.post(
+        "/api/transactions",
+        json=_tx(seeded, splits=[{"category_id": seeded["food"]["id"], "amount": 10, "note": ""}]),
+    ).json()
+    uncategorized = c.post(
+        "/api/transactions",
+        json=_tx(seeded, splits=[{"category_id": None, "amount": 10, "note": ""}]),
+    ).json()
+    c.post(
+        "/api/transactions",
+        json=_tx(
+            seeded,
+            kind="transfer",
+            transfer_account_id=seeded["usd"]["id"],
+            transfer_amount=2.7,
+            splits=[],
+        ),
+    )
+
+    r = c.get("/api/transactions?uncategorized=true").json()
+    ids = {t["id"] for t in r["items"]}
+    assert ids == {uncategorized["id"]}
+    assert categorized["id"] not in ids
+    # a transfer has no category but shouldn't show up as "uncategorized" — it's a different concept
+    assert r["total"] == 1
+
+
 def test_transaction_same_currency_transfer_defaults_amount(seeded):
     c = seeded["client"]
     cash = c.post("/api/accounts", json={"name": "Cash2", "currency": "AED"}).json()

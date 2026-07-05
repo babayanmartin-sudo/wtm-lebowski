@@ -86,6 +86,9 @@ export function ColorDot({ color }: { color: string }) {
 }
 
 /** Select with top-level categories as optgroups and children indented. */
+/** Sentinel id for the "Uncategorized" filter option — no real category uses a negative id. */
+export const UNCATEGORIZED_ID = -1;
+
 export function CategorySelect({
   categories,
   value,
@@ -93,6 +96,7 @@ export function CategorySelect({
   kind,
   allowEmpty = true,
   emptyLabel = "— uncategorized —",
+  uncategorizedOption = false,
   className = "input",
   disabled = false,
   disabledIds,
@@ -103,6 +107,7 @@ export function CategorySelect({
   kind?: "expense" | "income";
   allowEmpty?: boolean;
   emptyLabel?: string;
+  uncategorizedOption?: boolean;
   className?: string;
   disabled?: boolean;
   disabledIds?: Set<number>;
@@ -117,6 +122,7 @@ export function CategorySelect({
       onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
     >
       {allowEmpty && <option value="">{emptyLabel}</option>}
+      {uncategorizedOption && <option value={UNCATEGORIZED_ID}>Uncategorized</option>}
       {tops.map((top) => {
         const children = active.filter((c) => c.parent_id === top.id);
         return (

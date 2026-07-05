@@ -6,7 +6,7 @@ import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useCategories, useInvalidating, useTransactions } from "../api/hooks";
 import type { Transaction } from "../api/types";
 import TransactionModal from "../components/TransactionModal";
-import { CategorySelect, ColorDot, EmptyState, PageHeader } from "../components/ui";
+import { CategorySelect, ColorDot, EmptyState, PageHeader, UNCATEGORIZED_ID } from "../components/ui";
 import { fmtDate, fmtMoney } from "../lib/format";
 import { useSessionState } from "../lib/session";
 
@@ -35,7 +35,8 @@ export default function TransactionsPage() {
 
   const { data } = useTransactions({
     account_id: accountId,
-    category_id: categoryId ?? undefined,
+    category_id: categoryId && categoryId !== UNCATEGORIZED_ID ? categoryId : undefined,
+    uncategorized: categoryId === UNCATEGORIZED_ID ? "true" : undefined,
     kind,
     q,
     limit: PAGE_SIZE,
@@ -268,6 +269,7 @@ export default function TransactionsPage() {
               setPage(0);
             }}
             emptyLabel="All categories"
+            uncategorizedOption
             className="input w-48"
           />
           <select

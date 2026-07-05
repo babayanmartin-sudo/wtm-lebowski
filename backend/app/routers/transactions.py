@@ -19,6 +19,7 @@ def list_transactions(
     db: Session = Depends(get_db),
     account_id: int | None = None,
     category_id: int | None = None,
+    uncategorized: bool = False,
     kind: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
@@ -42,6 +43,13 @@ def list_transactions(
         ids = [category_id] + ([c.id for c in cat.children] if cat else [])
         stmt = stmt.where(
             Transaction.id.in_(select(Split.transaction_id).where(Split.category_id.in_(ids)))
+        )
+    if uncategorized:
+        stmt = stmt.where(
+            Transaction.kind != "transfer",
+            ~Transaction.id.in_(
+                select(Split.transaction_id).where(Split.category_id.isnot(None))
+            ),
         )
     if q:
         like = f"%{q}%"
@@ -111,6 +119,8 @@ def bulk_action(body: BulkTransactionIn, db: Session = Depends(get_db)):
             t.splits.append(
                 Split(category_id=body.category_id, amount=t.amount, amount_base=t.amount_base, note="")
             )
+            if body.category_id is not None and t.payee:
+                learn(db, t.payee, body.category_id)
             count += 1
         db.commit()
         return BulkTransactionResult(updated=count)
@@ -186,5 +196,5 @@ def _build(db: Session, body: TransactionIn, tx: Transaction) -> Transaction:
 
 
 def _learn_from(db: Session, tx: Transaction) -> None:
-    if tx.kind == "expense" and tx.payee and len(tx.splits) == 1 and tx.splits[0].category_id:
+    if tx.kind in ("expense", "income") and tx.payee and len(tx.splits) == 1 and tx.splits[0].category_id:
         learn(db, tx.payee, tx.splits[0].category_id)
