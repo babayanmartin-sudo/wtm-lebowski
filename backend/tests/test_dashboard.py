@@ -111,6 +111,84 @@ def test_account_filter_includes_transfer_destination_in_recent(seeded):
     assert d["recent"][0]["transfer_account_id"] == seeded["usd"]["id"]
 
 
+def test_account_filter_includes_transfer_in_income_and_expense_totals(seeded):
+    c = seeded["client"]
+    c.post(
+        "/api/transactions",
+        json={
+            "date": "2026-07-05",
+            "kind": "transfer",
+            "account_id": seeded["aed"]["id"],
+            "amount": 100.0,
+            "transfer_account_id": seeded["usd"]["id"],
+            "transfer_amount": 27.0,
+        },
+    )
+    source = c.get(
+        f"/api/dashboard/summary?date_from=2026-07-01&date_to=2026-07-31&account_id={seeded['aed']['id']}"
+    ).json()
+    assert source["expense"] == 100.0
+    assert source["income"] == 0.0
+
+    dest = c.get(
+        f"/api/dashboard/summary?date_from=2026-07-01&date_to=2026-07-31&account_id={seeded['usd']['id']}"
+    ).json()
+    assert dest["income"] > 0  # 27 USD converted to AED at whatever rate is cached/live
+    assert dest["expense"] == 0.0
+
+    # globally a transfer between own accounts still nets to zero — not real income/expense
+    overall = c.get("/api/dashboard/summary?date_from=2026-07-01&date_to=2026-07-31").json()
+    assert overall["expense"] == 0.0
+    assert overall["income"] == 0.0
+
+
+def test_account_filter_puts_transfer_in_correct_series_bucket(seeded):
+    c = seeded["client"]
+    c.post(
+        "/api/transactions",
+        json={
+            "date": "2026-07-05",
+            "kind": "transfer",
+            "account_id": seeded["aed"]["id"],
+            "amount": 100.0,
+            "transfer_account_id": seeded["usd"]["id"],
+            "transfer_amount": 27.0,
+        },
+    )
+    d = c.get(
+        f"/api/dashboard/summary?date_from=2026-07-01&date_to=2026-07-31&account_id={seeded['aed']['id']}"
+    ).json()
+    by_label = {b["label"]: b for b in d["series"]}
+    assert by_label["2026-07-05"]["expense"] == 100.0
+
+    dest = c.get(
+        f"/api/dashboard/summary?date_from=2026-07-01&date_to=2026-07-31&account_id={seeded['usd']['id']}"
+    ).json()
+    by_label_dest = {b["label"]: b for b in dest["series"]}
+    assert dest["income"] > 0
+    assert by_label_dest["2026-07-05"]["income"] == dest["income"]
+
+
+def test_transfer_excluded_from_totals_when_category_filter_also_set(seeded):
+    c = seeded["client"]
+    c.post(
+        "/api/transactions",
+        json={
+            "date": "2026-07-05",
+            "kind": "transfer",
+            "account_id": seeded["aed"]["id"],
+            "amount": 100.0,
+            "transfer_account_id": seeded["usd"]["id"],
+            "transfer_amount": 27.0,
+        },
+    )
+    d = c.get(
+        f"/api/dashboard/summary?date_from=2026-07-01&date_to=2026-07-31"
+        f"&account_id={seeded['aed']['id']}&category_id={seeded['food']['id']}"
+    ).json()
+    assert d["expense"] == 0.0  # transfers carry no category, so a category filter excludes them
+
+
 def test_category_filter_scopes_totals_and_by_category_breakdown(seeded):
     c = seeded["client"]
     c.post(

@@ -12,6 +12,7 @@ from ..models import Account, Category, Split, Transaction
 from ..schemas import TransactionOut
 from ..services.balances import balance_in_base, compute_balances
 from ..services.forecast import project_net_worth
+from ..services.rates import to_base
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"], dependencies=[Depends(require_auth)])
 
@@ -104,6 +105,37 @@ def _apply_filters(stmt, account_id: int | None, cat_ids: list[int] | None):
     return stmt
 
 
+def _transfer_flows(
+    db: Session, start: date, end: date, account_id: int
+) -> list[tuple[date, str, float]]:
+    """(date, 'expense'|'income', base amount) for transfer legs touching this account —
+    a transfer moves real money in/out of a single account even though it nets to zero
+    globally, so it should count in that account's own income/spent view."""
+    rows: list[tuple[date, str, float]] = []
+    out_stmt = select(Transaction.date, Transaction.amount_base).where(
+        Transaction.kind == "transfer",
+        Transaction.account_id == account_id,
+        Transaction.date >= start,
+        Transaction.date <= end,
+    )
+    for d, amount in db.execute(out_stmt).all():
+        rows.append((d, "expense", amount or 0.0))
+
+    in_stmt = (
+        select(Transaction.date, Transaction.transfer_amount, Account.currency)
+        .join(Account, Account.id == Transaction.transfer_account_id)
+        .where(
+            Transaction.kind == "transfer",
+            Transaction.transfer_account_id == account_id,
+            Transaction.date >= start,
+            Transaction.date <= end,
+        )
+    )
+    for d, amount, currency in db.execute(in_stmt).all():
+        rows.append((d, "income", to_base(db, amount or 0.0, currency, d)))
+    return rows
+
+
 def _totals(
     db: Session, start: date, end: date, account_id: int | None, cat_ids: list[int] | None
 ) -> dict[str, float]:
@@ -111,7 +143,11 @@ def _totals(
         Transaction.date >= start, Transaction.date <= end, Transaction.kind.in_(["expense", "income"])
     )
     stmt = _apply_filters(stmt, account_id, cat_ids).group_by(Transaction.kind)
-    return dict(db.execute(stmt).all())
+    totals = dict(db.execute(stmt).all())
+    if account_id and not cat_ids:
+        for _, kind, amount in _transfer_flows(db, start, end, account_id):
+            totals[kind] = (totals.get(kind) or 0.0) + amount
+    return totals
 
 
 def _by_category(
@@ -202,6 +238,12 @@ def _series(
         key = _bucket_start(d, granularity).isoformat()
         bucket = buckets.setdefault(key, {"label": key, "income": 0.0, "expense": 0.0})
         bucket[kind] = round(bucket[kind] + (amount or 0.0), 2)
+
+    if account_id and not cat_ids:
+        for d, kind, amount in _transfer_flows(db, start, end, account_id):
+            key = _bucket_start(d, granularity).isoformat()
+            bucket = buckets.setdefault(key, {"label": key, "income": 0.0, "expense": 0.0})
+            bucket[kind] = round(bucket[kind] + amount, 2)
 
     ordered = [buckets[k] for k in sorted(buckets.keys())]
     return granularity, ordered
