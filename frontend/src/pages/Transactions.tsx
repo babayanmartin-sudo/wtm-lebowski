@@ -8,6 +8,7 @@ import type { Transaction } from "../api/types";
 import TransactionModal from "../components/TransactionModal";
 import { CategorySelect, ColorDot, EmptyState, PageHeader } from "../components/ui";
 import { fmtDate, fmtMoney } from "../lib/format";
+import { useSessionState } from "../lib/session";
 
 const PAGE_SIZE = 50;
 
@@ -15,10 +16,14 @@ export default function TransactionsPage() {
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
   const [searchParams] = useSearchParams();
-  const [accountId, setAccountId] = useState(searchParams.get("account") ?? "");
-  const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [kind, setKind] = useState("");
-  const [q, setQ] = useState("");
+  const [accountId, setAccountId] = useSessionState(
+    "transactions.account",
+    "",
+    searchParams.get("account") ?? undefined,
+  );
+  const [categoryId, setCategoryId] = useSessionState<number | null>("transactions.category", null);
+  const [kind, setKind] = useSessionState("transactions.kind", "");
+  const [q, setQ] = useSessionState("transactions.q", "");
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [creating, setCreating] = useState(false);

@@ -7,7 +7,7 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   Area,
@@ -28,6 +28,7 @@ import { useAccounts, useBudgetStatus, useCategories, useDashboard, useProjectio
 import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ColorDot, ProgressBar } from "../components/ui";
 import { fmtMoney, fmtMonth } from "../lib/format";
+import { useSessionState } from "../lib/session";
 import {
   type PickerMode,
   bucketLabel,
@@ -42,11 +43,11 @@ import {
 const ALL_MODES: PickerMode[] = ["day", "week", "month", "year"];
 
 export default function DashboardPage() {
-  const [pickerMode, setPickerMode] = useState<PickerMode>("month");
-  const [pickerDate, setPickerDate] = useState(toISO(new Date()));
-  const [accountId, setAccountId] = useState<number | null>(null);
-  const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [forecastMonths, setForecastMonths] = useState(12);
+  const [pickerMode, setPickerMode] = useSessionState<PickerMode>("dashboard.mode", "month");
+  const [pickerDate, setPickerDate] = useSessionState("dashboard.date", toISO(new Date()));
+  const [accountId, setAccountId] = useSessionState<number | null>("dashboard.account", null);
+  const [categoryId, setCategoryId] = useSessionState<number | null>("dashboard.category", null);
+  const [forecastMonths, setForecastMonths] = useSessionState("dashboard.forecastMonths", 12);
 
   const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate)), [pickerMode, pickerDate]);
 

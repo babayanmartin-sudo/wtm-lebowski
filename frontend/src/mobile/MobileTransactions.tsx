@@ -5,13 +5,14 @@ import { useAccounts, useCategories, useTransactions } from "../api/hooks";
 import type { Transaction } from "../api/types";
 import TransactionModal from "../components/TransactionModal";
 import { fmtMoney } from "../lib/format";
+import { useSessionState } from "../lib/session";
 
 const PAGE_SIZE = 30;
 
 export default function MobileTransactions() {
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
-  const [q, setQ] = useState("");
+  const [q, setQ] = useSessionState("transactions.q", "");
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [creating, setCreating] = useState(false);
   const { data } = useTransactions({ q, limit: PAGE_SIZE, offset: 0 });

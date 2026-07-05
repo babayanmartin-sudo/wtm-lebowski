@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api } from "../api/client";
 import { useCategories, useIgnoreRules, useInvalidating, useRules } from "../api/hooks";
 import { CategorySelect, ColorDot, EmptyState, Field, Modal, PageHeader } from "../components/ui";
+import { useSessionState } from "../lib/session";
 
 interface Draft {
   id?: number;
@@ -22,7 +23,7 @@ interface IgnoreDraft {
 }
 
 export default function RulesPage() {
-  const [q, setQ] = useState("");
+  const [q, setQ] = useSessionState("rules.q", "");
   const { data: rules = [] } = useRules(q);
   const { data: categories = [] } = useCategories();
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -36,7 +37,7 @@ export default function RulesPage() {
   );
   const remove = useInvalidating((id: number) => api.del(`/api/rules/${id}`), keys);
 
-  const [iq, setIq] = useState("");
+  const [iq, setIq] = useSessionState("rules.ignoreQ", "");
   const { data: ignoreRules = [] } = useIgnoreRules(iq);
   const [idraft, setIdraft] = useState<IgnoreDraft | null>(null);
   const [ierror, setIerror] = useState("");

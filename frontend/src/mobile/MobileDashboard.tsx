@@ -1,17 +1,18 @@
 import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, Wallet } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { useAccounts, useDashboard } from "../api/hooks";
 import { fmtMoney } from "../lib/format";
 import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
+import { useSessionState } from "../lib/session";
 import PeriodPicker from "../components/PeriodPicker";
 
 const ALL_MODES: PickerMode[] = ["day", "week", "month", "year"];
 
 export default function MobileDashboard() {
-  const [pickerMode, setPickerMode] = useState<PickerMode>("month");
-  const [pickerDate, setPickerDate] = useState(toISO(new Date()));
+  const [pickerMode, setPickerMode] = useSessionState<PickerMode>("dashboard.mode", "month");
+  const [pickerDate, setPickerDate] = useSessionState("dashboard.date", toISO(new Date()));
   const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate)), [pickerMode, pickerDate]);
   const { data } = useDashboard({ date_from: period.from, date_to: period.to });
   const { data: accounts = [] } = useAccounts();

@@ -8,6 +8,7 @@ import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ColorDot, EmptyState, Field, Modal, PageHeader, ProgressBar } from "../components/ui";
 import { fmtMoney, fmtMonth } from "../lib/format";
 import { toISO } from "../lib/period";
+import { useSessionState } from "../lib/session";
 
 interface Draft {
   id?: number;
@@ -17,7 +18,7 @@ interface Draft {
 }
 
 export default function BudgetsPage() {
-  const [periodDate, setPeriodDate] = useState(toISO(new Date()));
+  const [periodDate, setPeriodDate] = useSessionState("budgets.date", toISO(new Date()));
   const month = periodDate.slice(0, 7);
   const { data: budgets = [] } = useBudgets();
   const { data: status = [] } = useBudgetStatus(month);
