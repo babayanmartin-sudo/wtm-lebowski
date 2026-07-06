@@ -22,7 +22,7 @@ export default function TransactionsPage() {
     "",
     searchParams.get("account") ?? undefined,
   );
-  const [loanId] = useState<string | null>(searchParams.get("loan"));
+  const [loanId, setLoanId] = useState<string | null>(searchParams.get("loan"));
   const [categoryId, setCategoryId] = useSessionState<number | null>("transactions.category", null);
   const [kind, setKind] = useSessionState("transactions.kind", "");
   const [q, setQ] = useSessionState("transactions.q", "");
@@ -54,6 +54,7 @@ export default function TransactionsPage() {
 
   const accountById = new Map(accounts.map((a) => [a.id, a]));
   const categoryById = new Map(categories.map((c) => [c.id, c]));
+  const filteredLoan = loanId ? loans.find((l) => String(l.id) === loanId) : undefined;
   const items = data?.items ?? [];
 
   function toggleOne(tx: Transaction, e: React.MouseEvent) {
@@ -288,6 +289,18 @@ export default function TransactionsPage() {
             <option value="income">Income</option>
             <option value="transfer">Transfer</option>
           </select>
+        </div>
+      )}
+
+      {loanId && (
+        <div className="mb-4 flex items-center gap-2 text-xs text-gray-400">
+          Filtering by loan
+          <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+            {filteredLoan?.name ?? `#${loanId}`}
+            <button onClick={() => setLoanId(null)}>
+              <X size={12} />
+            </button>
+          </span>
         </div>
       )}
 
