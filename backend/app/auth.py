@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, Request, Response
 from itsdangerous import BadSignature, SignatureExpired, TimestampSigner
 from sqlalchemy.orm import Session
 
-from .config import SECRET_KEY, SESSION_COOKIE, SESSION_MAX_AGE
+from .config import SECRET_KEY, SESSION_COOKIE, SESSION_COOKIE_SECURE, SESSION_MAX_AGE
 from .db import get_db
 from .models import Setting
 
@@ -48,6 +48,7 @@ def create_session(response: Response) -> None:
         max_age=SESSION_MAX_AGE,
         httponly=True,
         samesite="lax",
+        secure=SESSION_COOKIE_SECURE,
     )
 
 

@@ -6,4 +6,8 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/data
+    environment:
+      # ET_BASE_CURRENCY: "AED"
+      # Set to "1" once a reverse proxy is terminating HTTPS in front of this.
+      ET_COOKIE_SECURE: "0"
     restart: unless-stopped

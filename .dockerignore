@@ -1,0 +1,14 @@
+**/__pycache__/
+**/*.pyc
+backend/.venv/
+backend/.pytest_cache/
+backend/tests/
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+data/
+.git/
+.gitignore
+.dockerignore
+*.md
+.DS_Store

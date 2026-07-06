@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 if [ ! -d backend/.venv ]; then
   echo "Creating venv..."
   uv venv --python 3.12 backend/.venv
-  uv pip install -r backend/requirements.txt --python backend/.venv/bin/python
+  uv pip install -r backend/requirements-dev.txt --python backend/.venv/bin/python
 fi
 if [ ! -d frontend/node_modules ]; then
   echo "Installing frontend deps..."

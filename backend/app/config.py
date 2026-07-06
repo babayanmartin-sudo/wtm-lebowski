@@ -15,6 +15,9 @@ BASE_CURRENCY = os.environ.get("ET_BASE_CURRENCY", "AED")
 
 SESSION_COOKIE = "et_session"
 SESSION_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+# Set ET_COOKIE_SECURE=1 once you're serving over HTTPS (e.g. behind a reverse
+# proxy on your VPS) so the session cookie is never sent over plain HTTP.
+SESSION_COOKIE_SECURE = os.environ.get("ET_COOKIE_SECURE", "0") == "1"
 
 _SECRET_FILE = DATA_DIR / "secret_key"
 
