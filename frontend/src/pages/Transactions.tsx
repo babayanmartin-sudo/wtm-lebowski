@@ -1,16 +1,19 @@
-import { ArrowLeftRight, ArrowRight, Plus, Search, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeftRight, ArrowRight, ChevronLeft, ChevronRight, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useCategories, useInvalidating, useLoans, useTransactions } from "../api/hooks";
 import type { Transaction } from "../api/types";
 import TransactionModal from "../components/TransactionModal";
+import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ColorDot, EmptyState, PageHeader, UNCATEGORIZED_ID } from "../components/ui";
 import { fmtDate, fmtMoney } from "../lib/format";
+import { type PickerMode, parseISO, periodFor, shiftAnchor, toISO } from "../lib/period";
 import { useSessionState } from "../lib/session";
 
 const PAGE_SIZE = 50;
+const ALL_MODES: PickerMode[] = ["day", "week", "month", "year"];
 
 export default function TransactionsPage() {
   const { data: accounts = [] } = useAccounts();
@@ -26,6 +29,8 @@ export default function TransactionsPage() {
   const [categoryId, setCategoryId] = useSessionState<number | null>("transactions.category", null);
   const [kind, setKind] = useSessionState("transactions.kind", "");
   const [q, setQ] = useSessionState("transactions.q", "");
+  const [pickerMode, setPickerMode] = useSessionState<PickerMode>("transactions.periodMode", "month");
+  const [pickerDate, setPickerDate] = useSessionState("transactions.periodDate", toISO(new Date()));
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [creating, setCreating] = useState(false);
@@ -35,11 +40,21 @@ export default function TransactionsPage() {
   const [bulkAccount, setBulkAccount] = useState<number | "">("");
   const [bulkError, setBulkError] = useState("");
 
+  const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate)), [pickerMode, pickerDate]);
+  const isCurrentMonth = pickerMode === "month" && pickerDate.slice(0, 7) === toISO(new Date()).slice(0, 7);
+
+  function resetPeriod() {
+    setPickerMode("month");
+    setPickerDate(toISO(new Date()));
+  }
+
   const { data } = useTransactions({
     account_id: accountId,
     category_id: categoryId && categoryId !== UNCATEGORIZED_ID ? categoryId : undefined,
     uncategorized: categoryId === UNCATEGORIZED_ID ? "true" : undefined,
     loan_id: loanId ?? undefined,
+    date_from: period.from,
+    date_to: period.to,
     kind,
     q,
     limit: PAGE_SIZE,
@@ -181,9 +196,53 @@ export default function TransactionsPage() {
         title="Transactions"
         subtitle={`${total} records`}
         actions={
-          <button className="btn-primary" onClick={() => setCreating(true)}>
-            <Plus size={16} /> Add
-          </button>
+          <>
+            <div className="flex items-center gap-1">
+              <button
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+                onClick={() => {
+                  setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, -1)));
+                  setPage(0);
+                }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <PeriodPicker
+                mode={pickerMode}
+                date={pickerDate}
+                modes={ALL_MODES}
+                onChange={(m, d) => {
+                  setPickerMode(m);
+                  setPickerDate(d);
+                  setPage(0);
+                }}
+              />
+              <button
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+                onClick={() => {
+                  setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, 1)));
+                  setPage(0);
+                }}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+            {!isCurrentMonth && (
+              <button
+                className="btn-ghost px-3 py-1.5 text-xs"
+                title="Back to current month"
+                onClick={() => {
+                  resetPeriod();
+                  setPage(0);
+                }}
+              >
+                <RotateCcw size={13} /> Reset
+              </button>
+            )}
+            <button className="btn-primary" onClick={() => setCreating(true)}>
+              <Plus size={16} /> Add
+            </button>
+          </>
         }
       />
 
