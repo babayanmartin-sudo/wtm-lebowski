@@ -22,38 +22,40 @@ body {
   font-family: var(--font-sans);
 }
 
-.glass {
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(14px);
-  border-radius: 1rem;
-}
+@layer components {
+  .glass {
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px);
+    border-radius: 1rem;
+  }
 
-.glass-hover {
-  transition: border-color 0.2s, background 0.2s, transform 0.15s;
-}
-.glass-hover:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.16);
-}
+  .glass-hover {
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  }
+  .glass-hover:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
 
-.input {
-  @apply w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-lime-400/60 focus:bg-white/10;
-}
+  .input {
+    @apply w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-lime-400/60 focus:bg-white/10;
+  }
 
-.btn-primary,
-.btn-ghost,
-.btn-danger {
-  @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
-}
-.btn-primary {
-  @apply bg-lime-400 text-black hover:bg-lime-300;
-}
-.btn-ghost {
-  @apply border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10;
-}
-.btn-danger {
-  @apply bg-rose-500/80 text-white hover:bg-rose-500;
+  .btn-primary,
+  .btn-ghost,
+  .btn-danger {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-lime-400 text-black hover:bg-lime-300;
+  }
+  .btn-ghost {
+    @apply border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10;
+  }
+  .btn-danger {
+    @apply bg-rose-500/80 text-white hover:bg-rose-500;
+  }
 }
 
 ::-webkit-scrollbar {
