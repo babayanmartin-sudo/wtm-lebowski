@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from ..auth import require_auth
 from ..db import get_db
-from ..models import Account, Category, Split, Transaction
+from ..models import Account, Category, Loan, Split, Transaction
 from ..schemas import BulkTransactionIn, BulkTransactionResult, TransactionIn, TransactionOut, TransactionPage
 from ..services.matcher import learn
 from ..services.rates import to_base
@@ -20,6 +20,7 @@ def list_transactions(
     account_id: int | None = None,
     category_id: int | None = None,
     uncategorized: bool = False,
+    loan_id: int | None = None,
     kind: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
@@ -51,6 +52,8 @@ def list_transactions(
                 select(Split.transaction_id).where(Split.category_id.isnot(None))
             ),
         )
+    if loan_id:
+        stmt = stmt.where(Transaction.loan_id == loan_id)
     if q:
         like = f"%{q}%"
         stmt = stmt.where(or_(Transaction.payee.ilike(like), Transaction.note.ilike(like)))
@@ -160,8 +163,11 @@ def _build(db: Session, body: TransactionIn, tx: Transaction) -> Transaction:
     tx.note = body.note.strip()
     tx.transfer_account_id = None
     tx.transfer_amount = None
+    tx.loan_id = None
 
     if body.kind == "transfer":
+        if body.loan_id is not None:
+            raise HTTPException(400, "Transfers can't link to a loan")
         dest = db.get(Account, body.transfer_account_id) if body.transfer_account_id else None
         if not dest:
             raise HTTPException(400, "Transfer destination account required")
@@ -175,6 +181,15 @@ def _build(db: Session, body: TransactionIn, tx: Transaction) -> Transaction:
         else:
             tx.transfer_amount = round(body.transfer_amount, 2)
         return tx
+
+    if body.loan_id is not None:
+        loan = db.get(Loan, body.loan_id)
+        if not loan:
+            raise HTTPException(400, "Loan not found")
+        expected_kind = "expense" if loan.direction == "debt" else "income"
+        if body.kind != expected_kind:
+            raise HTTPException(400, f"This loan expects a {expected_kind} transaction")
+        tx.loan_id = body.loan_id
 
     # expense/income: at least one split, amounts must sum to total
     splits = body.splits or [type("S", (), {"category_id": None, "amount": body.amount, "note": ""})()]

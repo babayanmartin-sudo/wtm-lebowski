@@ -50,6 +50,7 @@ export interface Transaction {
   note: string;
   template_id: number | null;
   import_id: number | null;
+  loan_id: number | null;
   splits: Split[];
 }
 
@@ -112,6 +113,18 @@ export interface Goal {
   archived: boolean;
   saved: number;
   contributions: Contribution[];
+}
+
+export interface Loan {
+  id: number;
+  name: string;
+  direction: "debt" | "receivable";
+  principal_amount: number;
+  color: string;
+  icon: string;
+  archived: boolean;
+  paid: number;
+  remaining: number;
 }
 
 export interface Rule {

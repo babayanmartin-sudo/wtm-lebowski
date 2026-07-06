@@ -49,7 +49,33 @@ def _migrate() -> None:
         if "period" not in budget_cols:
             conn.exec_driver_sql("ALTER TABLE budgets ADD COLUMN period TEXT DEFAULT 'monthly'")
 
+        tx_cols = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(transactions)")]
+        if "loan_id" not in tx_cols:
+            conn.exec_driver_sql(
+                "ALTER TABLE transactions ADD COLUMN loan_id INTEGER REFERENCES loans(id) ON DELETE SET NULL"
+            )
+        _migrate_transaction_loan_fk(conn)
+
         _migrate_budget_uniqueness(conn)
+
+
+def _migrate_transaction_loan_fk(conn) -> None:
+    """loan_id may have been added via a plain ALTER TABLE lacking an
+    ON DELETE action before this was fixed — rebuild just that column so
+    deleting a loan clears the link instead of failing the FK constraint."""
+    fks = conn.exec_driver_sql("PRAGMA foreign_key_list(transactions)").fetchall()
+    loan_fk = next((fk for fk in fks if fk[2] == "loans"), None)
+    if loan_fk is None or (loan_fk[6] or "").upper() == "SET NULL":
+        return
+
+    conn.exec_driver_sql("ALTER TABLE transactions ADD COLUMN loan_id_tmp INTEGER")
+    conn.exec_driver_sql("UPDATE transactions SET loan_id_tmp = loan_id")
+    conn.exec_driver_sql("ALTER TABLE transactions DROP COLUMN loan_id")
+    conn.exec_driver_sql(
+        "ALTER TABLE transactions ADD COLUMN loan_id INTEGER REFERENCES loans(id) ON DELETE SET NULL"
+    )
+    conn.exec_driver_sql("UPDATE transactions SET loan_id = loan_id_tmp")
+    conn.exec_driver_sql("ALTER TABLE transactions DROP COLUMN loan_id_tmp")
 
 
 def _migrate_budget_uniqueness(conn) -> None:

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { api } from "../api/client";
-import { MONEY_KEYS, useAccounts, useCategories, useInvalidating, useTransactions } from "../api/hooks";
+import { MONEY_KEYS, useAccounts, useCategories, useInvalidating, useLoans, useTransactions } from "../api/hooks";
 import type { Transaction } from "../api/types";
 import TransactionModal from "../components/TransactionModal";
 import { CategorySelect, ColorDot, EmptyState, PageHeader, UNCATEGORIZED_ID } from "../components/ui";
@@ -15,12 +15,14 @@ const PAGE_SIZE = 50;
 export default function TransactionsPage() {
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
+  const { data: loans = [] } = useLoans();
   const [searchParams] = useSearchParams();
   const [accountId, setAccountId] = useSessionState(
     "transactions.account",
     "",
     searchParams.get("account") ?? undefined,
   );
+  const [loanId] = useState<string | null>(searchParams.get("loan"));
   const [categoryId, setCategoryId] = useSessionState<number | null>("transactions.category", null);
   const [kind, setKind] = useSessionState("transactions.kind", "");
   const [q, setQ] = useSessionState("transactions.q", "");
@@ -37,6 +39,7 @@ export default function TransactionsPage() {
     account_id: accountId,
     category_id: categoryId && categoryId !== UNCATEGORIZED_ID ? categoryId : undefined,
     uncategorized: categoryId === UNCATEGORIZED_ID ? "true" : undefined,
+    loan_id: loanId ?? undefined,
     kind,
     q,
     limit: PAGE_SIZE,
@@ -365,6 +368,7 @@ export default function TransactionsPage() {
         <TransactionModal
           accounts={accounts}
           categories={categories}
+          loans={loans}
           existing={editing}
           onClose={() => {
             setCreating(false);

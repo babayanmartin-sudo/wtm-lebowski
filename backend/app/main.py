@@ -37,6 +37,7 @@ from .routers import (  # noqa: E402
     goals,
     ignore_rules,
     imports,
+    loans,
     rates,
     rules,
     templates,
@@ -50,6 +51,7 @@ app.include_router(transactions.router)
 app.include_router(templates.router)
 app.include_router(budgets.router)
 app.include_router(goals.router)
+app.include_router(loans.router)
 app.include_router(rules.router)
 app.include_router(ignore_rules.router)
 app.include_router(rates.router)

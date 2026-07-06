@@ -24,7 +24,7 @@ const NAV = [
   { to: "/accounts", label: "Accounts", icon: Wallet },
   { to: "/categories", label: "Categories", icon: Tags },
   { to: "/budgets", label: "Budgets", icon: PiggyBank },
-  { to: "/goals", label: "Goals", icon: Target },
+  { to: "/goals", label: "Goals & Loans", icon: Target },
   { to: "/templates", label: "Recurring/Planned", icon: Repeat },
   { to: "/import", label: "Import", icon: Upload },
   { to: "/rules", label: "Rules", icon: BookOpen },

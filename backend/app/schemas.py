@@ -76,6 +76,7 @@ class TransactionIn(BaseModel):
     transfer_amount: float | None = None
     payee: str = ""
     note: str = ""
+    loan_id: int | None = None
     splits: list[SplitIn] = []
 
 
@@ -93,6 +94,7 @@ class TransactionOut(ORMModel):
     note: str
     template_id: int | None
     import_id: int | None
+    loan_id: int | None
     splits: list[SplitOut]
 
 
@@ -184,6 +186,22 @@ class GoalOut(ORMModel, GoalIn):
     id: int
     saved: float = 0.0
     contributions: list[ContributionOut] = []
+
+
+# ---- loans ----
+class LoanIn(BaseModel):
+    name: str
+    direction: str  # debt (I owe) | receivable (owed to me)
+    principal_amount: float = Field(gt=0)
+    color: str = "#f97316"
+    icon: str = "landmark"
+    archived: bool = False
+
+
+class LoanOut(ORMModel, LoanIn):
+    id: int
+    paid: float = 0.0
+    remaining: float = 0.0
 
 
 # ---- mapping rules ----

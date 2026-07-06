@@ -75,6 +75,7 @@ class Transaction(Base):
     note: Mapped[str] = mapped_column(Text, default="")
     template_id: Mapped[int | None] = mapped_column(ForeignKey("templates.id", ondelete="SET NULL"), nullable=True)
     import_id: Mapped[int | None] = mapped_column(ForeignKey("imports.id", ondelete="SET NULL"), nullable=True)
+    loan_id: Mapped[int | None] = mapped_column(ForeignKey("loans.id", ondelete="SET NULL"), nullable=True)
     dedupe_hash: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
@@ -164,6 +165,18 @@ class GoalContribution(Base):
     note: Mapped[str] = mapped_column(String, default="")
 
     goal: Mapped[Goal] = relationship(back_populates="contributions")
+
+
+class Loan(Base):
+    __tablename__ = "loans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String)
+    direction: Mapped[str] = mapped_column(String)  # "debt" (I owe) | "receivable" (owed to me)
+    principal_amount: Mapped[float] = mapped_column(Float)  # base currency, target to pay off/collect
+    color: Mapped[str] = mapped_column(String, default="#f97316")
+    icon: Mapped[str] = mapped_column(String, default="landmark")
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class MappingRule(Base):

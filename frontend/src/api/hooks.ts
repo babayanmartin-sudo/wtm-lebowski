@@ -12,6 +12,7 @@ import type {
   Goal,
   IgnoreRule,
   ImportDetail,
+  Loan,
   Projection,
   Rule,
   Template,
@@ -66,6 +67,10 @@ export function useBudgetStatus(month?: string) {
 
 export function useGoals() {
   return useQuery({ queryKey: ["goals"], queryFn: () => api.get<Goal[]>("/api/goals") });
+}
+
+export function useLoans() {
+  return useQuery({ queryKey: ["loans"], queryFn: () => api.get<Loan[]>("/api/loans") });
 }
 
 export function useRules(q: string) {
@@ -131,4 +136,5 @@ export const MONEY_KEYS = [
   ["budgets"],
   ["templates"],
   ["projection"],
+  ["loans"],
 ];

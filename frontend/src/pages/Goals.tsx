@@ -1,9 +1,10 @@
-import { Pencil, Plus, PlusCircle, Target, Trash2 } from "lucide-react";
+import { ChevronRight, Landmark, Pencil, Plus, PlusCircle, Target, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 import { api } from "../api/client";
-import { useGoals, useInvalidating } from "../api/hooks";
-import type { Goal } from "../api/types";
+import { useGoals, useInvalidating, useLoans } from "../api/hooks";
+import type { Goal, Loan } from "../api/types";
 import { ColorPicker, EmptyState, Field, Modal, PageHeader } from "../components/ui";
 import { fmtDate, fmtMoney, today } from "../lib/format";
 
@@ -12,6 +13,14 @@ interface Draft {
   name: string;
   target_amount: string;
   target_date: string;
+  color: string;
+}
+
+interface LoanDraft {
+  id?: number;
+  name: string;
+  direction: "debt" | "receivable";
+  principal_amount: string;
   color: string;
 }
 
@@ -43,6 +52,36 @@ export default function GoalsPage() {
       api.post(`/api/goals/${id}/contributions`, { date: today(), amount: value, note: "" }),
     keys,
   );
+
+  const { data: loans = [] } = useLoans();
+  const [loanDraft, setLoanDraft] = useState<LoanDraft | null>(null);
+  const [loanError, setLoanError] = useState("");
+  const loanKeys = [["loans"]];
+  const saveLoan = useInvalidating(
+    (d: LoanDraft) => {
+      const body = {
+        name: d.name,
+        direction: d.direction,
+        principal_amount: parseFloat(d.principal_amount),
+        color: d.color,
+        icon: "landmark",
+        archived: false,
+      };
+      return d.id ? api.put(`/api/loans/${d.id}`, body) : api.post("/api/loans", body);
+    },
+    loanKeys,
+  );
+  const removeLoan = useInvalidating((id: number) => api.del(`/api/loans/${id}`), loanKeys);
+
+  async function submitLoan() {
+    setLoanError("");
+    try {
+      await saveLoan.mutateAsync(loanDraft!);
+      setLoanDraft(null);
+    } catch (e) {
+      setLoanError(e instanceof Error ? e.message : "Failed");
+    }
+  }
 
   async function submit() {
     setError("");
@@ -218,6 +257,145 @@ export default function GoalsPage() {
               }}
             >
               <Target size={15} /> Save contribution
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      <PageHeader
+        title="Loans & debts"
+        subtitle="Track a mortgage/loan you're paying off, or money someone owes you"
+        actions={
+          <button
+            className="btn-primary"
+            onClick={() =>
+              setLoanDraft({ name: "", direction: "debt", principal_amount: "", color: "#f97316" })
+            }
+          >
+            <Plus size={16} /> Add loan
+          </button>
+        }
+      />
+
+      {loans.length === 0 ? (
+        <EmptyState text="No loans yet. Add a mortgage you're paying down, or money someone owes you." />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {loans.map((l: Loan) => {
+            const ratio = l.principal_amount > 0 ? Math.min(1, l.paid / l.principal_amount) : 0;
+            const deg = ratio * 360;
+            return (
+              <div key={l.id} className="glass glass-hover p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="flex h-14 w-14 items-center justify-center rounded-full"
+                      style={{
+                        background: `conic-gradient(${l.color} ${deg}deg, rgba(255,255,255,0.08) ${deg}deg)`,
+                      }}
+                    >
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#12151f] text-xs font-semibold">
+                        {Math.round(ratio * 100)}%
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-medium">{l.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {l.direction === "debt" ? "You owe this" : "Owed to you"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+                      onClick={() =>
+                        setLoanDraft({
+                          id: l.id,
+                          name: l.name,
+                          direction: l.direction,
+                          principal_amount: String(l.principal_amount),
+                          color: l.color,
+                        })
+                      }
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
+                      onClick={() => removeLoan.mutate(l.id)}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+                <p className="mt-4 text-lg font-semibold tabular-nums">
+                  {fmtMoney(l.paid)} <span className="text-sm text-gray-500">/ {fmtMoney(l.principal_amount)} AED</span>
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  {l.remaining > 0 ? `${fmtMoney(l.remaining)} AED remaining` : "Fully settled 🎉"}
+                </p>
+                <Link
+                  to={`/transactions?loan=${l.id}`}
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-2 text-sm text-gray-200 transition-colors hover:bg-white/10"
+                >
+                  View transactions <ChevronRight size={14} />
+                </Link>
+                <p className="mt-2 text-center text-[11px] text-gray-500">
+                  Updates automatically from linked transactions
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {loanDraft && (
+        <Modal title={loanDraft.id ? "Edit loan" : "New loan"} onClose={() => setLoanDraft(null)}>
+          <div className="flex flex-col gap-4">
+            <Field label="Name">
+              <input
+                className="input"
+                value={loanDraft.name}
+                onChange={(e) => setLoanDraft({ ...loanDraft, name: e.target.value })}
+                placeholder="e.g. Mortgage"
+                autoFocus
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Direction">
+                <select
+                  className="input"
+                  value={loanDraft.direction}
+                  onChange={(e) =>
+                    setLoanDraft({ ...loanDraft, direction: e.target.value as "debt" | "receivable" })
+                  }
+                  disabled={!!loanDraft.id}
+                >
+                  <option value="debt">I owe this</option>
+                  <option value="receivable">Owed to me</option>
+                </select>
+              </Field>
+              <Field label="Principal (AED)">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="input"
+                  value={loanDraft.principal_amount}
+                  onChange={(e) => setLoanDraft({ ...loanDraft, principal_amount: e.target.value })}
+                />
+              </Field>
+            </div>
+            <Field label="Color">
+              <ColorPicker value={loanDraft.color} onChange={(color) => setLoanDraft({ ...loanDraft, color })} />
+            </Field>
+            {loanError && <p className="text-xs text-rose-400">{loanError}</p>}
+            <button
+              className="btn-primary"
+              onClick={submitLoan}
+              disabled={!loanDraft.name.trim() || !(parseFloat(loanDraft.principal_amount) > 0)}
+            >
+              <Landmark size={15} /> Save
             </button>
           </div>
         </Modal>

@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { api } from "../api/client";
 import { MONEY_KEYS, useInvalidating } from "../api/hooks";
-import type { Account, Category, Transaction } from "../api/types";
+import type { Account, Category, Loan, Transaction } from "../api/types";
 import { today } from "../lib/format";
 import { CategorySelect, Field, Modal } from "./ui";
 
@@ -18,11 +18,13 @@ interface DraftSplit {
 export default function TransactionModal({
   accounts,
   categories,
+  loans,
   existing,
   onClose,
 }: {
   accounts: Account[];
   categories: Category[];
+  loans: Loan[];
   existing: Transaction | null;
   onClose: () => void;
 }) {
@@ -35,6 +37,7 @@ export default function TransactionModal({
   const [toAmount, setToAmount] = useState(existing?.transfer_amount ? String(existing.transfer_amount) : "");
   const [payee, setPayee] = useState(existing?.payee ?? "");
   const [note, setNote] = useState(existing?.note ?? "");
+  const [loanId, setLoanId] = useState<number | null>(existing?.loan_id ?? null);
   const [splits, setSplits] = useState<DraftSplit[]>(
     existing && existing.kind !== "transfer"
       ? existing.splits.map((s) => ({ category_id: s.category_id, amount: String(s.amount), note: s.note }))
@@ -61,6 +64,14 @@ export default function TransactionModal({
   const isSplit = splits.length > 1;
   const splitsTotal = splits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
   const splitsMismatch = isSplit && Math.abs(splitsTotal - amountNum) > 0.005;
+  const loanDirection = kind === "expense" ? "debt" : kind === "income" ? "receivable" : null;
+  const matchingLoans = loans.filter((l) => !l.archived && l.direction === loanDirection);
+
+  function changeKind(k: Kind) {
+    setKind(k);
+    const direction = k === "expense" ? "debt" : k === "income" ? "receivable" : null;
+    if (!loans.some((l) => l.id === loanId && l.direction === direction)) setLoanId(null);
+  }
 
   async function submit() {
     setError("");
@@ -74,6 +85,7 @@ export default function TransactionModal({
       transfer_account_id: kind === "transfer" ? toAccountId : null,
       transfer_amount:
         kind === "transfer" ? (crossCurrency ? parseFloat(toAmount) || 0 : amountNum) : null,
+      loan_id: kind === "transfer" ? null : loanId,
       splits:
         kind === "transfer"
           ? []
@@ -99,7 +111,7 @@ export default function TransactionModal({
   const kindBtn = (k: Kind, label: string, activeClass: string) => (
     <button
       type="button"
-      onClick={() => setKind(k)}
+      onClick={() => changeKind(k)}
       className={`flex-1 rounded-lg py-1.5 text-sm font-medium transition-colors ${
         kind === k ? activeClass : "text-gray-400 hover:bg-white/5"
       }`}
@@ -187,6 +199,23 @@ export default function TransactionModal({
                 placeholder="e.g. Carrefour"
               />
             </Field>
+
+            {matchingLoans.length > 0 && (
+              <Field label="Link to loan (optional)">
+                <select
+                  className="input"
+                  value={loanId ?? ""}
+                  onChange={(e) => setLoanId(e.target.value === "" ? null : Number(e.target.value))}
+                >
+                  <option value="">— none —</option>
+                  {matchingLoans.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
 
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">

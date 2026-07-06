@@ -1,7 +1,7 @@
 import { Plus, Search } from "lucide-react";
 import { useState } from "react";
 
-import { useAccounts, useCategories, useTransactions } from "../api/hooks";
+import { useAccounts, useCategories, useLoans, useTransactions } from "../api/hooks";
 import type { Transaction } from "../api/types";
 import TransactionModal from "../components/TransactionModal";
 import { fmtMoney } from "../lib/format";
@@ -12,6 +12,7 @@ const PAGE_SIZE = 30;
 export default function MobileTransactions() {
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
+  const { data: loans = [] } = useLoans();
   const [q, setQ] = useSessionState("transactions.q", "");
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [creating, setCreating] = useState(false);
@@ -103,6 +104,7 @@ export default function MobileTransactions() {
         <TransactionModal
           accounts={accounts}
           categories={categories}
+          loans={loans}
           existing={editing}
           onClose={() => {
             setCreating(false);
