@@ -62,8 +62,10 @@ export default function Layout({ children }: { children: ReactNode }) {
             🕶️
           </div>
           {!collapsed && (
-            <span className="truncate text-base font-semibold tracking-tight">
-              Where's the Money, Lebowski
+            <span className="text-xs leading-tight font-semibold tracking-tight">
+              Where's the Money,
+              <br />
+              Lebowski
             </span>
           )}
         </div>
