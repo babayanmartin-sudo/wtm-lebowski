@@ -1,4 +1,4 @@
-import { Archive, Check, Pencil, Plus, Scale, Trash2, Wallet } from "lucide-react";
+import { Archive, Check, Pencil, Plus, Scale, Star, Trash2, Wallet } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -21,6 +21,7 @@ interface Draft {
   icon: string;
   archived: boolean;
   sort_order: number;
+  is_main: boolean;
 }
 
 const empty: Draft = {
@@ -32,6 +33,7 @@ const empty: Draft = {
   icon: "wallet",
   archived: false,
   sort_order: 0,
+  is_main: false,
 };
 
 export default function AccountsPage() {
@@ -95,6 +97,11 @@ export default function AccountsPage() {
     await save.mutateAsync({ ...acc, archived: !acc.archived });
   }
 
+  async function setMain(acc: Account) {
+    if (acc.is_main) return;
+    await save.mutateAsync({ ...acc, is_main: true });
+  }
+
   async function del(acc: Account) {
     setPageError("");
     if (!confirm(`Delete account “${acc.name}”?`)) return;
@@ -138,7 +145,14 @@ export default function AccountsPage() {
                   <Wallet size={18} />
                 </div>
                 <div>
-                  <p className="font-medium">{acc.name}</p>
+                  <p className="flex items-center gap-1.5 font-medium">
+                    {acc.name}
+                    {acc.is_main && (
+                      <span className="rounded-full bg-lime-400/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-lime-300 uppercase">
+                        Main
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs uppercase tracking-wide text-gray-500">
                     {acc.type} · {acc.currency}
                     {acc.archived ? " · archived" : ""}
@@ -146,6 +160,13 @@ export default function AccountsPage() {
                 </div>
               </div>
               <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                <button
+                  className={`rounded-lg p-1.5 hover:bg-white/10 ${acc.is_main ? "text-lime-300" : "text-gray-400"}`}
+                  title={acc.is_main ? "This is your main account" : "Set as main account"}
+                  onClick={() => setMain(acc)}
+                >
+                  <Star size={15} fill={acc.is_main ? "currentColor" : "none"} />
+                </button>
                 <button
                   className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
                   title="Reconcile balance"

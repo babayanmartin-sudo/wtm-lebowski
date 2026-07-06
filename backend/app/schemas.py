@@ -27,6 +27,7 @@ class AccountIn(BaseModel):
     icon: str = "wallet"
     archived: bool = False
     sort_order: int = 0
+    is_main: bool = False
 
 
 class AccountOut(ORMModel, AccountIn):

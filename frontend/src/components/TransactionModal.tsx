@@ -29,9 +29,10 @@ export default function TransactionModal({
   onClose: () => void;
 }) {
   const active = accounts.filter((a) => !a.archived);
+  const mainAccount = active.find((a) => a.is_main) ?? active[0];
   const [kind, setKind] = useState<Kind>(existing?.kind ?? "expense");
   const [date, setDate] = useState(existing?.date ?? today());
-  const [accountId, setAccountId] = useState<number>(existing?.account_id ?? active[0]?.id ?? 0);
+  const [accountId, setAccountId] = useState<number>(existing?.account_id ?? mainAccount?.id ?? 0);
   const [amount, setAmount] = useState(existing ? String(existing.amount) : "");
   const [toAccountId, setToAccountId] = useState<number | null>(existing?.transfer_account_id ?? null);
   const [toAmount, setToAmount] = useState(existing?.transfer_amount ? String(existing.transfer_amount) : "");

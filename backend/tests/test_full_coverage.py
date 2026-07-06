@@ -59,6 +59,28 @@ def test_account_crud_and_guards(seeded):
     assert c.put("/api/accounts/9999", json={"name": "x"}).status_code == 404
 
 
+def test_only_one_account_can_be_main(seeded):
+    c = seeded["client"]
+    assert c.put(f"/api/accounts/{seeded['aed']['id']}", json={**seeded["aed"], "is_main": True}).json()[
+        "is_main"
+    ]
+    assert c.put(f"/api/accounts/{seeded['usd']['id']}", json={**seeded["usd"], "is_main": True}).json()[
+        "is_main"
+    ]
+    accounts = {a["id"]: a for a in c.get("/api/accounts").json()}
+    assert accounts[seeded["aed"]["id"]]["is_main"] is False
+    assert accounts[seeded["usd"]["id"]]["is_main"] is True
+
+
+def test_new_account_marked_main_becomes_the_only_one(seeded):
+    c = seeded["client"]
+    c.put(f"/api/accounts/{seeded['aed']['id']}", json={**seeded["aed"], "is_main": True})
+    created = c.post("/api/accounts", json={"name": "New Main", "is_main": True}).json()
+    assert created["is_main"] is True
+    accounts = {a["id"]: a for a in c.get("/api/accounts").json()}
+    assert accounts[seeded["aed"]["id"]]["is_main"] is False
+
+
 # ---------- categories ----------
 def test_category_guards(seeded):
     c = seeded["client"]

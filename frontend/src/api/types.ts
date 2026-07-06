@@ -13,6 +13,7 @@ export interface Account {
   icon: string;
   archived: boolean;
   sort_order: number;
+  is_main: boolean;
   balance: number;
   balance_base: number;
 }

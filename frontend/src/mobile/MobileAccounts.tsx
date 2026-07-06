@@ -1,4 +1,4 @@
-import { Archive, Pencil, Plus, Trash2, Wallet, X } from "lucide-react";
+import { Archive, Pencil, Plus, Star, Trash2, Wallet, X } from "lucide-react";
 import { useState } from "react";
 
 import { api } from "../api/client";
@@ -20,6 +20,7 @@ interface Draft {
   icon: string;
   archived: boolean;
   sort_order: number;
+  is_main: boolean;
 }
 
 const empty: Draft = {
@@ -31,6 +32,7 @@ const empty: Draft = {
   icon: "wallet",
   archived: false,
   sort_order: 0,
+  is_main: false,
 };
 
 export default function MobileAccounts() {
@@ -91,6 +93,12 @@ export default function MobileAccounts() {
               <Wallet size={22} className="text-black/70" />
               <div className="flex gap-1">
                 <button
+                  onClick={() => acc.is_main || save.mutate({ ...acc, is_main: true })}
+                  className="rounded-full bg-black/10 p-1.5 active:bg-black/20"
+                >
+                  <Star size={13} fill={acc.is_main ? "currentColor" : "none"} />
+                </button>
+                <button
                   onClick={() => setDraft({ ...acc })}
                   className="rounded-full bg-black/10 p-1.5 active:bg-black/20"
                 >
@@ -112,6 +120,7 @@ export default function MobileAccounts() {
             </div>
             <p className="mt-5 truncate text-xs font-medium text-black/60 uppercase">
               {acc.name} · {acc.type}
+              {acc.is_main ? " · main" : ""}
             </p>
             <p className="truncate text-2xl font-bold tabular-nums">{fmtMoney(acc.balance, acc.currency)}</p>
             {acc.currency !== "AED" && (

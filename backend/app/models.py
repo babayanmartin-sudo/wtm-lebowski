@@ -40,6 +40,7 @@ class Account(Base):
     icon: Mapped[str] = mapped_column(String, default="wallet")
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_main: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class Category(Base):

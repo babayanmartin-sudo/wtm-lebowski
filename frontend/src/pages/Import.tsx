@@ -40,6 +40,7 @@ export default function ImportPage() {
   const commit = useInvalidating(() => api.post(`/api/imports/${importId}/commit`), MONEY_KEYS);
 
   const active = accounts.filter((a) => !a.archived);
+  const mainAccount = active.find((a) => a.is_main) ?? active[0];
   const account = accounts.find((a) => a.id === (imp?.account_id ?? accountId));
 
   function loadDraftFrom(detail: ImportDetail) {
@@ -56,7 +57,7 @@ export default function ImportPage() {
     try {
       const form = new FormData();
       form.append("file", file);
-      form.append("account_id", String(accountId ?? active[0]?.id));
+      form.append("account_id", String(accountId ?? mainAccount?.id));
       const created = await api.postForm<ImportDetail>("/api/imports", form);
       setImportId(created.id);
       loadDraftFrom(created);
@@ -147,7 +148,7 @@ export default function ImportPage() {
             <Field label="Into account">
               <select
                 className="input"
-                value={accountId ?? active[0]?.id ?? ""}
+                value={accountId ?? mainAccount?.id ?? ""}
                 onChange={(e) => setAccountId(Number(e.target.value))}
               >
                 {active.map((a) => (

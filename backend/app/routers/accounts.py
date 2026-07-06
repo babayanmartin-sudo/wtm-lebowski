@@ -1,7 +1,7 @@
 from datetime import date as date_
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from ..auth import require_auth
@@ -28,12 +28,20 @@ def list_accounts(db: Session = Depends(get_db)):
     return [_with_balance(db, a, balances) for a in accounts]
 
 
+def _enforce_single_main(db: Session, acc: Account) -> None:
+    """Only one account can be the default (is_main) at a time."""
+    if acc.is_main:
+        db.execute(update(Account).where(Account.id != acc.id).values(is_main=False))
+
+
 @router.post("", response_model=AccountOut, status_code=201)
 def create_account(body: AccountIn, db: Session = Depends(get_db)):
     if db.scalar(select(Account).where(Account.name == body.name)):
         raise HTTPException(409, "Account name already exists")
     acc = Account(**body.model_dump())
     db.add(acc)
+    db.flush()
+    _enforce_single_main(db, acc)
     db.commit()
     return _with_balance(db, acc, compute_balances(db))
 
@@ -52,6 +60,7 @@ def update_account(account_id: int, body: AccountIn, db: Session = Depends(get_d
         raise HTTPException(400, "Cannot change currency of an account with transactions")
     for key, value in body.model_dump().items():
         setattr(acc, key, value)
+    _enforce_single_main(db, acc)
     db.commit()
     return _with_balance(db, acc, compute_balances(db))
 

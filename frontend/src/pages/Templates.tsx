@@ -40,6 +40,7 @@ export default function TemplatesPage() {
   const [error, setError] = useState("");
 
   const active = accounts.filter((a) => !a.archived);
+  const mainAccount = active.find((a) => a.is_main) ?? active[0];
 
   const save = useInvalidating((d: Draft) => {
     const body = {
@@ -69,7 +70,7 @@ export default function TemplatesPage() {
     return {
       name: "",
       kind: "expense",
-      account_id: active[0]?.id ?? 0,
+      account_id: mainAccount?.id ?? 0,
       amount: "",
       transfer_account_id: null,
       transfer_amount: "",
