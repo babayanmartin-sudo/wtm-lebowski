@@ -1,4 +1,4 @@
-# ExpenseTracker
+# Where's the Money, Lebowski
 
 **v1.0** — Self-hosted expense tracker. FastAPI + SQLite backend, React +
 Tailwind dark-glass frontend, with a separate lime-themed mobile layout.

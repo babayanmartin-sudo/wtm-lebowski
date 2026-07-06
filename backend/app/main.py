@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="ExpenseTracker", lifespan=lifespan)
+app = FastAPI(title="Where's the Money, Lebowski", lifespan=lifespan)
 
 from .routers import (  # noqa: E402
     accounts,
