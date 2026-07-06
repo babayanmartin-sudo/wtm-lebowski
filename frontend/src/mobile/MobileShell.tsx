@@ -9,6 +9,7 @@ import {
   Tags,
   Target,
   Upload,
+  UserRound,
   Wallet,
   X,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const MENU_ITEMS = [
   { to: "/templates", label: "Recurring/Planned", icon: Repeat },
   { to: "/import", label: "Import", icon: Upload },
   { to: "/rules", label: "Rules", icon: BookOpen },
+  { to: "/profile", label: "Profile", icon: UserRound },
 ];
 
 export default function MobileShell({ children }: { children: ReactNode }) {

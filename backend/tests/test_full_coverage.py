@@ -27,6 +27,40 @@ def test_auth_short_password_rejected(client):
     assert client.post("/api/auth/login", json={"password": "abc"}).status_code == 422
 
 
+def test_change_password_wrong_current_rejected(client):
+    r = client.post(
+        "/api/auth/change-password", json={"current_password": "nope", "new_password": "newpass1"}
+    )
+    assert r.status_code == 401
+
+
+def test_change_password_too_short_rejected(client):
+    r = client.post(
+        "/api/auth/change-password", json={"current_password": "test1234", "new_password": "abc"}
+    )
+    assert r.status_code == 422
+
+
+def test_change_password_requires_auth(client):
+    client.cookies.clear()
+    r = client.post(
+        "/api/auth/change-password", json={"current_password": "test1234", "new_password": "newpass1"}
+    )
+    assert r.status_code == 401
+
+
+def test_change_password_success_then_old_password_fails(client):
+    r = client.post(
+        "/api/auth/change-password",
+        json={"current_password": "test1234", "new_password": "newpass1"},
+    )
+    assert r.status_code == 200 and r.json()["authenticated"]
+
+    client.cookies.clear()
+    assert client.post("/api/auth/login", json={"password": "test1234"}).status_code == 401
+    assert client.post("/api/auth/login", json={"password": "newpass1"}).status_code == 200
+
+
 # ---------- accounts ----------
 def test_account_crud_and_guards(seeded):
     c = seeded["client"]

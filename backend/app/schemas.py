@@ -17,6 +17,11 @@ class PasswordIn(BaseModel):
     password: str = Field(min_length=4)
 
 
+class ChangePasswordIn(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=4)
+
+
 # ---- accounts ----
 class AccountIn(BaseModel):
     name: str

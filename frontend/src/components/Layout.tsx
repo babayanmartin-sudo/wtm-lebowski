@@ -11,6 +11,7 @@ import {
   Target,
   Tags,
   Upload,
+  UserRound,
   Wallet,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
@@ -28,6 +29,7 @@ const NAV = [
   { to: "/templates", label: "Recurring/Planned", icon: Repeat },
   { to: "/import", label: "Import", icon: Upload },
   { to: "/rules", label: "Rules", icon: BookOpen },
+  { to: "/profile", label: "Profile", icon: UserRound },
 ];
 
 const COLLAPSE_KEY = "et_sidebar_collapsed";

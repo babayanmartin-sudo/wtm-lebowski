@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from .. import auth
 from ..db import get_db
-from ..schemas import AuthStatus, PasswordIn
+from ..schemas import AuthStatus, ChangePasswordIn, PasswordIn
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -38,3 +38,11 @@ def login(body: PasswordIn, response: Response, db: Session = Depends(get_db)):
 def logout(response: Response):
     auth.clear_session(response)
     return {"ok": True}
+
+
+@router.post("/change-password", response_model=AuthStatus, dependencies=[Depends(auth.require_auth)])
+def change_password(body: ChangePasswordIn, db: Session = Depends(get_db)):
+    if not auth.verify_password(db, body.current_password):
+        raise HTTPException(status_code=401, detail="Current password is wrong")
+    auth.set_password(db, body.new_password)
+    return AuthStatus(setup_required=False, authenticated=True)
