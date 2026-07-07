@@ -6,7 +6,6 @@ from ..auth import require_auth
 from ..db import get_db
 from ..models import IgnoreRule
 from ..schemas import IgnoreRuleIn, IgnoreRuleOut
-from ..services.matcher import normalize
 
 router = APIRouter(
     prefix="/api/ignore-rules", tags=["ignore-rules"], dependencies=[Depends(require_auth)]
@@ -62,9 +61,9 @@ def delete_ignore_rule(rule_id: int, db: Session = Depends(get_db)):
 def _validated(body: IgnoreRuleIn) -> dict:
     if body.match_kind not in ("exact", "contains"):
         raise HTTPException(400, "match_kind must be exact or contains")
-    pattern = normalize(body.pattern)
+    pattern = body.pattern.upper().strip()
     if not pattern:
-        raise HTTPException(400, "Pattern is empty after normalization")
+        raise HTTPException(400, "Pattern cannot be empty")
     data = body.model_dump()
     data["pattern"] = pattern
     return data

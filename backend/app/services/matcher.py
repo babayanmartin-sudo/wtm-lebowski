@@ -59,23 +59,29 @@ def suggest(
     an alias from).
     """
     norm = normalize(payee)
-    if not norm:
-        return None, "", ""
+    raw = payee.upper().strip()
 
     rules = db.scalars(
         select(MappingRule).order_by(MappingRule.priority.desc(), MappingRule.id)
     ).all()
 
     for rule in rules:
-        if rule.match_kind == "exact" and rule.pattern == norm:
-            _record_hit(db, rule)
-            return rule.category_id, "exact", rule.alias
+        if rule.match_kind == "exact":
+            if rule.pattern == norm or rule.pattern == raw:
+                _record_hit(db, rule)
+                return rule.category_id, "exact", rule.alias
 
-    contains = [r for r in rules if r.match_kind == "contains" and r.pattern in norm]
+    contains = [
+        r for r in rules
+        if r.match_kind == "contains" and (r.pattern in norm or r.pattern in raw)
+    ]
     if contains:
         best = max(contains, key=lambda r: (r.priority, len(r.pattern)))
         _record_hit(db, best)
         return best.category_id, "rule", best.alias
+
+    if not norm:
+        return None, "", ""
 
     if known is None:
         known = _known_payees(db)
@@ -116,19 +122,22 @@ def learn(db: Session, payee: str, category_id: int) -> None:
 def is_ignored(db: Session, payee: str) -> tuple[bool, str]:
     """Returns (ignored, confidence) where confidence is exact|rule|''."""
     norm = normalize(payee)
-    if not norm:
-        return False, ""
+    raw = payee.upper().strip()
 
     rules = db.scalars(
         select(IgnoreRule).order_by(IgnoreRule.priority.desc(), IgnoreRule.id)
     ).all()
 
     for rule in rules:
-        if rule.match_kind == "exact" and rule.pattern == norm:
-            _record_hit(db, rule)
-            return True, "exact"
+        if rule.match_kind == "exact":
+            if rule.pattern == norm or rule.pattern == raw:
+                _record_hit(db, rule)
+                return True, "exact"
 
-    contains = [r for r in rules if r.match_kind == "contains" and r.pattern in norm]
+    contains = [
+        r for r in rules
+        if r.match_kind == "contains" and (r.pattern in norm or r.pattern in raw)
+    ]
     if contains:
         best = max(contains, key=lambda r: (r.priority, len(r.pattern)))
         _record_hit(db, best)

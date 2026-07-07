@@ -360,13 +360,13 @@ def test_rules_crud_and_search(seeded):
                                    "category_id": seeded["food"]["id"]})
     assert r.status_code == 201
     rule = r.json()
-    assert rule["pattern"] == "UBER TRIP"  # normalized
+    assert rule["pattern"] == "UBER *123 TRIP"  # digits now preserved
     # search
     assert len(c.get("/api/rules?q=uber").json()) == 1
     assert c.get("/api/rules?q=zzz").json() == []
     # invalid match kind / empty pattern / bad category
     assert c.post("/api/rules", json={"pattern": "X", "match_kind": "regex", "category_id": seeded["food"]["id"]}).status_code == 400
-    assert c.post("/api/rules", json={"pattern": "123 456", "match_kind": "exact", "category_id": seeded["food"]["id"]}).status_code == 400
+    assert c.post("/api/rules", json={"pattern": "   ", "match_kind": "exact", "category_id": seeded["food"]["id"]}).status_code == 400
     assert c.post("/api/rules", json={"pattern": "OK", "match_kind": "exact", "category_id": 999}).status_code == 400
     # update
     r = c.put(f"/api/rules/{rule['id']}", json={"pattern": "UBER", "match_kind": "contains",

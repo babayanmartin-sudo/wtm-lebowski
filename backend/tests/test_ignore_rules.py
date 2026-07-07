@@ -38,7 +38,7 @@ def test_ignore_rule_crud_and_duplicate(seeded):
 
     # bad match_kind / empty pattern
     assert c.post("/api/ignore-rules", json={"pattern": "X", "match_kind": "regex"}).status_code == 400
-    assert c.post("/api/ignore-rules", json={"pattern": "123 456", "match_kind": "exact"}).status_code == 400
+    assert c.post("/api/ignore-rules", json={"pattern": "   ", "match_kind": "exact"}).status_code == 400
     assert c.put("/api/ignore-rules/999", json=body).status_code == 404
     assert c.delete("/api/ignore-rules/999").status_code == 404
 

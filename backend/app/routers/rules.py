@@ -6,7 +6,6 @@ from ..auth import require_auth
 from ..db import get_db
 from ..models import Category, MappingRule
 from ..schemas import RuleIn, RuleOut
-from ..services.matcher import normalize
 
 router = APIRouter(prefix="/api/rules", tags=["rules"], dependencies=[Depends(require_auth)])
 
@@ -60,9 +59,9 @@ def _validated(db: Session, body: RuleIn) -> dict:
         raise HTTPException(400, "match_kind must be exact or contains")
     if not db.get(Category, body.category_id):
         raise HTTPException(400, "Category not found")
-    pattern = normalize(body.pattern)
+    pattern = body.pattern.upper().strip()
     if not pattern:
-        raise HTTPException(400, "Pattern is empty after normalization")
+        raise HTTPException(400, "Pattern cannot be empty")
     data = body.model_dump()
     data["pattern"] = pattern
     data["alias"] = data["alias"].strip()
