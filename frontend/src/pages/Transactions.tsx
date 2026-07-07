@@ -25,7 +25,11 @@ export default function TransactionsPage() {
     "",
     searchParams.get("account") ?? undefined,
   );
-  const [loanId, setLoanId] = useState<string | null>(searchParams.get("loan"));
+  const [loanId, setLoanId] = useSessionState<string | null>(
+    "transactions.loan",
+    null,
+    searchParams.get("loan") ?? undefined,
+  );
   const [categoryId, setCategoryId] = useSessionState<number | null>("transactions.category", null);
   const [kind, setKind] = useSessionState("transactions.kind", "");
   const [q, setQ] = useSessionState("transactions.q", "");
