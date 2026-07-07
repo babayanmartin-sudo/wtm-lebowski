@@ -195,3 +195,19 @@ def test_editing_transaction_can_change_loan_link(seeded):
 
     updated_loan = c.get("/api/loans").json()[0]
     assert updated_loan["paid"] == 0.0
+
+
+def test_cannot_change_direction_on_loan_with_linked_transactions(seeded):
+    c = seeded["client"]
+    loan = _debt_loan(c, principal_amount=1000)
+    c.post("/api/transactions", json=_expense(seeded, amount=300, loan_id=loan["id"]))
+
+    r = c.put(
+        f"/api/loans/{loan['id']}",
+        json={"name": "Mortgage", "direction": "receivable", "principal_amount": 1000},
+    )
+    assert r.status_code == 400
+    assert "Cannot change direction" in r.json()["detail"]
+
+    verified = c.get("/api/loans").json()[0]
+    assert verified["direction"] == "debt"

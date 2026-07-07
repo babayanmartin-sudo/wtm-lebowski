@@ -47,6 +47,12 @@ def update_loan(loan_id: int, body: LoanIn, db: Session = Depends(get_db)):
         raise HTTPException(404, "Loan not found")
     if body.direction not in _DIRECTIONS:
         raise HTTPException(400, "direction must be 'debt' or 'receivable'")
+    if body.direction != loan.direction:
+        linked_count = db.scalar(
+            select(func.count(Transaction.loan_id)).where(Transaction.loan_id == loan_id)
+        )
+        if linked_count > 0:
+            raise HTTPException(400, "Cannot change direction on loan with linked transactions")
     for key, value in body.model_dump().items():
         setattr(loan, key, value)
     db.commit()
