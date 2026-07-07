@@ -43,7 +43,7 @@ class AccountIn(BaseModel):
             try:
                 return parse_amount(v)
             except ValueError:
-                raise ValueError("Invalid number format")
+                raise ValueError("Only digits, periods (.) and commas (,) are allowed. Examples: 1234.56 or 1.234,56")
         return v
 
 
