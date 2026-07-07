@@ -360,7 +360,7 @@ export default function TransactionsPage() {
           Filtering by loan
           <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
             {filteredLoan?.name ?? `#${loanId}`}
-            <button onClick={() => setLoanId(null)}>
+            <button onClick={() => { setLoanId(null); setPage(0); }}>
               <X size={12} />
             </button>
           </span>
