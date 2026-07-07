@@ -60,6 +60,10 @@ def _migrate() -> None:
         if "is_main" not in account_cols:
             conn.exec_driver_sql("ALTER TABLE accounts ADD COLUMN is_main BOOLEAN DEFAULT 0")
 
+        loan_cols = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(loans)")]
+        if "currency" not in loan_cols:
+            conn.exec_driver_sql("ALTER TABLE loans ADD COLUMN currency VARCHAR(3) DEFAULT 'AED'")
+
         _migrate_budget_uniqueness(conn)
 
 

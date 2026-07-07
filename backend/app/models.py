@@ -174,7 +174,8 @@ class Loan(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String)
     direction: Mapped[str] = mapped_column(String)  # "debt" (I owe) | "receivable" (owed to me)
-    principal_amount: Mapped[float] = mapped_column(Float)  # base currency, target to pay off/collect
+    principal_amount: Mapped[float] = mapped_column(Float)
+    currency: Mapped[str] = mapped_column(String(3), default="AED")
     color: Mapped[str] = mapped_column(String, default="#f97316")
     icon: Mapped[str] = mapped_column(String, default="landmark")
     archived: Mapped[bool] = mapped_column(Boolean, default=False)

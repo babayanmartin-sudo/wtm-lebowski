@@ -121,6 +121,7 @@ export interface Loan {
   name: string;
   direction: "debt" | "receivable";
   principal_amount: number;
+  currency: string;
   color: string;
   icon: string;
   archived: boolean;

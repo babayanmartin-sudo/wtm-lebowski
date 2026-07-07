@@ -199,6 +199,7 @@ class LoanIn(BaseModel):
     name: str
     direction: str  # debt (I owe) | receivable (owed to me)
     principal_amount: float = Field(gt=0)
+    currency: str = "AED"
     color: str = "#f97316"
     icon: str = "landmark"
     archived: bool = False
