@@ -16,7 +16,7 @@ interface Draft {
   name: string;
   type: string;
   currency: string;
-  initial_balance: number;
+  initial_balance: number | string;
   color: string;
   icon: string;
   archived: boolean;
@@ -86,7 +86,8 @@ export default function AccountsPage() {
   async function submit() {
     setError("");
     try {
-      await save.mutateAsync(draft!);
+      const body = { ...draft!, initial_balance: Number(draft!.initial_balance) };
+      await save.mutateAsync(body);
       setDraft(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
@@ -246,11 +247,15 @@ export default function AccountsPage() {
             </div>
             <Field label="Initial balance">
               <input
-                type="number"
-                step="0.01"
+                type="text"
                 className="input"
+                placeholder="0.00"
                 value={draft.initial_balance}
-                onChange={(e) => setDraft({ ...draft, initial_balance: Number(e.target.value) })}
+                onChange={(e) => setDraft({ ...draft, initial_balance: e.target.value })}
+                onBlur={(e) => {
+                  const val = e.target.value.trim();
+                  setDraft({ ...draft, initial_balance: val === "" ? 0 : Number(val) || draft.initial_balance });
+                }}
               />
             </Field>
             <Field label="Color">
