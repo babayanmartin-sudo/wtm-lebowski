@@ -226,8 +226,8 @@ export default function DashboardPage() {
               <Tooltip
                 cursor={{ fill: "rgba(255,255,255,0.04)" }}
                 contentStyle={{
-                  background: "#1f2637",
-                  border: "1px solid rgba(255,255,255,0.2)",
+                  background: "#374151",
+                  border: "1px solid rgba(255,255,255,0.3)",
                   borderRadius: 12,
                   fontSize: 12,
                   color: "#ffffff",
