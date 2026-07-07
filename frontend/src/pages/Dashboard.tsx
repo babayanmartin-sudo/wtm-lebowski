@@ -233,6 +233,7 @@ export default function DashboardPage() {
                   color: "#ffffff",
                   padding: 8,
                 }}
+                wrapperStyle={{ color: "#ffffff" }}
                 labelStyle={{ color: "#ffffff" }}
                 formatter={(v) => [v, ""]}
                 labelFormatter={(v) => bucketLabel(String(v), granularityData)}
@@ -288,6 +289,7 @@ export default function DashboardPage() {
                       color: "#ffffff",
                       padding: 8,
                     }}
+                    wrapperStyle={{ color: "#ffffff" }}
                     labelStyle={{ color: "#ffffff" }}
                     formatter={(v) => [fmtMoney(Number(v), data?.base_currency), ""]}
                   />
@@ -369,6 +371,7 @@ export default function DashboardPage() {
                 color: "#ffffff",
                 padding: 8,
               }}
+              wrapperStyle={{ color: "#ffffff" }}
               labelStyle={{ color: "#ffffff" }}
               labelFormatter={fmtMonth}
               formatter={(v) => [fmtMoney(Number(v), forecast?.base_currency), "Net worth"]}
