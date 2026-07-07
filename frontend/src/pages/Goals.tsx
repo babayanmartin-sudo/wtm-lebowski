@@ -21,6 +21,7 @@ interface LoanDraft {
   name: string;
   direction: "debt" | "receivable";
   principal_amount: string;
+  currency: string;
   color: string;
 }
 
@@ -63,6 +64,7 @@ export default function GoalsPage() {
         name: d.name,
         direction: d.direction,
         principal_amount: parseFloat(d.principal_amount),
+        currency: d.currency,
         color: d.color,
         icon: "landmark",
         archived: false,
@@ -269,7 +271,7 @@ export default function GoalsPage() {
           <button
             className="btn-primary"
             onClick={() =>
-              setLoanDraft({ name: "", direction: "debt", principal_amount: "", color: "#f97316" })
+              setLoanDraft({ name: "", direction: "debt", principal_amount: "", currency: "AED", color: "#f97316" })
             }
           >
             <Plus size={16} /> Add loan
@@ -314,6 +316,7 @@ export default function GoalsPage() {
                           name: l.name,
                           direction: l.direction,
                           principal_amount: String(l.principal_amount),
+                          currency: l.currency,
                           color: l.color,
                         })
                       }
@@ -329,10 +332,10 @@ export default function GoalsPage() {
                   </div>
                 </div>
                 <p className="mt-4 text-lg font-semibold tabular-nums">
-                  {fmtMoney(l.paid)} <span className="text-sm text-gray-500">/ {fmtMoney(l.principal_amount)} AED</span>
+                  {fmtMoney(l.paid)} <span className="text-sm text-gray-500">/ {fmtMoney(l.principal_amount)} {l.currency}</span>
                 </p>
                 <p className="mt-1 text-xs text-gray-400">
-                  {l.remaining > 0 ? `${fmtMoney(l.remaining)} AED remaining` : "Fully settled 🎉"}
+                  {l.remaining > 0 ? `${fmtMoney(l.remaining)} ${l.currency} remaining` : "Fully settled 🎉"}
                 </p>
                 <Link
                   to={`/transactions?loan=${l.id}`}
@@ -375,17 +378,32 @@ export default function GoalsPage() {
                   <option value="receivable">Owed to me</option>
                 </select>
               </Field>
-              <Field label="Principal (AED)">
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
+              <Field label="Currency">
+                <select
                   className="input"
-                  value={loanDraft.principal_amount}
-                  onChange={(e) => setLoanDraft({ ...loanDraft, principal_amount: e.target.value })}
-                />
+                  value={loanDraft.currency}
+                  onChange={(e) => setLoanDraft({ ...loanDraft, currency: e.target.value })}
+                >
+                  <option value="AED">AED</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="GBP">GBP</option>
+                  <option value="JPY">JPY</option>
+                  <option value="INR">INR</option>
+                  <option value="SAR">SAR</option>
+                </select>
               </Field>
             </div>
+            <Field label="Principal amount">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className="input"
+                value={loanDraft.principal_amount}
+                onChange={(e) => setLoanDraft({ ...loanDraft, principal_amount: e.target.value })}
+              />
+            </Field>
             <Field label="Color">
               <ColorPicker value={loanDraft.color} onChange={(color) => setLoanDraft({ ...loanDraft, color })} />
             </Field>
