@@ -32,6 +32,7 @@ class AccountIn(BaseModel):
     icon: str = "wallet"
     archived: bool = False
     sort_order: int = 0
+    is_main: bool = False
 
     @field_validator("initial_balance", mode="before")
     @classmethod
@@ -44,7 +45,6 @@ class AccountIn(BaseModel):
             except ValueError:
                 raise ValueError("Invalid number format")
         return v
-    is_main: bool = False
 
 
 class AccountOut(ORMModel, AccountIn):
