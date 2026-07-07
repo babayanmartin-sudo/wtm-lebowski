@@ -37,13 +37,20 @@ class AccountIn(BaseModel):
     @field_validator("initial_balance", mode="before")
     @classmethod
     def parse_initial_balance(cls, v):
-        """Support European (1.234,56) and US (1,234.56) number formats."""
+        """Parse number: digits and period only (e.g. 1234.56)."""
         if isinstance(v, str):
-            from .services.importer import parse_amount
+            v = v.strip()
+            if not v:
+                raise ValueError("Only digits and period (.) are allowed. Example: 1234.56")
+            # Allow only digits and one period
+            if not all(c.isdigit() or c == "." for c in v):
+                raise ValueError("Only digits and period (.) are allowed. Example: 1234.56")
+            if v.count(".") > 1:
+                raise ValueError("Only one decimal point allowed. Example: 1234.56")
             try:
-                return parse_amount(v)
+                return float(v)
             except ValueError:
-                raise ValueError("Only digits, periods (.) and commas (,) are allowed. Examples: 1234.56 or 1.234,56")
+                raise ValueError("Invalid number format. Example: 1234.56")
         return v
 
 
