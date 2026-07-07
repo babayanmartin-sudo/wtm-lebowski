@@ -61,6 +61,26 @@ def test_change_password_success_then_old_password_fails(client):
     assert client.post("/api/auth/login", json={"password": "newpass1"}).status_code == 200
 
 
+def test_old_session_invalidated_after_password_change(client):
+    # Get initial session cookie
+    r = client.post("/api/auth/login", json={"password": "test1234"})
+    assert r.status_code == 200
+    old_session_cookie = client.cookies.get("et_session")
+    assert old_session_cookie is not None
+
+    # Change password
+    r = client.post(
+        "/api/auth/change-password",
+        json={"current_password": "test1234", "new_password": "newpass1"},
+    )
+    assert r.status_code == 200
+
+    # Try to use old session cookie
+    client.cookies.clear()
+    client.cookies.set("et_session", old_session_cookie)
+    assert client.get("/api/accounts").status_code == 401
+
+
 # ---------- accounts ----------
 def test_account_crud_and_guards(seeded):
     c = seeded["client"]
