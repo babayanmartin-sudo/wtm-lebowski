@@ -226,10 +226,11 @@ export default function DashboardPage() {
               <Tooltip
                 cursor={{ fill: "rgba(255,255,255,0.04)" }}
                 contentStyle={{
-                  background: "#161a26",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "#1f2637",
+                  border: "1px solid rgba(255,255,255,0.2)",
                   borderRadius: 12,
                   fontSize: 12,
+                  color: "#f3f4f6",
                 }}
                 labelFormatter={(v) => bucketLabel(String(v), granularityData)}
               />
@@ -277,10 +278,11 @@ export default function DashboardPage() {
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      background: "#161a26",
-                      border: "1px solid rgba(255,255,255,0.1)",
+                      background: "#1f2637",
+                      border: "1px solid rgba(255,255,255,0.2)",
                       borderRadius: 12,
                       fontSize: 12,
+                      color: "#f3f4f6",
                     }}
                     formatter={(v) => fmtMoney(Number(v), data?.base_currency)}
                   />

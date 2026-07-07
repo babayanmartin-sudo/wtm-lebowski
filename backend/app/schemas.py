@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ORMModel(BaseModel):
@@ -32,6 +32,18 @@ class AccountIn(BaseModel):
     icon: str = "wallet"
     archived: bool = False
     sort_order: int = 0
+
+    @field_validator("initial_balance", mode="before")
+    @classmethod
+    def parse_initial_balance(cls, v):
+        """Support European (1.234,56) and US (1,234.56) number formats."""
+        if isinstance(v, str):
+            from .services.importer import parse_amount
+            try:
+                return parse_amount(v)
+            except ValueError:
+                raise ValueError("Invalid number format")
+        return v
     is_main: bool = False
 
 

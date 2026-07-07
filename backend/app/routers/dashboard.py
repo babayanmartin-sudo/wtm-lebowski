@@ -169,7 +169,8 @@ def _by_category(
 
     if category_id:
         children = [c.id for c in categories.values() if c.parent_id == category_id]
-        wanted = children or [category_id]
+        # Include parent in the breakdown to show total + child breakdown
+        wanted = ([category_id] + children) if children else [category_id]
         totals = {cid: amounts.get(cid, 0.0) for cid in wanted}
     else:
         totals: dict[int | None, float] = {}
