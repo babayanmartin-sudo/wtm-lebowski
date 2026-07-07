@@ -27,7 +27,7 @@ class AccountIn(BaseModel):
     name: str
     type: str = "bank"
     currency: str = "AED"
-    initial_balance: float = 0.0
+    initial_balance: float | str = 0.0
     color: str = "#6366f1"
     icon: str = "wallet"
     archived: bool = False
