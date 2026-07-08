@@ -259,6 +259,7 @@ class ImportRow(Base):
     ignored: Mapped[bool] = mapped_column(Boolean, default=False)
     skip: Mapped[bool] = mapped_column(Boolean, default=False)
     error: Mapped[str] = mapped_column(String, default="")
+    kind: Mapped[str | None] = mapped_column(String, nullable=True)  # None|"expense_return"
 
     import_: Mapped[Import] = relationship(back_populates="rows")
 

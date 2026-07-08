@@ -131,9 +131,10 @@ class TransactionPage(BaseModel):
 
 class BulkTransactionIn(BaseModel):
     ids: list[int] = Field(min_length=1)
-    action: str  # set_category | set_account | delete
+    action: str  # set_category | set_account | set_kind | delete
     category_id: int | None = None  # for set_category; null = uncategorized
     account_id: int | None = None  # for set_account
+    kind: str | None = None  # for set_kind: expense | income
 
 
 class BulkTransactionResult(BaseModel):
@@ -282,6 +283,7 @@ class ImportRowOut(ORMModel):
     ignored: bool
     skip: bool
     error: str
+    kind: str | None
 
 
 class ImportOut(ORMModel):
@@ -307,3 +309,5 @@ class MappingIn(BaseModel):
 class RowPatch(BaseModel):
     category_id: int | None = None
     skip: bool | None = None
+    is_duplicate: bool | None = None
+    kind: str | None = None

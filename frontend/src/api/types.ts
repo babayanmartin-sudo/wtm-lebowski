@@ -156,6 +156,7 @@ export interface ImportRow {
   ignored: boolean;
   skip: boolean;
   error: string;
+  kind: string | null;
 }
 
 export interface IgnoreRule {

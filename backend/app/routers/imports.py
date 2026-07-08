@@ -114,6 +114,12 @@ def patch_row(import_id: int, row_id: int, body: RowPatch, db: Session = Depends
             learn(db, row.parsed_payee, body.category_id)
     if "skip" in fields:
         row.skip = body.skip
+    if "is_duplicate" in fields:
+        row.is_duplicate = body.is_duplicate
+        if body.is_duplicate is False:
+            row.skip = False
+    if "kind" in fields:
+        row.kind = body.kind
     db.commit()
     return imp
 

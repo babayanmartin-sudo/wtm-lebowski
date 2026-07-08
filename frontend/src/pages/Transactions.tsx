@@ -42,6 +42,7 @@ export default function TransactionsPage() {
   const [selectedKinds, setSelectedKinds] = useState<Map<number, Transaction["kind"]>>(new Map());
   const [bulkCategory, setBulkCategory] = useState<number | null>(null);
   const [bulkAccount, setBulkAccount] = useState<number | "">("");
+  const [bulkKind, setBulkKind] = useState<"" | "expense" | "income">("");
   const [bulkError, setBulkError] = useState("");
 
   const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate)), [pickerMode, pickerDate]);
@@ -66,7 +67,7 @@ export default function TransactionsPage() {
   });
 
   const bulk = useInvalidating(
-    (body: { ids: number[]; action: string; category_id?: number | null; account_id?: number }) =>
+    (body: { ids: number[]; action: string; category_id?: number | null; account_id?: number; kind?: string }) =>
       api.post<{ updated: number }>("/api/transactions/bulk", body),
     MONEY_KEYS,
   );
@@ -108,6 +109,7 @@ export default function TransactionsPage() {
     setSelectedKinds(new Map());
     setBulkCategory(null);
     setBulkAccount("");
+    setBulkKind("");
     setBulkError("");
   }
 
@@ -128,6 +130,17 @@ export default function TransactionsPage() {
     setBulkError("");
     try {
       await bulk.mutateAsync({ ids: [...selected], action: "set_account", account_id: bulkAccount });
+      clearSelection();
+    } catch (e) {
+      setBulkError(e instanceof Error ? e.message : "Failed");
+    }
+  }
+
+  async function applyBulkKind() {
+    if (bulkKind === "") return;
+    setBulkError("");
+    try {
+      await bulk.mutateAsync({ ids: [...selected], action: "set_kind", kind: bulkKind });
       clearSelection();
     } catch (e) {
       setBulkError(e instanceof Error ? e.message : "Failed");
@@ -284,6 +297,19 @@ export default function TransactionsPage() {
           </select>
           <button className="btn-ghost px-3 py-1.5 text-xs" disabled={bulkAccount === ""} onClick={applyBulkAccount}>
             Set account
+          </button>
+          <select
+            className="input w-40"
+            value={bulkKind}
+            onChange={(e) => setBulkKind(e.target.value as "" | "expense" | "income")}
+            title="Reclassify expense/income (e.g. after import mis-tagged a refund)"
+          >
+            <option value="">Reclassify as…</option>
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
+          <button className="btn-ghost px-3 py-1.5 text-xs" disabled={bulkKind === ""} onClick={applyBulkKind}>
+            Set kind
           </button>
           <button className="btn-danger px-3 py-1.5 text-xs" onClick={applyBulkDelete}>
             <Trash2 size={13} /> Delete

@@ -143,6 +143,21 @@ def bulk_action(body: BulkTransactionIn, db: Session = Depends(get_db)):
         db.commit()
         return BulkTransactionResult(updated=len(txs))
 
+    if body.action == "set_kind":
+        if body.kind not in ("expense", "income"):
+            raise HTTPException(400, "kind must be 'expense' or 'income'")
+        count = 0
+        for t in txs:
+            if t.kind == "transfer":
+                continue  # transfers aren't reclassified this way
+            if t.kind == body.kind:
+                continue
+            t.kind = body.kind
+            t.loan_id = None  # direction may no longer match the linked loan
+            count += 1
+        db.commit()
+        return BulkTransactionResult(updated=count)
+
     raise HTTPException(400, "Invalid action")
 
 

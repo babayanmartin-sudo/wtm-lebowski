@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, CopyX, EyeOff, FileUp, Pencil, Sparkles, Wand2 } from "lucide-react";
+import { AlertTriangle, Check, CopyX, EyeOff, FileUp, Pencil, RotateCcw, Sparkles, Undo2, Wand2 } from "lucide-react";
 import { useState } from "react";
 
 import { api } from "../api/client";
@@ -88,9 +88,20 @@ export default function ImportPage() {
     }
   }
 
-  async function patchRow(row: ImportRow, patch: { category_id?: number | null; skip?: boolean }) {
+  async function patchRow(
+    row: ImportRow,
+    patch: { category_id?: number | null; skip?: boolean; is_duplicate?: boolean; kind?: string | null },
+  ) {
     await api.patch(`/api/imports/${importId}/rows/${row.id}`, patch);
     refetch();
+  }
+
+  async function toggleExpenseReturn(row: ImportRow) {
+    await patchRow(row, { kind: row.kind === "expense_return" ? null : "expense_return" });
+  }
+
+  async function unmarkDuplicate(row: ImportRow) {
+    await patchRow(row, { is_duplicate: false });
   }
 
   async function ignoreRow(row: ImportRow) {
@@ -317,8 +328,20 @@ export default function ImportPage() {
                           </span>
                         )}
                         {!r.error && !r.ignored && r.is_duplicate && (
-                          <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-300">
+                          <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-300">
                             duplicate
+                            <button
+                              title="Not a duplicate — import it anyway"
+                              className="hover:text-amber-100"
+                              onClick={() => unmarkDuplicate(r)}
+                            >
+                              <Undo2 size={11} />
+                            </button>
+                          </span>
+                        )}
+                        {r.kind === "expense_return" && (
+                          <span className="shrink-0 rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[10px] text-sky-300">
+                            expense return
                           </span>
                         )}
                       </span>
@@ -335,7 +358,9 @@ export default function ImportPage() {
                         <div className="flex items-center gap-1.5">
                           <CategorySelect
                             categories={categories}
-                            kind={(r.parsed_amount ?? 0) < 0 ? "expense" : "income"}
+                            kind={
+                              r.kind === "expense_return" || (r.parsed_amount ?? 0) < 0 ? "expense" : "income"
+                            }
                             value={r.category_id}
                             onChange={(id) => patchRow(r, { category_id: id })}
                             className="input w-44 py-1 text-xs"
@@ -351,6 +376,21 @@ export default function ImportPage() {
                             >
                               {r.suggestion_confidence}
                             </span>
+                          )}
+                          {(r.parsed_amount ?? 0) > 0 && (
+                            <button
+                              title={
+                                r.kind === "expense_return"
+                                  ? "Undo — treat as income"
+                                  : "Mark as an expense return (refund), not income"
+                              }
+                              className={`shrink-0 rounded p-1 hover:bg-white/10 ${
+                                r.kind === "expense_return" ? "text-sky-300" : "text-gray-500 hover:text-gray-300"
+                              }`}
+                              onClick={() => toggleExpenseReturn(r)}
+                            >
+                              <RotateCcw size={13} />
+                            </button>
                           )}
                           <button
                             title={

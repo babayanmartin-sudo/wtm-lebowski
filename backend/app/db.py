@@ -36,6 +36,8 @@ def _migrate() -> None:
         cols = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(import_rows)")]
         if "ignored" not in cols:
             conn.exec_driver_sql("ALTER TABLE import_rows ADD COLUMN ignored BOOLEAN DEFAULT 0")
+        if "kind" not in cols:
+            conn.exec_driver_sql("ALTER TABLE import_rows ADD COLUMN kind TEXT")
 
         rule_cols = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(mapping_rules)")]
         if "alias" not in rule_cols:
