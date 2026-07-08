@@ -41,8 +41,11 @@ def summary(
     )
 
     cat_ids = _category_ids_with_children(db, category_id)
-    totals = _totals(db, start, end, account_id, cat_ids)
-    granularity, series = _series(db, start, end, account_id, cat_ids)
+    transfer_flows = (
+        _transfer_flows(db, start, end, account_id) if account_id and not cat_ids else []
+    )
+    totals = _totals(db, start, end, account_id, cat_ids, transfer_flows)
+    granularity, series = _series(db, start, end, account_id, cat_ids, transfer_flows)
 
     return {
         "base_currency": BASE_CURRENCY,
@@ -137,7 +140,12 @@ def _transfer_flows(
 
 
 def _totals(
-    db: Session, start: date, end: date, account_id: int | None, cat_ids: list[int] | None
+    db: Session,
+    start: date,
+    end: date,
+    account_id: int | None,
+    cat_ids: list[int] | None,
+    transfer_flows: list[tuple[date, str, float]] | None = None,
 ) -> dict[str, float]:
     stmt = select(Transaction.kind, func.sum(Transaction.amount_base)).where(
         Transaction.date >= start, Transaction.date <= end, Transaction.kind.in_(["expense", "income"])
@@ -145,7 +153,8 @@ def _totals(
     stmt = _apply_filters(stmt, account_id, cat_ids).group_by(Transaction.kind)
     totals = dict(db.execute(stmt).all())
     if account_id and not cat_ids:
-        for _, kind, amount in _transfer_flows(db, start, end, account_id):
+        flows = transfer_flows if transfer_flows is not None else _transfer_flows(db, start, end, account_id)
+        for _, kind, amount in flows:
             totals[kind] = (totals.get(kind) or 0.0) + amount
     return totals
 
@@ -214,7 +223,12 @@ def _bucket_start(d: date, granularity: str) -> date:
 
 
 def _series(
-    db: Session, start: date, end: date, account_id: int | None, cat_ids: list[int] | None
+    db: Session,
+    start: date,
+    end: date,
+    account_id: int | None,
+    cat_ids: list[int] | None,
+    transfer_flows: list[tuple[date, str, float]] | None = None,
 ) -> tuple[str, list[dict]]:
     granularity = _granularity(start, end)
     step = {
@@ -241,7 +255,8 @@ def _series(
         bucket[kind] = round(bucket[kind] + (amount or 0.0), 2)
 
     if account_id and not cat_ids:
-        for d, kind, amount in _transfer_flows(db, start, end, account_id):
+        flows = transfer_flows if transfer_flows is not None else _transfer_flows(db, start, end, account_id)
+        for d, kind, amount in flows:
             key = _bucket_start(d, granularity).isoformat()
             bucket = buckets.setdefault(key, {"label": key, "income": 0.0, "expense": 0.0})
             bucket[kind] = round(bucket[kind] + amount, 2)
