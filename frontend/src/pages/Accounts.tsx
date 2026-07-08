@@ -1,5 +1,21 @@
-import { Archive, Check, Eye, EyeOff, Pencil, Plus, Scale, Star, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  Archive,
+  Check,
+  Eye,
+  EyeOff,
+  GripVertical,
+  LayoutGrid,
+  List,
+  Pencil,
+  Plus,
+  Scale,
+  Star,
+  Trash2,
+} from "lucide-react";
+import { type CSSProperties, type ReactNode, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { api } from "../api/client";
@@ -49,6 +65,15 @@ export default function AccountsPage() {
   const [actualBalance, setActualBalance] = useState("");
   const [reconcileError, setReconcileError] = useState("");
   const [reconcileDone, setReconcileDone] = useState<Transaction | null | "noop">(null);
+  const [viewMode, setViewMode] = useState<"card" | "list">(
+    () => (localStorage.getItem("accounts-view") as "card" | "list") || "card",
+  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  function setView(mode: "card" | "list") {
+    setViewMode(mode);
+    localStorage.setItem("accounts-view", mode);
+  }
 
   const save = useInvalidating(async (d: Draft) => {
     const body = { ...d, id: undefined };
@@ -120,7 +145,26 @@ export default function AccountsPage() {
     }
   }
 
-  const visible = [...accounts].sort((a, b) => Number(a.archived) - Number(b.archived));
+  const active = [...accounts]
+    .filter((a) => !a.archived)
+    .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
+  const archived = accounts.filter((a) => a.archived);
+
+  async function handleDragEnd(e: DragEndEvent) {
+    const { active: dragged, over } = e;
+    if (!over || dragged.id === over.id) return;
+    const fromIdx = active.findIndex((a) => a.id === dragged.id);
+    const toIdx = active.findIndex((a) => a.id === over.id);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const reordered = [...active];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    await Promise.all(
+      reordered.map((acc, idx) =>
+        acc.sort_order === idx ? null : save.mutateAsync({ ...acc, sort_order: idx }),
+      ),
+    );
+  }
 
   return (
     <div>
@@ -128,105 +172,83 @@ export default function AccountsPage() {
         title="Accounts"
         subtitle="Cash, banks and cards"
         actions={
-          <button className="btn-primary" onClick={() => setDraft({ ...empty })}>
-            <Plus size={16} /> Add account
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg border border-white/10 p-0.5">
+              <button
+                className={`rounded-md p-1.5 ${viewMode === "card" ? "bg-white/10 text-lime-300" : "text-gray-500"}`}
+                title="Card view"
+                onClick={() => setView("card")}
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                className={`rounded-md p-1.5 ${viewMode === "list" ? "bg-white/10 text-lime-300" : "text-gray-500"}`}
+                title="List view"
+                onClick={() => setView("list")}
+              >
+                <List size={15} />
+              </button>
+            </div>
+            <button className="btn-primary" onClick={() => setDraft({ ...empty })}>
+              <Plus size={16} /> Add account
+            </button>
+          </div>
         }
       />
       {pageError && (
         <div className="glass mb-4 border-rose-400/30 p-3 text-sm text-rose-300">{pageError}</div>
       )}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {visible.map((acc) => (
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext
+          items={active.map((a) => a.id)}
+          strategy={viewMode === "list" ? verticalListSortingStrategy : rectSortingStrategy}
+        >
           <div
-            key={acc.id}
-            onClick={() => navigate(`/transactions?account=${acc.id}`)}
-            title="View transactions for this account"
-            className={`glass glass-hover cursor-pointer p-5 ${acc.archived ? "opacity-50" : ""}`}
+            className={
+              viewMode === "list"
+                ? "flex flex-col gap-2"
+                : "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+            }
           >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className="flex h-10 w-10 items-center justify-center rounded-xl text-white"
-                  style={{ background: acc.color }}
-                >
-                  {(() => {
-                    const Icon = getAccountIcon(acc.icon);
-                    return <Icon size={18} />;
-                  })()}
-                </div>
-                <div>
-                  <p className="flex items-center gap-1.5 font-medium">
-                    {acc.name}
-                    {acc.is_main && (
-                      <span className="rounded-full bg-lime-400/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-lime-300 uppercase">
-                        Main
-                      </span>
-                    )}
-                    {acc.exclude_from_net_worth && (
-                      <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-300 uppercase">
-                        Excluded
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
-                    {acc.type} · {acc.currency}
-                    {acc.archived ? " · archived" : ""}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                <button
-                  className={`rounded-lg p-1.5 hover:bg-white/10 ${acc.is_main ? "text-lime-300" : "text-gray-400"}`}
-                  title={acc.is_main ? "This is your main account" : "Set as main account"}
-                  onClick={() => setMain(acc)}
-                >
-                  <Star size={15} fill={acc.is_main ? "currentColor" : "none"} />
-                </button>
-                <button
-                  className={`rounded-lg p-1.5 hover:bg-white/10 ${acc.exclude_from_net_worth ? "text-amber-300" : "text-gray-400"}`}
-                  title={acc.exclude_from_net_worth ? "Excluded from net worth — click to include" : "Exclude from net worth"}
-                  onClick={() => toggleNetWorth(acc)}
-                >
-                  {acc.exclude_from_net_worth ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-                <button
-                  className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
-                  title="Reconcile balance"
-                  onClick={() => openReconcile(acc)}
-                >
-                  <Scale size={15} />
-                </button>
-                <button
-                  className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
-                  onClick={() => setDraft({ ...acc })}
-                >
-                  <Pencil size={15} />
-                </button>
-                <button
-                  className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
-                  title={acc.archived ? "Unarchive" : "Archive"}
-                  onClick={() => archive(acc)}
-                >
-                  <Archive size={15} />
-                </button>
-                <button
-                  className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
-                  onClick={() => del(acc)}
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            </div>
-            <p className="mt-4 text-2xl font-semibold tabular-nums">
-              {fmtMoney(acc.balance, acc.currency)}
-            </p>
-            {acc.currency !== "AED" && (
-              <p className="text-sm text-gray-500 tabular-nums">≈ {fmtMoney(acc.balance_base, "AED")}</p>
-            )}
+            {active.map((acc) => (
+              <SortableAccountItem
+                key={acc.id}
+                acc={acc}
+                viewMode={viewMode}
+                onOpen={() => navigate(`/transactions?account=${acc.id}`)}
+                onSetMain={() => setMain(acc)}
+                onToggleNetWorth={() => toggleNetWorth(acc)}
+                onReconcile={() => openReconcile(acc)}
+                onEdit={() => setDraft({ ...acc })}
+                onArchive={() => archive(acc)}
+                onDelete={() => del(acc)}
+              />
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
+      {archived.length > 0 && (
+        <div
+          className={`mt-4 ${
+            viewMode === "list" ? "flex flex-col gap-2" : "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+          }`}
+        >
+          {archived.map((acc) => (
+            <AccountItemBody
+              key={acc.id}
+              acc={acc}
+              viewMode={viewMode}
+              onOpen={() => navigate(`/transactions?account=${acc.id}`)}
+              onSetMain={() => setMain(acc)}
+              onToggleNetWorth={() => toggleNetWorth(acc)}
+              onReconcile={() => openReconcile(acc)}
+              onEdit={() => setDraft({ ...acc })}
+              onArchive={() => archive(acc)}
+              onDelete={() => del(acc)}
+            />
+          ))}
+        </div>
+      )}
 
       {draft && (
         <Modal title={draft.id ? "Edit account" : "New account"} onClose={() => setDraft(null)}>
@@ -371,4 +393,175 @@ export default function AccountsPage() {
       )}
     </div>
   );
+}
+
+interface AccountItemProps {
+  acc: Account;
+  viewMode: "card" | "list";
+  onOpen: () => void;
+  onSetMain: () => void;
+  onToggleNetWorth: () => void;
+  onReconcile: () => void;
+  onEdit: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+  dragHandle?: ReactNode;
+  dragRef?: (el: HTMLElement | null) => void;
+  dragStyle?: CSSProperties;
+}
+
+function AccountItemBody({
+  acc,
+  viewMode,
+  onOpen,
+  onSetMain,
+  onToggleNetWorth,
+  onReconcile,
+  onEdit,
+  onArchive,
+  onDelete,
+  dragHandle,
+  dragRef,
+  dragStyle,
+}: AccountItemProps) {
+  const Icon = getAccountIcon(acc.icon);
+  const actions = (
+    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+      {dragHandle}
+      <button
+        className={`rounded-lg p-1.5 hover:bg-white/10 ${acc.is_main ? "text-lime-300" : "text-gray-400"}`}
+        title={acc.is_main ? "This is your main account" : "Set as main account"}
+        onClick={onSetMain}
+      >
+        <Star size={15} fill={acc.is_main ? "currentColor" : "none"} />
+      </button>
+      <button
+        className={`rounded-lg p-1.5 hover:bg-white/10 ${acc.exclude_from_net_worth ? "text-amber-300" : "text-gray-400"}`}
+        title={acc.exclude_from_net_worth ? "Excluded from net worth — click to include" : "Exclude from net worth"}
+        onClick={onToggleNetWorth}
+      >
+        {acc.exclude_from_net_worth ? <EyeOff size={15} /> : <Eye size={15} />}
+      </button>
+      <button className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10" title="Reconcile balance" onClick={onReconcile}>
+        <Scale size={15} />
+      </button>
+      <button className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10" onClick={onEdit}>
+        <Pencil size={15} />
+      </button>
+      <button
+        className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+        title={acc.archived ? "Unarchive" : "Archive"}
+        onClick={onArchive}
+      >
+        <Archive size={15} />
+      </button>
+      <button className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300" onClick={onDelete}>
+        <Trash2 size={15} />
+      </button>
+    </div>
+  );
+
+  const badges = (
+    <>
+      {acc.is_main && (
+        <span className="rounded-full bg-lime-400/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-lime-300 uppercase">
+          Main
+        </span>
+      )}
+      {acc.exclude_from_net_worth && (
+        <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-300 uppercase">
+          Excluded
+        </span>
+      )}
+    </>
+  );
+
+  if (viewMode === "list") {
+    return (
+      <div
+        ref={dragRef}
+        style={dragStyle}
+        onClick={onOpen}
+        title="View transactions for this account"
+        className={`glass glass-hover flex cursor-pointer items-center justify-between gap-3 p-3 ${acc.archived ? "opacity-50" : ""}`}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white"
+            style={{ background: acc.color }}
+          >
+            <Icon size={16} />
+          </div>
+          <div>
+            <p className="flex items-center gap-1.5 text-sm font-medium">
+              {acc.name}
+              {badges}
+            </p>
+            <p className="text-xs uppercase tracking-wide text-gray-500">
+              {acc.type} · {acc.currency}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <p className="text-sm font-semibold tabular-nums">{fmtMoney(acc.balance, acc.currency)}</p>
+          {actions}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={dragRef}
+      style={dragStyle}
+      onClick={onOpen}
+      title="View transactions for this account"
+      className={`glass glass-hover cursor-pointer p-5 ${acc.archived ? "opacity-50" : ""}`}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-white"
+            style={{ background: acc.color }}
+          >
+            <Icon size={18} />
+          </div>
+          <div>
+            <p className="flex items-center gap-1.5 font-medium">
+              {acc.name}
+              {badges}
+            </p>
+            <p className="text-xs uppercase tracking-wide text-gray-500">
+              {acc.type} · {acc.currency}
+              {acc.archived ? " · archived" : ""}
+            </p>
+          </div>
+        </div>
+        {actions}
+      </div>
+      <p className="mt-4 text-2xl font-semibold tabular-nums">{fmtMoney(acc.balance, acc.currency)}</p>
+      {acc.currency !== "AED" && (
+        <p className="text-sm text-gray-500 tabular-nums">≈ {fmtMoney(acc.balance_base, "AED")}</p>
+      )}
+    </div>
+  );
+}
+
+function SortableAccountItem(props: Omit<AccountItemProps, "dragHandle" | "dragRef" | "dragStyle">) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: props.acc.id });
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  const dragHandle = (
+    <button
+      {...attributes}
+      {...listeners}
+      className="cursor-grab rounded-lg p-1.5 text-gray-500 hover:bg-white/10 active:cursor-grabbing"
+      title="Drag to reorder"
+    >
+      <GripVertical size={15} />
+    </button>
+  );
+  return <AccountItemBody {...props} dragRef={setNodeRef} dragStyle={style} dragHandle={dragHandle} />;
 }

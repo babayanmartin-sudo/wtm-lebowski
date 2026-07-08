@@ -1,5 +1,8 @@
-import { Archive, Eye, EyeOff, Pencil, Plus, Star, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Archive, Eye, EyeOff, GripVertical, Pencil, Plus, Star, Trash2, X } from "lucide-react";
+import { type CSSProperties, type ReactNode, useState } from "react";
 
 import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useInvalidating } from "../api/hooks";
@@ -48,6 +51,7 @@ export default function MobileAccounts() {
     return d.id ? api.put(`/api/accounts/${d.id}`, body) : api.post("/api/accounts", body);
   }, MONEY_KEYS);
   const remove = useInvalidating((id: number) => api.del(`/api/accounts/${id}`), MONEY_KEYS);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   async function submit() {
     setError("");
@@ -68,7 +72,26 @@ export default function MobileAccounts() {
     }
   }
 
-  const visible = [...accounts].sort((a, b) => Number(a.archived) - Number(b.archived));
+  const active = [...accounts]
+    .filter((a) => !a.archived)
+    .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
+  const archived = accounts.filter((a) => a.archived);
+
+  async function handleDragEnd(e: DragEndEvent) {
+    const { active: dragged, over } = e;
+    if (!over || dragged.id === over.id) return;
+    const fromIdx = active.findIndex((a) => a.id === dragged.id);
+    const toIdx = active.findIndex((a) => a.id === over.id);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const reordered = [...active];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    await Promise.all(
+      reordered.map((acc, idx) =>
+        acc.sort_order === idx ? null : save.mutateAsync({ ...acc, sort_order: idx }),
+      ),
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4 px-4 pt-6">
@@ -84,69 +107,39 @@ export default function MobileAccounts() {
 
       {error && <p className="rounded-xl bg-rose-500/10 p-3 text-xs text-rose-300">{error}</p>}
 
-      <div className="flex flex-col gap-3">
-        {visible.map((acc) => (
-          <div
-            key={acc.id}
-            className={`relative overflow-hidden rounded-3xl p-5 text-black ${acc.archived ? "opacity-50" : ""}`}
-            style={{ background: `linear-gradient(135deg, ${acc.color}, ${acc.color}bb)` }}
-          >
-            <div className="pointer-events-none absolute -top-8 -right-8 h-32 w-32 rounded-full bg-black/5" />
-            <div className="flex items-start justify-between">
-              {(() => {
-                const Icon = getAccountIcon(acc.icon);
-                return <Icon size={22} className="shrink-0 text-black/70" />;
-              })()}
-              <div className="flex shrink-0 gap-1">
-                <button
-                  onClick={() => acc.is_main || save.mutate({ ...acc, is_main: true })}
-                  className="rounded-full bg-black/10 p-1.5 active:bg-black/20"
-                >
-                  <Star size={13} fill={acc.is_main ? "currentColor" : "none"} />
-                </button>
-                <button
-                  onClick={() => save.mutate({ ...acc, exclude_from_net_worth: !acc.exclude_from_net_worth })}
-                  className={`rounded-full p-1.5 ${
-                    acc.exclude_from_net_worth ? "bg-black/30 text-black active:bg-black/40" : "bg-black/10 active:bg-black/20"
-                  }`}
-                >
-                  {acc.exclude_from_net_worth ? <EyeOff size={13} /> : <Eye size={13} />}
-                </button>
-                <button
-                  onClick={() => setDraft({ ...acc })}
-                  className="rounded-full bg-black/10 p-1.5 active:bg-black/20"
-                >
-                  <Pencil size={13} />
-                </button>
-                <button
-                  onClick={() => save.mutate({ ...acc, archived: !acc.archived })}
-                  className={`rounded-full p-1.5 ${
-                    acc.archived ? "bg-black/30 text-black active:bg-black/40" : "bg-black/10 active:bg-black/20"
-                  }`}
-                >
-                  <Archive size={13} />
-                </button>
-                <button
-                  onClick={() => del(acc)}
-                  className="rounded-full bg-black/10 p-1.5 active:bg-black/20"
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            </div>
-            <p className="mt-5 truncate text-xs font-medium text-black/60 uppercase">
-              {acc.name} · {acc.type}
-              {acc.is_main ? " · main" : ""}
-              {acc.exclude_from_net_worth ? " · excluded" : ""}
-            </p>
-            <p className="truncate text-2xl font-bold tabular-nums">{fmtMoney(acc.balance, acc.currency)}</p>
-            {acc.currency !== "AED" && (
-              <p className="truncate text-xs text-black/60 tabular-nums">≈ {fmtMoney(acc.balance_base, "AED")}</p>
-            )}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={active.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+          <div className="flex flex-col gap-3">
+            {active.map((acc) => (
+              <SortableMobileAccountCard
+                key={acc.id}
+                acc={acc}
+                onSetMain={() => acc.is_main || save.mutate({ ...acc, is_main: true })}
+                onToggleNetWorth={() => save.mutate({ ...acc, exclude_from_net_worth: !acc.exclude_from_net_worth })}
+                onEdit={() => setDraft({ ...acc })}
+                onArchive={() => save.mutate({ ...acc, archived: !acc.archived })}
+                onDelete={() => del(acc)}
+              />
+            ))}
           </div>
-        ))}
-        {visible.length === 0 && <p className="py-10 text-center text-sm text-gray-500">No accounts yet.</p>}
-      </div>
+        </SortableContext>
+      </DndContext>
+      {archived.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {archived.map((acc) => (
+            <MobileAccountCard
+              key={acc.id}
+              acc={acc}
+              onSetMain={() => acc.is_main || save.mutate({ ...acc, is_main: true })}
+              onToggleNetWorth={() => save.mutate({ ...acc, exclude_from_net_worth: !acc.exclude_from_net_worth })}
+              onEdit={() => setDraft({ ...acc })}
+              onArchive={() => save.mutate({ ...acc, archived: !acc.archived })}
+              onDelete={() => del(acc)}
+            />
+          ))}
+        </div>
+      )}
+      {accounts.length === 0 && <p className="py-10 text-center text-sm text-gray-500">No accounts yet.</p>}
 
       {draft && (
         <div
@@ -243,4 +236,97 @@ export default function MobileAccounts() {
       )}
     </div>
   );
+}
+
+interface MobileAccountCardProps {
+  acc: Account;
+  onSetMain: () => void;
+  onToggleNetWorth: () => void;
+  onEdit: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+  dragHandle?: ReactNode;
+  dragRef?: (el: HTMLElement | null) => void;
+  dragStyle?: CSSProperties;
+}
+
+function MobileAccountCard({
+  acc,
+  onSetMain,
+  onToggleNetWorth,
+  onEdit,
+  onArchive,
+  onDelete,
+  dragHandle,
+  dragRef,
+  dragStyle,
+}: MobileAccountCardProps) {
+  const Icon = getAccountIcon(acc.icon);
+  return (
+    <div
+      ref={dragRef}
+      style={{ background: `linear-gradient(135deg, ${acc.color}, ${acc.color}bb)`, ...dragStyle }}
+      className={`relative overflow-hidden rounded-3xl p-5 text-black ${acc.archived ? "opacity-50" : ""}`}
+    >
+      <div className="pointer-events-none absolute -top-8 -right-8 h-32 w-32 rounded-full bg-black/5" />
+      <div className="flex items-start justify-between">
+        <Icon size={22} className="shrink-0 text-black/70" />
+        <div className="flex shrink-0 gap-1">
+          {dragHandle}
+          <button onClick={onSetMain} className="rounded-full bg-black/10 p-1.5 active:bg-black/20">
+            <Star size={13} fill={acc.is_main ? "currentColor" : "none"} />
+          </button>
+          <button
+            onClick={onToggleNetWorth}
+            className={`rounded-full p-1.5 ${
+              acc.exclude_from_net_worth ? "bg-black/30 text-black active:bg-black/40" : "bg-black/10 active:bg-black/20"
+            }`}
+          >
+            {acc.exclude_from_net_worth ? <EyeOff size={13} /> : <Eye size={13} />}
+          </button>
+          <button onClick={onEdit} className="rounded-full bg-black/10 p-1.5 active:bg-black/20">
+            <Pencil size={13} />
+          </button>
+          <button
+            onClick={onArchive}
+            className={`rounded-full p-1.5 ${
+              acc.archived ? "bg-black/30 text-black active:bg-black/40" : "bg-black/10 active:bg-black/20"
+            }`}
+          >
+            <Archive size={13} />
+          </button>
+          <button onClick={onDelete} className="rounded-full bg-black/10 p-1.5 active:bg-black/20">
+            <Trash2 size={13} />
+          </button>
+        </div>
+      </div>
+      <p className="mt-5 truncate text-xs font-medium text-black/60 uppercase">
+        {acc.name} · {acc.type}
+        {acc.is_main ? " · main" : ""}
+        {acc.exclude_from_net_worth ? " · excluded" : ""}
+      </p>
+      <p className="truncate text-2xl font-bold tabular-nums">{fmtMoney(acc.balance, acc.currency)}</p>
+      {acc.currency !== "AED" && (
+        <p className="truncate text-xs text-black/60 tabular-nums">≈ {fmtMoney(acc.balance_base, "AED")}</p>
+      )}
+    </div>
+  );
+}
+
+function SortableMobileAccountCard(props: Omit<MobileAccountCardProps, "dragHandle" | "dragRef" | "dragStyle">) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: props.acc.id });
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  const dragHandle = (
+    <button
+      {...attributes}
+      {...listeners}
+      className="cursor-grab rounded-full bg-black/10 p-1.5 text-black/70 active:cursor-grabbing"
+    >
+      <GripVertical size={13} />
+    </button>
+  );
+  return <MobileAccountCard {...props} dragRef={setNodeRef} dragStyle={style} dragHandle={dragHandle} />;
 }
