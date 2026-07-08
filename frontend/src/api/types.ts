@@ -220,3 +220,9 @@ export interface Projection {
   current_net_worth: number;
   points: { month: string; net_worth: number }[];
 }
+
+export interface ExchangeRate {
+  date: string;
+  currency: string;
+  rate_to_base: number;
+}

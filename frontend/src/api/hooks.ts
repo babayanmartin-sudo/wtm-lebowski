@@ -9,6 +9,7 @@ import type {
   Category,
   DashboardParams,
   DashboardSummary,
+  ExchangeRate,
   Goal,
   IgnoreRule,
   ImportDetail,
@@ -78,6 +79,10 @@ export function useGoals() {
 
 export function useLoans() {
   return useQuery({ queryKey: ["loans"], queryFn: () => api.get<Loan[]>("/api/loans") });
+}
+
+export function useRates() {
+  return useQuery({ queryKey: ["rates"], queryFn: () => api.get<ExchangeRate[]>("/api/rates") });
 }
 
 export function useRules(q: string) {
