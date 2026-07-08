@@ -1,8 +1,30 @@
 import os
 import secrets
+import subprocess
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+
+def _detect_version() -> str:
+    """Prefer an explicit build-time tag (set in the Docker image); fall
+    back to `git describe` for local dev checkouts, else "dev"."""
+    env_version = os.environ.get("ET_APP_VERSION")
+    if env_version:
+        return env_version
+    try:
+        return (
+            subprocess.check_output(
+                ["git", "describe", "--tags", "--always"], cwd=BASE_DIR, stderr=subprocess.DEVNULL
+            )
+            .decode()
+            .strip()
+        )
+    except Exception:
+        return "dev"
+
+
+APP_VERSION = _detect_version()
 DATA_DIR = Path(os.environ.get("ET_DATA_DIR", BASE_DIR / "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 

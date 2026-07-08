@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
-from .config import STATIC_DIR
+from .config import APP_VERSION, STATIC_DIR
 from .db import SessionLocal, init_db
 
 
@@ -62,6 +62,11 @@ app.include_router(dashboard.router)
 @app.get("/api/health")
 def health():
     return {"ok": True}
+
+
+@app.get("/api/version")
+def version():
+    return {"version": APP_VERSION}
 
 
 if STATIC_DIR.is_dir():

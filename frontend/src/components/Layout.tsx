@@ -18,6 +18,7 @@ import { type ReactNode, useState } from "react";
 import { NavLink } from "react-router-dom";
 
 import { api } from "../api/client";
+import { useVersion } from "../api/hooks";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -37,6 +38,7 @@ const COLLAPSE_KEY = "et_sidebar_collapsed";
 export default function Layout({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSE_KEY) === "1");
+  const { data: version } = useVersion();
 
   async function logout() {
     await api.post("/api/auth/logout");
@@ -103,6 +105,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           <LogOut size={15} />
           {!collapsed && "Lock"}
         </button>
+        {!collapsed && version?.version && (
+          <p className="mt-1 px-2 text-center text-[10px] text-gray-600">{version.version}</p>
+        )}
       </aside>
       <main className="min-w-0 flex-1 overflow-y-auto p-6">{children}</main>
     </div>

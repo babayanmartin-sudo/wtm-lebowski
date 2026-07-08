@@ -2,7 +2,7 @@ import { Check, KeyRound, RefreshCw } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 
 import { api, ApiError } from "../api/client";
-import { useAccounts, useInvalidating, useRates } from "../api/hooks";
+import { useAccounts, useInvalidating, useRates, useVersion } from "../api/hooks";
 import { Field, PageHeader } from "../components/ui";
 import { fmtDate } from "../lib/format";
 
@@ -14,6 +14,7 @@ export default function ProfilePage() {
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const { data: version } = useVersion();
   const { data: rates = [] } = useRates();
   const { data: accounts = [] } = useAccounts();
   const activeCurrencies = useMemo(
@@ -50,7 +51,10 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <PageHeader title="Profile" subtitle="Manage your account password" />
+      <PageHeader
+        title="Profile"
+        subtitle={`Manage your account password${version?.version ? ` · ${version.version}` : ""}`}
+      />
 
       <form onSubmit={submit} className="glass flex max-w-sm flex-col gap-4 p-6">
         <Field label="Current password">

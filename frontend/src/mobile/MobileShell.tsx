@@ -18,6 +18,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { api } from "../api/client";
+import { useVersion } from "../api/hooks";
 
 const MENU_ITEMS = [
   { to: "/categories", label: "Categories", icon: Tags },
@@ -34,6 +35,7 @@ export default function MobileShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { data: version } = useVersion();
 
   async function logout() {
     await api.post("/api/auth/logout");
@@ -106,6 +108,9 @@ export default function MobileShell({ children }: { children: ReactNode }) {
             >
               <LogOut size={15} /> Lock
             </button>
+            {version?.version && (
+              <p className="mt-3 text-center text-[10px] text-gray-600">{version.version}</p>
+            )}
           </div>
         </div>
       )}

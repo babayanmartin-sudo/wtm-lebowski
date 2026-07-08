@@ -85,6 +85,14 @@ export function useRates() {
   return useQuery({ queryKey: ["rates"], queryFn: () => api.get<ExchangeRate[]>("/api/rates") });
 }
 
+export function useVersion() {
+  return useQuery({
+    queryKey: ["version"],
+    queryFn: () => api.get<{ version: string }>("/api/version"),
+    staleTime: Infinity,
+  });
+}
+
 export function useRules(q: string) {
   return useQuery({
     queryKey: ["rules", q],
