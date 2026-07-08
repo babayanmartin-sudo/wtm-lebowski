@@ -63,8 +63,8 @@ export default function DashboardPage() {
   const { data: budgetStatus = [] } = useBudgetStatus(budgetMonth);
   const { data: forecast } = useProjection(forecastMonths);
 
-  const categoryById = new Map(categories.map((c) => [c.id, c]));
-  const activeAccounts = accounts.filter((a) => !a.archived);
+  const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const activeAccounts = useMemo(() => accounts.filter((a) => !a.archived), [accounts]);
   const donut = (data?.by_category ?? []).slice(0, 8);
   const granularityData = data?.series_granularity ?? "day";
 
