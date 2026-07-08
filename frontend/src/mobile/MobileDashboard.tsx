@@ -8,12 +8,12 @@ import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO }
 import { useSessionState } from "../lib/session";
 import PeriodPicker from "../components/PeriodPicker";
 
-const ALL_MODES: PickerMode[] = ["day", "week", "month", "year"];
+const ALL_MODES: PickerMode[] = ["day", "week", "month", "year", "custom"];
 
 export default function MobileDashboard() {
   const [pickerMode, setPickerMode] = useSessionState<PickerMode>("dashboard.mode", "month");
   const [pickerDate, setPickerDate] = useSessionState("dashboard.date", toISO(new Date()));
-  const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate)), [pickerMode, pickerDate]);
+  const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate), pickerDate), [pickerMode, pickerDate]);
   const { data } = useDashboard({ date_from: period.from, date_to: period.to });
   const { data: accounts = [] } = useAccounts();
 
@@ -24,12 +24,15 @@ export default function MobileDashboard() {
     <div className="flex flex-col gap-5 px-4 pt-6">
       <div>
         <p className="text-sm text-gray-400">Overview</p>
-        <h1 className="text-xl font-semibold">{periodLabel(pickerMode, period.from)}</h1>
+        <h1 className="text-xl font-semibold">
+          {periodLabel(pickerMode, pickerMode === "custom" ? pickerDate : period.from)}
+        </h1>
       </div>
 
       <div className="flex items-center gap-1">
         <button
-          className="rounded-full bg-white/5 p-2 text-gray-400 active:bg-white/10"
+          className="rounded-full bg-white/5 p-2 text-gray-400 active:bg-white/10 disabled:opacity-30"
+          disabled={pickerMode === "custom"}
           onClick={() => setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, -1)))}
         >
           <ChevronLeft size={16} />
@@ -47,7 +50,8 @@ export default function MobileDashboard() {
           />
         </div>
         <button
-          className="rounded-full bg-white/5 p-2 text-gray-400 active:bg-white/10"
+          className="rounded-full bg-white/5 p-2 text-gray-400 active:bg-white/10 disabled:opacity-30"
+          disabled={pickerMode === "custom"}
           onClick={() => setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, 1)))}
         >
           <ChevronRight size={16} />

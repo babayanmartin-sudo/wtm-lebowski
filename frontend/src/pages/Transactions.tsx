@@ -13,7 +13,7 @@ import { type PickerMode, parseISO, periodFor, shiftAnchor, toISO } from "../lib
 import { useSessionState } from "../lib/session";
 
 const PAGE_SIZE = 50;
-const ALL_MODES: PickerMode[] = ["day", "week", "month", "year"];
+const ALL_MODES: PickerMode[] = ["day", "week", "month", "year", "custom"];
 
 export default function TransactionsPage() {
   const { data: accounts = [] } = useAccounts();
@@ -45,7 +45,7 @@ export default function TransactionsPage() {
   const [bulkKind, setBulkKind] = useState<"" | "expense" | "income">("");
   const [bulkError, setBulkError] = useState("");
 
-  const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate)), [pickerMode, pickerDate]);
+  const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate), pickerDate), [pickerMode, pickerDate]);
   const isCurrentMonth = pickerMode === "month" && pickerDate.slice(0, 7) === toISO(new Date()).slice(0, 7);
 
   function resetPeriod() {
@@ -216,7 +216,8 @@ export default function TransactionsPage() {
           <>
             <div className="flex items-center gap-1">
               <button
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 disabled:opacity-30"
+                disabled={pickerMode === "custom"}
                 onClick={() => {
                   setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, -1)));
                   setPage(0);
@@ -235,7 +236,8 @@ export default function TransactionsPage() {
                 }}
               />
               <button
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 disabled:opacity-30"
+                disabled={pickerMode === "custom"}
                 onClick={() => {
                   setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, 1)));
                   setPage(0);

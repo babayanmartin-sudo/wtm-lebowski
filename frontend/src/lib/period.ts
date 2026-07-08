@@ -1,9 +1,21 @@
-export type PickerMode = "day" | "week" | "month" | "year";
+export type PickerMode = "day" | "week" | "month" | "year" | "custom";
 export type SeriesGranularity = "day" | "week" | "month";
 
 export interface Period {
   from: string;
   to: string;
+}
+
+/** Custom-range periods are persisted as a single string (same slot as the
+ * single-anchor ISO date the other modes use) — "<from>_<to>". */
+export function encodeCustomRange(from: string, to: string): string {
+  return `${from}_${to}`;
+}
+
+export function decodeCustomRange(s: string): Period {
+  const [from, to] = s.split("_");
+  const fallback = toISO(new Date());
+  return { from: from || fallback, to: to || from || fallback };
 }
 
 export function toISO(d: Date): string {
@@ -40,7 +52,10 @@ export function yearPeriod(anchor: Date): Period {
   return { from: toISO(from), to: toISO(to) };
 }
 
-export function periodFor(mode: PickerMode, anchor: Date): Period {
+/** rawDate carries the full persisted string; only "custom" mode needs it
+ * (the other modes derive everything from the single `anchor` Date). */
+export function periodFor(mode: PickerMode, anchor: Date, rawDate?: string): Period {
+  if (mode === "custom") return decodeCustomRange(rawDate ?? "");
   if (mode === "day") return dayPeriod(anchor);
   if (mode === "week") return weekPeriod(anchor);
   if (mode === "year") return yearPeriod(anchor);
@@ -48,6 +63,7 @@ export function periodFor(mode: PickerMode, anchor: Date): Period {
 }
 
 export function shiftAnchor(anchor: Date, mode: PickerMode, dir: 1 | -1): Date {
+  if (mode === "custom") return anchor; // custom ranges aren't paged
   if (mode === "day") return new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + dir);
   if (mode === "week") return new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + dir * 7);
   if (mode === "year") return new Date(anchor.getFullYear() + dir, anchor.getMonth(), 1);
@@ -55,6 +71,12 @@ export function shiftAnchor(anchor: Date, mode: PickerMode, dir: 1 | -1): Date {
 }
 
 export function periodLabel(mode: PickerMode, anchorOrFrom: string): string {
+  if (mode === "custom") {
+    const { from, to } = decodeCustomRange(anchorOrFrom);
+    const fromStr = parseISO(from).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    const toStr = parseISO(to).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    return `${fromStr} – ${toStr}`;
+  }
   const f = parseISO(anchorOrFrom);
   if (mode === "day") return f.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   if (mode === "year") return String(f.getFullYear());

@@ -5,15 +5,24 @@ import {
   MONTH_NAMES,
   WEEKDAY_NAMES,
   type PickerMode,
+  decodeCustomRange,
+  encodeCustomRange,
   isSameWeek,
   monthGrid,
   parseISO,
+  periodFor,
   periodLabel,
   sameDay,
   toISO,
 } from "../lib/period";
 
-const MODE_LABEL: Record<PickerMode, string> = { day: "Day", week: "Week", month: "Month", year: "Year" };
+const MODE_LABEL: Record<PickerMode, string> = {
+  day: "Day",
+  week: "Week",
+  month: "Month",
+  year: "Year",
+  custom: "Custom",
+};
 
 export default function PeriodPicker({
   mode,
@@ -29,16 +38,24 @@ export default function PeriodPicker({
   triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [viewYear, setViewYear] = useState(() => parseISO(date).getFullYear());
-  const [viewMonth, setViewMonth] = useState(() => parseISO(date).getMonth());
+  const anchorFor = (m: PickerMode, d: string) => (m === "custom" ? parseISO(decodeCustomRange(d).from) : parseISO(d));
+  const [viewYear, setViewYear] = useState(() => anchorFor(mode, date).getFullYear());
+  const [viewMonth, setViewMonth] = useState(() => anchorFor(mode, date).getMonth());
+  const [customFrom, setCustomFrom] = useState(() => decodeCustomRange(date).from);
+  const [customTo, setCustomTo] = useState(() => decodeCustomRange(date).to);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    const anchor = parseISO(date);
+    const anchor = anchorFor(mode, date);
     setViewYear(anchor.getFullYear());
     setViewMonth(anchor.getMonth());
-  }, [open, date]);
+    if (mode === "custom") {
+      const range = decodeCustomRange(date);
+      setCustomFrom(range.from);
+      setCustomTo(range.to);
+    }
+  }, [open, date, mode]);
 
   useEffect(() => {
     if (!open) return;
@@ -49,10 +66,25 @@ export default function PeriodPicker({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
 
-  const selected = parseISO(date);
+  const selected = anchorFor(mode, date);
 
   function pick(newMode: PickerMode, newDate: Date) {
     onChange(newMode, toISO(newDate));
+    setOpen(false);
+  }
+
+  function selectMode(newMode: PickerMode) {
+    if (newMode === mode) return;
+    if (newMode === "custom") {
+      const range = mode === "custom" ? decodeCustomRange(date) : periodFor(mode, parseISO(date));
+      onChange("custom", encodeCustomRange(range.from, range.to));
+      return;
+    }
+    onChange(newMode, toISO(anchorFor(mode, date)));
+  }
+
+  function applyCustomRange() {
+    onChange("custom", encodeCustomRange(customFrom, customTo));
     setOpen(false);
   }
 
@@ -88,7 +120,7 @@ export default function PeriodPicker({
               {modes.map((m) => (
                 <button
                   key={m}
-                  onClick={() => onChange(m, date)}
+                  onClick={() => selectMode(m)}
                   className={`flex-1 rounded-md py-1 transition-colors ${
                     mode === m ? "bg-lime-400 text-black" : "text-gray-400 hover:text-gray-200"
                   }`}
@@ -215,6 +247,41 @@ export default function PeriodPicker({
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {mode === "custom" && (
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex flex-col gap-1 text-xs text-gray-400">
+                  From
+                  <input
+                    type="date"
+                    className="input py-1.5 text-xs"
+                    value={customFrom}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs text-gray-400">
+                  To
+                  <input
+                    type="date"
+                    className="input py-1.5 text-xs"
+                    value={customTo}
+                    onChange={(e) => setCustomTo(e.target.value)}
+                  />
+                </label>
+              </div>
+              <button
+                className="btn-primary py-1.5 text-xs"
+                disabled={!customFrom || !customTo || customFrom > customTo}
+                onClick={applyCustomRange}
+              >
+                Apply
+              </button>
+              {customFrom && customTo && customFrom > customTo && (
+                <p className="text-xs text-rose-400">"From" must be on or before "To".</p>
+              )}
             </div>
           )}
         </div>

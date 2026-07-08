@@ -40,7 +40,7 @@ import {
   toISO,
 } from "../lib/period";
 
-const ALL_MODES: PickerMode[] = ["day", "week", "month", "year"];
+const ALL_MODES: PickerMode[] = ["day", "week", "month", "year", "custom"];
 
 export default function DashboardPage() {
   const [pickerMode, setPickerMode] = useSessionState<PickerMode>("dashboard.mode", "month");
@@ -49,7 +49,7 @@ export default function DashboardPage() {
   const [categoryId, setCategoryId] = useSessionState<number | null>("dashboard.category", null);
   const [forecastMonths, setForecastMonths] = useSessionState("dashboard.forecastMonths", 12);
 
-  const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate)), [pickerMode, pickerDate]);
+  const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate), pickerDate), [pickerMode, pickerDate]);
 
   const { data } = useDashboard({
     date_from: period.from,
@@ -99,20 +99,24 @@ export default function DashboardPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-400">{periodLabel(pickerMode, period.from)}</p>
+          <p className="mt-1 text-sm text-gray-400">
+            {periodLabel(pickerMode, pickerMode === "custom" ? pickerDate : period.from)}
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1">
             <button
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 disabled:opacity-30"
+              disabled={pickerMode === "custom"}
               onClick={() => setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, -1)))}
             >
               <ChevronLeft size={16} />
             </button>
             <PeriodPicker mode={pickerMode} date={pickerDate} modes={ALL_MODES} onChange={(m, d) => { setPickerMode(m); setPickerDate(d); }} />
             <button
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 disabled:opacity-30"
+              disabled={pickerMode === "custom"}
               onClick={() => setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, 1)))}
             >
               <ChevronRight size={16} />
