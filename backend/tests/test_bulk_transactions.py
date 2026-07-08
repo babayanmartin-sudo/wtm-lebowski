@@ -52,6 +52,7 @@ def test_bulk_set_category_skips_transfers(seeded):
             "amount": 50,
             "transfer_account_id": seeded["usd"]["id"],
             "transfer_amount": 13.6,
+            "payee": "INTERNAL XFER 4471",
         },
     ).json()
     r = c.post(
@@ -59,6 +60,41 @@ def test_bulk_set_category_skips_transfers(seeded):
         json={"ids": [tx["id"]], "action": "set_category", "category_id": seeded["food"]["id"]},
     )
     assert r.json()["updated"] == 0  # transfer skipped, not an error
+
+
+def test_bulk_set_category_mixed_batch_does_not_learn_from_transfer(seeded):
+    """Regression for #9: bulk set_category on a mixed list (transfer + expense)
+    must not create/teach a MappingRule from the transfer's payee — only the
+    expense/income rows should reach learn()."""
+    c = seeded["client"]
+    transfer = c.post(
+        "/api/transactions",
+        json={
+            "date": "2026-07-01",
+            "kind": "transfer",
+            "account_id": seeded["aed"]["id"],
+            "amount": 50,
+            "transfer_account_id": seeded["usd"]["id"],
+            "transfer_amount": 13.6,
+            "payee": "INTERNAL XFER 4471",
+        },
+    ).json()
+    expense = c.post("/api/transactions", json=_tx(seeded, payee="REAL SHOP")).json()
+
+    r = c.post(
+        "/api/transactions/bulk",
+        json={
+            "ids": [transfer["id"], expense["id"]],
+            "action": "set_category",
+            "category_id": seeded["grocery"]["id"],
+        },
+    )
+    assert r.json()["updated"] == 1  # only the expense counted
+
+    rules = c.get("/api/rules").json()
+    patterns = [rule["pattern"] for rule in rules]
+    assert "INTERNAL XFER" not in " ".join(patterns)  # transfer payee never learned
+    assert any("REAL SHOP" in p for p in patterns)  # expense payee did get learned
 
 
 def test_bulk_set_account(seeded):
