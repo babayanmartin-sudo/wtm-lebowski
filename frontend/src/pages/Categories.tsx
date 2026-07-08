@@ -2,7 +2,7 @@ import { Archive, BarChart3, ChevronLeft, ChevronRight, CornerDownRight, Pencil,
 import { useMemo, useState } from "react";
 
 import { api } from "../api/client";
-import { useCategories, useDashboard, useInvalidating } from "../api/hooks";
+import { useCategories, useCategoryUsage, useDashboard, useInvalidating } from "../api/hooks";
 import type { Category } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
 import { ColorDot, ColorPicker, Field, Modal, PageHeader } from "../components/ui";
@@ -34,10 +34,12 @@ const empty: Draft = {
 
 export default function CategoriesPage() {
   const { data: categories = [] } = useCategories();
+  const { data: usage = {} } = useCategoryUsage();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
   const [pageError, setPageError] = useState("");
   const [drillCat, setDrillCat] = useState<Category | null>(null);
+  const [sortBy, setSortBy] = useState<"order" | "alpha" | "usage">("order");
 
   const keys = [["categories"], ["dashboard"], ["budgets"]];
   const save = useInvalidating(async (d: Draft) => {
@@ -68,6 +70,9 @@ export default function CategoriesPage() {
 
   function section(kind: "expense" | "income") {
     const tops = categories.filter((c) => c.kind === kind && c.parent_id === null);
+    if (sortBy === "alpha") tops.sort((a, b) => a.name.localeCompare(b.name));
+    else if (sortBy === "usage") tops.sort((a, b) => (usage[b.id] ?? 0) - (usage[a.id] ?? 0));
+    else tops.sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
     return (
       <div className="glass p-5">
         <div className="mb-3 flex items-center justify-between">
@@ -155,7 +160,22 @@ export default function CategoriesPage() {
 
   return (
     <div>
-      <PageHeader title="Categories" subtitle="Organize spending and income, one nesting level" />
+      <PageHeader
+        title="Categories"
+        subtitle="Organize spending and income, one nesting level"
+        actions={
+          <select
+            className="input w-44 text-xs"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as "order" | "alpha" | "usage")}
+            title="Sort top-level categories"
+          >
+            <option value="order">Default order</option>
+            <option value="alpha">Alphabetical</option>
+            <option value="usage">Most used first</option>
+          </select>
+        }
+      />
       {pageError && (
         <div className="glass mb-4 border-rose-400/30 p-3 text-sm text-rose-300">{pageError}</div>
       )}

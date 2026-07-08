@@ -31,6 +31,13 @@ export function useCategories() {
   return useQuery({ queryKey: ["categories"], queryFn: () => api.get<Category[]>("/api/categories") });
 }
 
+export function useCategoryUsage() {
+  return useQuery({
+    queryKey: ["categories", "usage"],
+    queryFn: () => api.get<Record<number, number>>("/api/categories/usage"),
+  });
+}
+
 export function useTransactions(params: Record<string, string | number | undefined>) {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {

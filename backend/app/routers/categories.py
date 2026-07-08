@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..auth import require_auth
@@ -13,6 +13,23 @@ router = APIRouter(prefix="/api/categories", tags=["categories"], dependencies=[
 @router.get("", response_model=list[CategoryOut])
 def list_categories(db: Session = Depends(get_db)):
     return db.scalars(select(Category).order_by(Category.sort_order, Category.id)).all()
+
+
+@router.get("/usage")
+def category_usage(db: Session = Depends(get_db)) -> dict[int, int]:
+    """Split count per top-level category (its own splits + all children's),
+    for sorting the Categories page by usage frequency."""
+    parent_of = {c.id: c.parent_id for c in db.scalars(select(Category))}
+    counts: dict[int, int] = {}
+    rows = db.execute(
+        select(Split.category_id, func.count(Split.id)).group_by(Split.category_id)
+    ).all()
+    for cat_id, count in rows:
+        if cat_id is None:
+            continue
+        top = parent_of.get(cat_id) or cat_id
+        counts[top] = counts.get(top, 0) + count
+    return counts
 
 
 @router.post("", response_model=CategoryOut, status_code=201)
