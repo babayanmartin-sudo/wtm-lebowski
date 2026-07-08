@@ -7,7 +7,7 @@ from ..db import get_db
 from ..models import Account, ColumnPreset, Import, ImportRow, Split, Transaction
 from ..schemas import ImportDetail, ImportOut, MappingIn, RowPatch
 from ..services import importer
-from ..services.matcher import learn, learn_ignore, normalize
+from ..services.matcher import is_ignored, learn, learn_ignore, normalize, suggest
 from ..services.rates import to_base
 
 router = APIRouter(prefix="/api/imports", tags=["imports"], dependencies=[Depends(require_auth)])
@@ -149,7 +149,22 @@ def commit_import(import_id: int, db: Session = Depends(get_db)):
     account = imp.account
     created = 0
     for row in imp.rows:
-        if row.skip or row.error or row.parsed_date is None or row.parsed_amount is None:
+        if row.error or row.parsed_date is None or row.parsed_amount is None:
+            continue
+        # rule/ignore-rule hit stats only move once a row is actually part of
+        # a committed import — preview-time matching runs with record_hits=False.
+        # Duplicate-skipped rows never become transactions, so they don't count
+        # either; only rows genuinely excluded by an ignore rule, or rows that
+        # become a real transaction, bump their matching rule's hit_count.
+        if row.ignored and row.parsed_payee:
+            is_ignored(db, row.parsed_payee, record_hits=True)
+        elif (
+            not row.is_duplicate
+            and row.parsed_payee
+            and row.suggestion_confidence in ("exact", "rule")
+        ):
+            suggest(db, row.parsed_payee, record_hits=True)
+        if row.skip:
             continue
         kind = "expense" if row.parsed_amount < 0 else "income"
         amount = round(abs(row.parsed_amount), 2)

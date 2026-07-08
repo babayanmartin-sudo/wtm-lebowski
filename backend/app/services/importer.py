@@ -219,7 +219,7 @@ def apply_mapping(db: Session, imp: Import) -> None:
         row.is_duplicate = row.dedupe_hash in existing_hashes or row.dedupe_hash in seen_in_file
         seen_in_file.add(row.dedupe_hash)
 
-        ignored, _ = is_ignored(db, row.parsed_payee)
+        ignored, _ = is_ignored(db, row.parsed_payee, record_hits=False)
         row.ignored = ignored
         if ignored:
             row.skip = True
@@ -230,7 +230,7 @@ def apply_mapping(db: Session, imp: Import) -> None:
 
         row.skip = row.is_duplicate
         if row.category_id is None:
-            cat, conf, alias = suggest(db, row.parsed_payee, known)
+            cat, conf, alias = suggest(db, row.parsed_payee, known, record_hits=False)
             row.suggested_category_id = cat
             row.suggestion_confidence = conf
             row.category_id = cat

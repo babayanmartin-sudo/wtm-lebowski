@@ -50,13 +50,17 @@ def _known_payees(db: Session) -> dict[str, int]:
 
 
 def suggest(
-    db: Session, payee: str, known: dict[str, int] | None = None
+    db: Session, payee: str, known: dict[str, int] | None = None, record_hits: bool = True
 ) -> tuple[int | None, str, str]:
     """Returns (category_id, confidence, alias) where confidence is exact|rule|fuzzy|''.
 
     alias is the rule's display-name override (empty unless an exact/contains
     rule with one set matched — fuzzy matches have no specific rule to draw
     an alias from).
+
+    record_hits controls whether a match bumps the rule's hit_count/last_used.
+    Pass False for read-only/preview matching (e.g. import preview) so
+    statistics only move once the match is actually acted on (import commit).
     """
     norm = normalize(payee)
     raw = payee.upper().strip()
@@ -68,7 +72,8 @@ def suggest(
     for rule in rules:
         if rule.match_kind == "exact":
             if rule.pattern == norm or rule.pattern == raw:
-                _record_hit(db, rule)
+                if record_hits:
+                    _record_hit(db, rule)
                 return rule.category_id, "exact", rule.alias
 
     contains = [
@@ -77,7 +82,8 @@ def suggest(
     ]
     if contains:
         best = max(contains, key=lambda r: (r.priority, len(r.pattern)))
-        _record_hit(db, best)
+        if record_hits:
+            _record_hit(db, best)
         return best.category_id, "rule", best.alias
 
     if not norm:
@@ -119,8 +125,12 @@ def learn(db: Session, payee: str, category_id: int) -> None:
         db.flush()
 
 
-def is_ignored(db: Session, payee: str) -> tuple[bool, str]:
-    """Returns (ignored, confidence) where confidence is exact|rule|''."""
+def is_ignored(db: Session, payee: str, record_hits: bool = True) -> tuple[bool, str]:
+    """Returns (ignored, confidence) where confidence is exact|rule|''.
+
+    record_hits controls whether a match bumps the rule's hit_count/last_used —
+    see suggest() for why.
+    """
     norm = normalize(payee)
     raw = payee.upper().strip()
 
@@ -131,7 +141,8 @@ def is_ignored(db: Session, payee: str) -> tuple[bool, str]:
     for rule in rules:
         if rule.match_kind == "exact":
             if rule.pattern == norm or rule.pattern == raw:
-                _record_hit(db, rule)
+                if record_hits:
+                    _record_hit(db, rule)
                 return True, "exact"
 
     contains = [
@@ -140,7 +151,8 @@ def is_ignored(db: Session, payee: str) -> tuple[bool, str]:
     ]
     if contains:
         best = max(contains, key=lambda r: (r.priority, len(r.pattern)))
-        _record_hit(db, best)
+        if record_hits:
+            _record_hit(db, best)
         return True, "rule"
 
     return False, ""
