@@ -71,8 +71,8 @@ export default function TransactionsPage() {
     MONEY_KEYS,
   );
 
-  const accountById = new Map(accounts.map((a) => [a.id, a]));
-  const categoryById = new Map(categories.map((c) => [c.id, c]));
+  const accountById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+  const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const filteredLoan = loanId ? loans.find((l) => String(l.id) === loanId) : undefined;
   const items = data?.items ?? [];
 
