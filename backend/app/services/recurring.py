@@ -46,6 +46,7 @@ def post_template(db: Session, template: Template, on_date: date) -> Transaction
         payee=template.payee,
         note=template.note,
         template_id=template.id,
+        loan_id=template.loan_id if template.kind in ("expense", "income") else None,
     )
     if template.kind == "transfer" and tx.transfer_amount is None:
         tx.transfer_amount = template.amount

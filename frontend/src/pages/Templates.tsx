@@ -7,6 +7,7 @@ import {
   useAccounts,
   useCategories,
   useInvalidating,
+  useLoans,
   useTemplates,
 } from "../api/hooks";
 import type { Template } from "../api/types";
@@ -22,6 +23,7 @@ interface Draft {
   transfer_account_id: number | null;
   transfer_amount: string;
   category_id: number | null;
+  loan_id: number | null;
   payee: string;
   note: string;
   frequency: "daily" | "weekly" | "monthly" | "yearly";
@@ -36,6 +38,7 @@ export default function TemplatesPage() {
   const { data: templates = [] } = useTemplates();
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
+  const { data: loans = [] } = useLoans();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
 
@@ -49,6 +52,7 @@ export default function TemplatesPage() {
       amount: parseFloat(d.amount),
       transfer_amount: d.kind === "transfer" && d.transfer_amount ? parseFloat(d.transfer_amount) : null,
       transfer_account_id: d.kind === "transfer" ? d.transfer_account_id : null,
+      loan_id: d.kind === "transfer" ? null : d.loan_id,
       end_date: d.end_date || null,
     };
     return d.id ? api.put(`/api/templates/${d.id}`, body) : api.post("/api/templates", body);
@@ -75,6 +79,7 @@ export default function TemplatesPage() {
       transfer_account_id: null,
       transfer_amount: "",
       category_id: null,
+      loan_id: null,
       payee: "",
       note: "",
       frequency: "monthly",
@@ -98,6 +103,9 @@ export default function TemplatesPage() {
 
   const accountById = new Map(accounts.map((a) => [a.id, a]));
   const due = (t: Template) => t.active && t.next_due <= today();
+
+  const loanDirection = draft?.kind === "expense" ? "debt" : draft?.kind === "income" ? "receivable" : null;
+  const matchingLoans = loans.filter((l) => !l.archived && l.direction === loanDirection);
 
   return (
     <div>
@@ -200,7 +208,9 @@ export default function TemplatesPage() {
                 <select
                   className="input"
                   value={draft.kind}
-                  onChange={(e) => setDraft({ ...draft, kind: e.target.value as Draft["kind"] })}
+                  onChange={(e) =>
+                    setDraft({ ...draft, kind: e.target.value as Draft["kind"], loan_id: null })
+                  }
                 >
                   <option value="expense">Expense</option>
                   <option value="income">Income</option>
@@ -255,14 +265,34 @@ export default function TemplatesPage() {
                 </Field>
               </div>
             ) : (
-              <Field label="Category">
-                <CategorySelect
-                  categories={categories}
-                  kind={draft.kind}
-                  value={draft.category_id}
-                  onChange={(id) => setDraft({ ...draft, category_id: id })}
-                />
-              </Field>
+              <>
+                <Field label="Category">
+                  <CategorySelect
+                    categories={categories}
+                    kind={draft.kind}
+                    value={draft.category_id}
+                    onChange={(id) => setDraft({ ...draft, category_id: id })}
+                  />
+                </Field>
+                {matchingLoans.length > 0 && (
+                  <Field label="Link to loan (optional)">
+                    <select
+                      className="input"
+                      value={draft.loan_id ?? ""}
+                      onChange={(e) =>
+                        setDraft({ ...draft, loan_id: e.target.value === "" ? null : Number(e.target.value) })
+                      }
+                    >
+                      <option value="">— none —</option>
+                      {matchingLoans.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
+              </>
             )}
             <div className="grid grid-cols-3 gap-3">
               <Field label="Amount">

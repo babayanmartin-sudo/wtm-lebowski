@@ -46,6 +46,10 @@ def _migrate() -> None:
         template_cols = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(templates)")]
         if "end_date" not in template_cols:
             conn.exec_driver_sql("ALTER TABLE templates ADD COLUMN end_date DATE")
+        if "loan_id" not in template_cols:
+            conn.exec_driver_sql(
+                "ALTER TABLE templates ADD COLUMN loan_id INTEGER REFERENCES loans(id) ON DELETE SET NULL"
+            )
 
         budget_cols = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(budgets)")]
         if "period" not in budget_cols:

@@ -155,6 +155,7 @@ class TemplateIn(BaseModel):
     transfer_account_id: int | None = None
     transfer_amount: float | None = None
     category_id: int | None = None
+    loan_id: int | None = None
     payee: str = ""
     note: str = ""
     frequency: str = "monthly"

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..auth import require_auth
 from ..db import get_db
-from ..models import Template
+from ..models import Loan, Template
 from ..schemas import TemplateIn, TemplateOut
 from ..services.recurring import advance, expire_if_past_end, materialize_due, pending_templates, post_template
 
@@ -30,7 +30,7 @@ def materialize(db: Session = Depends(get_db)):
 
 @router.post("", response_model=TemplateOut, status_code=201)
 def create_template(body: TemplateIn, db: Session = Depends(get_db)):
-    _validate(body)
+    _validate(db, body)
     t = Template(**body.model_dump())
     expire_if_past_end(t)
     db.add(t)
@@ -43,7 +43,7 @@ def update_template(template_id: int, body: TemplateIn, db: Session = Depends(ge
     t = db.get(Template, template_id)
     if not t:
         raise HTTPException(404, "Template not found")
-    _validate(body)
+    _validate(db, body)
     for key, value in body.model_dump().items():
         setattr(t, key, value)
     expire_if_past_end(t)
@@ -85,10 +85,19 @@ def skip_occurrence(template_id: int, db: Session = Depends(get_db)):
     return t
 
 
-def _validate(body: TemplateIn) -> None:
+def _validate(db: Session, body: TemplateIn) -> None:
     if body.kind not in ("expense", "income", "transfer"):
         raise HTTPException(400, "Invalid kind")
     if body.frequency not in ("daily", "weekly", "monthly", "yearly"):
         raise HTTPException(400, "Invalid frequency")
     if body.kind == "transfer" and not body.transfer_account_id:
         raise HTTPException(400, "Transfer destination account required")
+    if body.loan_id is not None:
+        if body.kind == "transfer":
+            raise HTTPException(400, "Transfers can't link to a loan")
+        loan = db.get(Loan, body.loan_id)
+        if not loan:
+            raise HTTPException(400, "Loan not found")
+        expected_kind = "expense" if loan.direction == "debt" else "income"
+        if body.kind != expected_kind:
+            raise HTTPException(400, f"This loan expects a {expected_kind} transaction")

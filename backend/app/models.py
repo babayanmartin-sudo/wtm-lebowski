@@ -115,6 +115,9 @@ class Template(Base):
     transfer_account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id"), nullable=True)
     transfer_amount: Mapped[float | None] = mapped_column(Float, nullable=True)
     category_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
+    loan_id: Mapped[int | None] = mapped_column(
+        ForeignKey("loans.id", ondelete="SET NULL"), nullable=True
+    )
     payee: Mapped[str] = mapped_column(String, default="")
     note: Mapped[str] = mapped_column(Text, default="")
     frequency: Mapped[str] = mapped_column(String, default="monthly")  # daily|weekly|monthly|yearly
@@ -127,6 +130,7 @@ class Template(Base):
     account: Mapped[Account] = relationship(foreign_keys=[account_id])
     transfer_account: Mapped["Account | None"] = relationship(foreign_keys=[transfer_account_id])
     category: Mapped["Category | None"] = relationship()
+    loan: Mapped["Loan | None"] = relationship()
 
 
 class Budget(Base):

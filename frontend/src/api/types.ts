@@ -70,6 +70,7 @@ export interface Template {
   transfer_account_id: number | null;
   transfer_amount: number | null;
   category_id: number | null;
+  loan_id: number | null;
   payee: string;
   note: string;
   frequency: "daily" | "weekly" | "monthly" | "yearly";
