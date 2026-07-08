@@ -31,7 +31,9 @@ def summary(
 
     # net worth as it stood at the end of the selected period
     balances = compute_balances(db, as_of=end)
-    accounts = db.scalars(select(Account).where(Account.archived.is_(False))).all()
+    accounts = db.scalars(
+        select(Account).where(Account.archived.is_(False), Account.exclude_from_net_worth.is_(False))
+    ).all()
     net_worth = round(
         sum(
             balance_in_base(db, a, balances.get(a.id, a.initial_balance), on_date=end)
@@ -68,7 +70,9 @@ def projection(months: int = Query(default=12, ge=1, le=36), db: Session = Depen
     """Projected net worth at each month-end, driven by active recurring
     templates and monthly budgets."""
     balances = compute_balances(db)
-    accounts = db.scalars(select(Account).where(Account.archived.is_(False))).all()
+    accounts = db.scalars(
+        select(Account).where(Account.archived.is_(False), Account.exclude_from_net_worth.is_(False))
+    ).all()
     current = round(
         sum(balance_in_base(db, a, balances.get(a.id, a.initial_balance)) for a in accounts), 2
     )

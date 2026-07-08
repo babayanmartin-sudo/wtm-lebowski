@@ -33,6 +33,7 @@ class AccountIn(BaseModel):
     archived: bool = False
     sort_order: int = 0
     is_main: bool = False
+    exclude_from_net_worth: bool = False
 
     @field_validator("initial_balance", mode="before")
     @classmethod

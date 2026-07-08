@@ -14,6 +14,7 @@ export interface Account {
   archived: boolean;
   sort_order: number;
   is_main: boolean;
+  exclude_from_net_worth: boolean;
   balance: number;
   balance_base: number;
 }

@@ -1,4 +1,4 @@
-import { Archive, Check, Pencil, Plus, Scale, Star, Trash2, Wallet } from "lucide-react";
+import { Archive, Check, Eye, EyeOff, Pencil, Plus, Scale, Star, Trash2, Wallet } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -22,6 +22,7 @@ interface Draft {
   archived: boolean;
   sort_order: number;
   is_main: boolean;
+  exclude_from_net_worth: boolean;
 }
 
 const empty: Draft = {
@@ -34,6 +35,7 @@ const empty: Draft = {
   archived: false,
   sort_order: 0,
   is_main: false,
+  exclude_from_net_worth: false,
 };
 
 export default function AccountsPage() {
@@ -103,6 +105,10 @@ export default function AccountsPage() {
     await save.mutateAsync({ ...acc, is_main: true });
   }
 
+  async function toggleNetWorth(acc: Account) {
+    await save.mutateAsync({ ...acc, exclude_from_net_worth: !acc.exclude_from_net_worth });
+  }
+
   async function del(acc: Account) {
     setPageError("");
     if (!confirm(`Delete account “${acc.name}”?`)) return;
@@ -153,6 +159,11 @@ export default function AccountsPage() {
                         Main
                       </span>
                     )}
+                    {acc.exclude_from_net_worth && (
+                      <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-300 uppercase">
+                        Excluded
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs uppercase tracking-wide text-gray-500">
                     {acc.type} · {acc.currency}
@@ -167,6 +178,13 @@ export default function AccountsPage() {
                   onClick={() => setMain(acc)}
                 >
                   <Star size={15} fill={acc.is_main ? "currentColor" : "none"} />
+                </button>
+                <button
+                  className={`rounded-lg p-1.5 hover:bg-white/10 ${acc.exclude_from_net_worth ? "text-amber-300" : "text-gray-400"}`}
+                  title={acc.exclude_from_net_worth ? "Excluded from net worth — click to include" : "Exclude from net worth"}
+                  onClick={() => toggleNetWorth(acc)}
+                >
+                  {acc.exclude_from_net_worth ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
                 <button
                   className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"

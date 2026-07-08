@@ -1,4 +1,4 @@
-import { Archive, Pencil, Plus, Star, Trash2, Wallet, X } from "lucide-react";
+import { Archive, Eye, EyeOff, Pencil, Plus, Star, Trash2, Wallet, X } from "lucide-react";
 import { useState } from "react";
 
 import { api } from "../api/client";
@@ -21,6 +21,7 @@ interface Draft {
   archived: boolean;
   sort_order: number;
   is_main: boolean;
+  exclude_from_net_worth: boolean;
 }
 
 const empty: Draft = {
@@ -33,6 +34,7 @@ const empty: Draft = {
   archived: false,
   sort_order: 0,
   is_main: false,
+  exclude_from_net_worth: false,
 };
 
 export default function MobileAccounts() {
@@ -99,6 +101,14 @@ export default function MobileAccounts() {
                   <Star size={13} fill={acc.is_main ? "currentColor" : "none"} />
                 </button>
                 <button
+                  onClick={() => save.mutate({ ...acc, exclude_from_net_worth: !acc.exclude_from_net_worth })}
+                  className={`rounded-full p-1.5 ${
+                    acc.exclude_from_net_worth ? "bg-black/30 text-black active:bg-black/40" : "bg-black/10 active:bg-black/20"
+                  }`}
+                >
+                  {acc.exclude_from_net_worth ? <EyeOff size={13} /> : <Eye size={13} />}
+                </button>
+                <button
                   onClick={() => setDraft({ ...acc })}
                   className="rounded-full bg-black/10 p-1.5 active:bg-black/20"
                 >
@@ -123,6 +133,7 @@ export default function MobileAccounts() {
             <p className="mt-5 truncate text-xs font-medium text-black/60 uppercase">
               {acc.name} · {acc.type}
               {acc.is_main ? " · main" : ""}
+              {acc.exclude_from_net_worth ? " · excluded" : ""}
             </p>
             <p className="truncate text-2xl font-bold tabular-nums">{fmtMoney(acc.balance, acc.currency)}</p>
             {acc.currency !== "AED" && (

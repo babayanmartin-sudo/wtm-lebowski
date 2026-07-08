@@ -41,6 +41,7 @@ class Account(Base):
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_main: Mapped[bool] = mapped_column(Boolean, default=False)
+    exclude_from_net_worth: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class Category(Base):
