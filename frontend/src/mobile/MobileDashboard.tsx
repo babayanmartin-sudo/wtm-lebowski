@@ -132,12 +132,16 @@ export default function MobileDashboard() {
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      background: "#161811",
-                      border: "1px solid rgba(255,255,255,0.1)",
+                      background: "#374151",
+                      border: "1px solid rgba(255,255,255,0.3)",
                       borderRadius: 12,
                       fontSize: 12,
+                      color: "#ffffff",
+                      padding: 8,
                     }}
-                    formatter={(v) => fmtMoney(Number(v), data?.base_currency)}
+                    wrapperStyle={{ color: "#ffffff" }}
+                    labelStyle={{ color: "#ffffff" }}
+                    formatter={(v) => [fmtMoney(Number(v), data?.base_currency), ""]}
                   />
                 </PieChart>
               </ResponsiveContainer>
