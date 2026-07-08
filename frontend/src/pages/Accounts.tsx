@@ -1,4 +1,4 @@
-import { Archive, Check, Eye, EyeOff, Pencil, Plus, Scale, Star, Trash2, Wallet } from "lucide-react";
+import { Archive, Check, Eye, EyeOff, Pencil, Plus, Scale, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -7,6 +7,7 @@ import { MONEY_KEYS, useAccounts, useInvalidating } from "../api/hooks";
 import type { Account, Transaction } from "../api/types";
 import { ColorPicker, Field, Modal, PageHeader } from "../components/ui";
 import { fmtMoney } from "../lib/format";
+import { ACCOUNT_ICON_KEYS, getAccountIcon } from "../lib/icons";
 
 const TYPES = ["cash", "bank", "card", "savings"];
 const CURRENCIES = ["AED", "USD", "EUR", "RUB", "AMD", "GBP", "CHF", "TRY", "GEL", "RSD"];
@@ -149,7 +150,10 @@ export default function AccountsPage() {
                   className="flex h-10 w-10 items-center justify-center rounded-xl text-white"
                   style={{ background: acc.color }}
                 >
-                  <Wallet size={18} />
+                  {(() => {
+                    const Icon = getAccountIcon(acc.icon);
+                    return <Icon size={18} />;
+                  })()}
                 </div>
                 <div>
                   <p className="flex items-center gap-1.5 font-medium">
@@ -278,6 +282,27 @@ export default function AccountsPage() {
             </Field>
             <Field label="Color">
               <ColorPicker value={draft.color} onChange={(color) => setDraft({ ...draft, color })} />
+            </Field>
+            <Field label="Icon">
+              <div className="flex flex-wrap gap-2">
+                {ACCOUNT_ICON_KEYS.map((key) => {
+                  const Icon = getAccountIcon(key);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setDraft({ ...draft, icon: key })}
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${
+                        draft.icon === key
+                          ? "border-lime-400 bg-lime-400/20 text-lime-300"
+                          : "border-white/10 bg-white/5 text-gray-400 hover:bg-white/10"
+                      }`}
+                    >
+                      <Icon size={16} />
+                    </button>
+                  );
+                })}
+              </div>
             </Field>
             {error && <p className="text-xs text-rose-400">{error}</p>}
             <button className="btn-primary" onClick={submit} disabled={!draft.name.trim()}>

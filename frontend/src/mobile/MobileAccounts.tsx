@@ -1,10 +1,11 @@
-import { Archive, Eye, EyeOff, Pencil, Plus, Star, Trash2, Wallet, X } from "lucide-react";
+import { Archive, Eye, EyeOff, Pencil, Plus, Star, Trash2, X } from "lucide-react";
 import { useState } from "react";
 
 import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useInvalidating } from "../api/hooks";
 import type { Account } from "../api/types";
 import { fmtMoney } from "../lib/format";
+import { ACCOUNT_ICON_KEYS, getAccountIcon } from "../lib/icons";
 
 const TYPES = ["cash", "bank", "card", "savings"];
 const CURRENCIES = ["AED", "USD", "EUR", "RUB", "AMD", "GBP", "CHF", "TRY", "GEL", "RSD"];
@@ -92,7 +93,10 @@ export default function MobileAccounts() {
           >
             <div className="pointer-events-none absolute -top-8 -right-8 h-32 w-32 rounded-full bg-black/5" />
             <div className="flex items-start justify-between">
-              <Wallet size={22} className="shrink-0 text-black/70" />
+              {(() => {
+                const Icon = getAccountIcon(acc.icon);
+                return <Icon size={22} className="shrink-0 text-black/70" />;
+              })()}
               <div className="flex shrink-0 gap-1">
                 <button
                   onClick={() => acc.is_main || save.mutate({ ...acc, is_main: true })}
@@ -207,6 +211,24 @@ export default function MobileAccounts() {
                     style={{ background: c }}
                   />
                 ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {ACCOUNT_ICON_KEYS.map((key) => {
+                  const Icon = getAccountIcon(key);
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setDraft({ ...draft, icon: key })}
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${
+                        draft.icon === key
+                          ? "border-[#c6f135] bg-[#c6f135]/20 text-[#c6f135]"
+                          : "border-white/10 bg-white/5 text-gray-400"
+                      }`}
+                    >
+                      <Icon size={16} />
+                    </button>
+                  );
+                })}
               </div>
               <button
                 onClick={submit}
