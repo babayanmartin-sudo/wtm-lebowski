@@ -142,7 +142,7 @@ export default function MobileDashboard() {
                     wrapperStyle={{ color: "#ffffff" }}
                     labelStyle={{ color: "#ffffff" }}
                     itemStyle={{ color: "#ffffff" }}
-                    formatter={(v) => [fmtMoney(Number(v), data?.base_currency), ""]}
+                    formatter={(v, name) => [fmtMoney(Number(v), data?.base_currency), name]}
                   />
                 </PieChart>
               </ResponsiveContainer>

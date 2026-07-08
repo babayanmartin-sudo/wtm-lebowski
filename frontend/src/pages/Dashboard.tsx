@@ -236,7 +236,7 @@ export default function DashboardPage() {
                 wrapperStyle={{ color: "#ffffff" }}
                 labelStyle={{ color: "#ffffff" }}
                 itemStyle={{ color: "#ffffff" }}
-                formatter={(v) => [v, ""]}
+                formatter={(v, name) => [v, name]}
                 labelFormatter={(v) => bucketLabel(String(v), granularityData)}
               />
               <Bar dataKey="income" fill="#34d399" radius={[4, 4, 0, 0]} />
@@ -293,7 +293,7 @@ export default function DashboardPage() {
                     wrapperStyle={{ color: "#ffffff" }}
                     labelStyle={{ color: "#ffffff" }}
                     itemStyle={{ color: "#ffffff" }}
-                    formatter={(v) => [fmtMoney(Number(v), data?.base_currency), ""]}
+                    formatter={(v, name) => [fmtMoney(Number(v), data?.base_currency), name]}
                   />
                 </PieChart>
               </ResponsiveContainer>
