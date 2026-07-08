@@ -90,8 +90,8 @@ export default function MobileAccounts() {
           >
             <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-black/5" />
             <div className="flex items-start justify-between">
-              <Wallet size={22} className="text-black/70" />
-              <div className="flex gap-1">
+              <Wallet size={22} className="shrink-0 text-black/70" />
+              <div className="flex shrink-0 gap-1">
                 <button
                   onClick={() => acc.is_main || save.mutate({ ...acc, is_main: true })}
                   className="rounded-full bg-black/10 p-1.5 active:bg-black/20"
@@ -124,7 +124,7 @@ export default function MobileAccounts() {
             </p>
             <p className="truncate text-2xl font-bold tabular-nums">{fmtMoney(acc.balance, acc.currency)}</p>
             {acc.currency !== "AED" && (
-              <p className="text-xs text-black/60 tabular-nums">≈ {fmtMoney(acc.balance_base, "AED")}</p>
+              <p className="truncate text-xs text-black/60 tabular-nums">≈ {fmtMoney(acc.balance_base, "AED")}</p>
             )}
           </div>
         ))}

@@ -96,7 +96,7 @@ export default function MobileShell({ children }: { children: ReactNode }) {
                   className="flex flex-col items-center gap-2 rounded-2xl bg-white/5 px-2 py-4 text-center transition-colors active:bg-[#c6f135]/10"
                 >
                   <Icon size={20} className="text-[#c6f135]" />
-                  <span className="text-xs leading-tight text-gray-300">{label}</span>
+                  <span className="line-clamp-2 text-xs leading-tight text-gray-300">{label}</span>
                 </button>
               ))}
             </div>

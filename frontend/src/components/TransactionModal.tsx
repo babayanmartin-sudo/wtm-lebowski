@@ -130,7 +130,7 @@ export default function TransactionModal({
           {kindBtn("transfer", "Transfer", "bg-sky-500/25 text-sky-200")}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Date">
             <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
@@ -158,7 +158,7 @@ export default function TransactionModal({
         </Field>
 
         {kind === "transfer" && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="To account">
               <select
                 className="input"
@@ -239,6 +239,7 @@ export default function TransactionModal({
                     kind={kind}
                     value={s.category_id}
                     onChange={(id) => setSplits(splits.map((x, j) => (j === i ? { ...x, category_id: id } : x)))}
+                    className="input min-w-0 flex-1"
                   />
                   {isSplit && (
                     <>

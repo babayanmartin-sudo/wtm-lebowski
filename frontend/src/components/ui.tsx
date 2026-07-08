@@ -36,10 +36,10 @@ export function Modal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-6 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm sm:p-6"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className={`glass mt-10 w-full ${wide ? "max-w-3xl" : "max-w-md"} p-6`}>
+      <div className={`glass mt-10 w-full ${wide ? "max-w-3xl" : "max-w-md"} p-4 sm:p-6`}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold">{title}</h2>
           <button onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-white/10">

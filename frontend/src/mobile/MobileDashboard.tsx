@@ -64,7 +64,7 @@ export default function MobileDashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl bg-white/5 p-4">
+        <div className="min-w-0 rounded-2xl bg-white/5 p-4">
           <div className="mb-2 flex items-center gap-2 text-emerald-300">
             <ArrowUpRight size={16} />
             <span className="text-xs font-medium tracking-wide text-gray-400 uppercase">Income</span>
@@ -73,7 +73,7 @@ export default function MobileDashboard() {
             {data ? fmtMoney(data.income, data.base_currency) : "…"}
           </p>
         </div>
-        <div className="rounded-2xl bg-white/5 p-4">
+        <div className="min-w-0 rounded-2xl bg-white/5 p-4">
           <div className="mb-2 flex items-center gap-2 text-rose-300">
             <ArrowDownRight size={16} />
             <span className="text-xs font-medium tracking-wide text-gray-400 uppercase">Spent</span>
