@@ -155,6 +155,20 @@ def test_projection_no_double_count_recurring_inside_budget(seeded):
     assert d["points"][1]["net_worth"] == d["points"][0]["net_worth"] - 500.0
 
 
+def test_projection_no_double_count_monthly_and_yearly_budget(seeded):
+    """Regression for #8: a category can carry both a monthly and yearly
+    budget since v1.0 loosened uniqueness to (category, period). Forecast
+    must count it once (monthly wins), not sum monthly + yearly/12."""
+    c = seeded["client"]
+    c.post("/api/budgets", json={"category_id": seeded["food"]["id"], "amount": 300, "period": "monthly"})
+    c.post("/api/budgets", json={"category_id": seeded["food"]["id"], "amount": 6000, "period": "yearly"})
+    d = c.get("/api/dashboard/projection?months=2").json()
+    base = d["current_net_worth"]
+    # if double-counted: -300 - 500 (6000/12) = -800; correct is monthly only, -300
+    assert d["points"][0]["net_worth"] == base - 300.0
+    assert d["points"][1]["net_worth"] == base - 600.0
+
+
 def test_projection_ignores_transfers_and_inactive(seeded):
     c = seeded["client"]
     c.post(
