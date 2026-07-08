@@ -36,6 +36,7 @@ export default function ImportPage() {
   const [editMapping, setEditMapping] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [uncategorizedOnly, setUncategorizedOnly] = useState(true);
 
   const commit = useInvalidating(() => api.post(`/api/imports/${importId}/commit`), MONEY_KEYS);
 
@@ -139,6 +140,8 @@ export default function ImportPage() {
 
   const importable = (imp?.rows ?? []).filter((r) => !r.skip && !r.error && r.parsed_amount !== null);
   const dupes = (imp?.rows ?? []).filter((r) => r.is_duplicate).length;
+  const allRows = imp?.rows ?? [];
+  const displayedRows = uncategorizedOnly ? allRows.filter((r) => r.category_id === null) : allRows;
   const mappingIncomplete =
     mapping["date"] === "" ||
     mapping["date"] === undefined ||
@@ -267,6 +270,19 @@ export default function ImportPage() {
               </span>
             )}
             <span className="flex-1" />
+            <label className="flex items-center gap-2 text-xs text-gray-400">
+              <input
+                type="checkbox"
+                checked={uncategorizedOnly}
+                onChange={(e) => setUncategorizedOnly(e.target.checked)}
+              />
+              Uncategorized only
+            </label>
+            {uncategorizedOnly && (
+              <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setUncategorizedOnly(false)}>
+                <RotateCcw size={12} /> Reset
+              </button>
+            )}
             <button
               className="btn-ghost"
               onClick={() => {
@@ -297,7 +313,7 @@ export default function ImportPage() {
                 </tr>
               </thead>
               <tbody>
-                {imp.rows.map((r) => (
+                {displayedRows.map((r) => (
                   <tr
                     key={r.id}
                     className={`border-b border-white/5 last:border-0 ${r.skip ? "opacity-40" : ""}`}
