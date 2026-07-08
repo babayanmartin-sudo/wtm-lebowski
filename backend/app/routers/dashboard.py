@@ -244,6 +244,10 @@ def _series(
     buckets: dict[str, dict] = {}
     cursor = _bucket_start(start, granularity)
     bucket_end = _bucket_start(end, granularity)
+    if granularity == "month":
+        # a multi-month range (e.g. year view) shouldn't render bars for
+        # months that haven't happened yet
+        bucket_end = min(bucket_end, _bucket_start(date.today(), granularity))
     while cursor <= bucket_end:
         key = cursor.isoformat()
         buckets[key] = {"label": key, "income": 0.0, "expense": 0.0}

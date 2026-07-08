@@ -1,6 +1,7 @@
 """Every endpoint exercised: happy path + designed error paths."""
 
 import io
+from datetime import date
 
 
 # ---------- auth ----------
@@ -459,6 +460,16 @@ def test_dashboard_summary_shape(seeded):
     assert d["by_category"][0]["name"] == "Food"
     assert len(d["recent"]) == 1
     assert d["net_worth"] > 0
+
+
+def test_dashboard_series_hides_future_months(seeded):
+    c = seeded["client"]
+    d = c.get("/api/dashboard/summary?date_from=2026-01-01&date_to=2026-12-31").json()
+    assert d["series_granularity"] == "month"
+    labels = [pt["label"] for pt in d["series"]]
+    assert labels == sorted(labels)
+    assert labels[-1] <= date.today().replace(day=1).isoformat()
+    assert "2026-12-01" not in labels
 
 
 def test_health(client):
