@@ -88,7 +88,7 @@ export default function MobileAccounts() {
             className={`relative overflow-hidden rounded-3xl p-5 text-black ${acc.archived ? "opacity-50" : ""}`}
             style={{ background: `linear-gradient(135deg, ${acc.color}, ${acc.color}bb)` }}
           >
-            <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-black/5" />
+            <div className="pointer-events-none absolute -top-8 -right-8 h-32 w-32 rounded-full bg-black/5" />
             <div className="flex items-start justify-between">
               <Wallet size={22} className="shrink-0 text-black/70" />
               <div className="flex shrink-0 gap-1">
@@ -106,7 +106,9 @@ export default function MobileAccounts() {
                 </button>
                 <button
                   onClick={() => save.mutate({ ...acc, archived: !acc.archived })}
-                  className="rounded-full bg-black/10 p-1.5 active:bg-black/20"
+                  className={`rounded-full p-1.5 ${
+                    acc.archived ? "bg-black/30 text-black active:bg-black/40" : "bg-black/10 active:bg-black/20"
+                  }`}
                 >
                   <Archive size={13} />
                 </button>
