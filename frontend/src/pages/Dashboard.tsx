@@ -235,6 +235,7 @@ export default function DashboardPage() {
                 }}
                 wrapperStyle={{ color: "#ffffff" }}
                 labelStyle={{ color: "#ffffff" }}
+                itemStyle={{ color: "#ffffff" }}
                 formatter={(v) => [v, ""]}
                 labelFormatter={(v) => bucketLabel(String(v), granularityData)}
               />
@@ -291,6 +292,7 @@ export default function DashboardPage() {
                     }}
                     wrapperStyle={{ color: "#ffffff" }}
                     labelStyle={{ color: "#ffffff" }}
+                    itemStyle={{ color: "#ffffff" }}
                     formatter={(v) => [fmtMoney(Number(v), data?.base_currency), ""]}
                   />
                 </PieChart>
@@ -373,6 +375,7 @@ export default function DashboardPage() {
               }}
               wrapperStyle={{ color: "#ffffff" }}
               labelStyle={{ color: "#ffffff" }}
+              itemStyle={{ color: "#ffffff" }}
               labelFormatter={fmtMonth}
               formatter={(v) => [fmtMoney(Number(v), forecast?.base_currency), "Net worth"]}
             />
