@@ -1,10 +1,15 @@
-import { Archive, CornerDownRight, Pencil, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Archive, BarChart3, ChevronLeft, ChevronRight, CornerDownRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 
 import { api } from "../api/client";
-import { useCategories, useInvalidating } from "../api/hooks";
+import { useCategories, useDashboard, useInvalidating } from "../api/hooks";
 import type { Category } from "../api/types";
+import PeriodPicker from "../components/PeriodPicker";
 import { ColorDot, ColorPicker, Field, Modal, PageHeader } from "../components/ui";
+import { fmtMoney } from "../lib/format";
+import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
+
+const DRILL_MODES: PickerMode[] = ["month", "year", "custom"];
 
 interface Draft {
   id?: number;
@@ -32,6 +37,7 @@ export default function CategoriesPage() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
   const [pageError, setPageError] = useState("");
+  const [drillCat, setDrillCat] = useState<Category | null>(null);
 
   const keys = [["categories"], ["dashboard"], ["budgets"]];
   const save = useInvalidating(async (d: Draft) => {
@@ -101,8 +107,17 @@ export default function CategoriesPage() {
       >
         {child && <CornerDownRight size={13} className="text-gray-600" />}
         <ColorDot color={cat.color} />
-        <span className="flex-1 text-sm">{cat.name}</span>
+        <button className="flex-1 truncate text-left text-sm hover:underline" onClick={() => setDrillCat(cat)}>
+          {cat.name}
+        </button>
         <div className="hidden gap-1 group-hover:flex">
+          <button
+            title="Drill down"
+            className="rounded p-1 text-gray-400 hover:bg-white/10"
+            onClick={() => setDrillCat(cat)}
+          >
+            <BarChart3 size={13} />
+          </button>
           {!child && (
             <button
               title="Add subcategory"
@@ -188,6 +203,81 @@ export default function CategoriesPage() {
           </div>
         </Modal>
       )}
+
+      {drillCat && <CategoryDrilldown cat={drillCat} onClose={() => setDrillCat(null)} />}
     </div>
+  );
+}
+
+function CategoryDrilldown({ cat, onClose }: { cat: Category; onClose: () => void }) {
+  const [pickerMode, setPickerMode] = useState<PickerMode>("month");
+  const [pickerDate, setPickerDate] = useState(toISO(new Date()));
+  const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate), pickerDate), [pickerMode, pickerDate]);
+  const { data } = useDashboard({ date_from: period.from, date_to: period.to, category_id: cat.id });
+
+  const rows = (data?.by_category ?? []).filter((c) => c.category_id !== cat.id);
+  const total = data?.by_category.find((c) => c.category_id === cat.id)?.amount ?? 0;
+  const childTotal = rows.reduce((sum, r) => sum + r.amount, 0);
+
+  return (
+    <Modal title={`${cat.name} — drill-down`} onClose={onClose}>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-1">
+          <button
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 disabled:opacity-30"
+            disabled={pickerMode === "custom"}
+            onClick={() => setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, -1)))}
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <PeriodPicker
+            mode={pickerMode}
+            date={pickerDate}
+            modes={DRILL_MODES}
+            onChange={(m, d) => {
+              setPickerMode(m);
+              setPickerDate(d);
+            }}
+          />
+          <button
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 disabled:opacity-30"
+            disabled={pickerMode === "custom"}
+            onClick={() => setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, 1)))}
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+        <p className="text-xs text-gray-500">{periodLabel(pickerMode, pickerMode === "custom" ? pickerDate : period.from)}</p>
+
+        <div className="flex items-center justify-between rounded-xl bg-white/5 p-3">
+          <span className="text-sm text-gray-300">Total ({cat.kind})</span>
+          <span className="text-lg font-semibold tabular-nums">{fmtMoney(total, data?.base_currency)}</span>
+        </div>
+
+        {rows.length > 0 ? (
+          <div className="flex flex-col gap-1">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Subcategory breakdown</p>
+            {rows
+              .sort((a, b) => b.amount - a.amount)
+              .map((r) => (
+                <div key={r.category_id ?? "uncategorized"} className="flex items-center gap-2 py-1 text-sm">
+                  <ColorDot color={r.color} />
+                  <span className="flex-1 truncate">{r.name}</span>
+                  <span className="tabular-nums text-gray-300">{fmtMoney(r.amount, data?.base_currency)}</span>
+                  <span className="w-10 shrink-0 text-right text-xs text-gray-500">
+                    {total > 0 ? Math.round((r.amount / total) * 100) : 0}%
+                  </span>
+                </div>
+              ))}
+            <div className="mt-1 flex items-center justify-between border-t border-white/10 pt-2 text-xs text-gray-500">
+              <span>Sum of subcategories</span>
+              <span className="tabular-nums">{fmtMoney(childTotal, data?.base_currency)}</span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">No subcategories for this period.</p>
+        )}
+      </div>
+    </Modal>
   );
 }
