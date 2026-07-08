@@ -86,7 +86,7 @@ export default function AccountsPage() {
   async function submit() {
     setError("");
     try {
-      const body = { ...draft!, initial_balance: Number(draft!.initial_balance) };
+      const body = { ...draft! };
       await save.mutateAsync(body);
       setDraft(null);
     } catch (e) {
