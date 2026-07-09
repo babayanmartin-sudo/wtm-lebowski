@@ -482,6 +482,27 @@ def test_dashboard_by_category_nets_expense_return_income(seeded):
     assert food["amount"] == 10.0
 
 
+def test_dashboard_expense_category_filter_does_not_narrow_income_breakdown(seeded):
+    """Selecting an expense category (e.g. clicking a slice in the expense
+    pie) must not affect the income breakdown — each is computed
+    independently per kind. Regression: category_id used to force `kind`
+    to the selected category's own kind for *both* calls, so filtering by
+    an expense category collapsed by_category_income to that expense
+    category's (empty) drill-down instead of the full income rollup."""
+    c = seeded["client"]
+    c.post(
+        "/api/transactions",
+        json=_tx(seeded, date="2026-06-10", amount=1000, kind="income",
+                 splits=[{"category_id": seeded["salary"]["id"], "amount": 1000, "note": ""}]),
+    )
+    d = c.get(
+        f"/api/dashboard/summary?date_from=2026-06-01&date_to=2026-06-30&category_id={seeded['food']['id']}"
+    ).json()
+    assert len(d["by_category_income"]) == 1
+    assert d["by_category_income"][0]["name"] == "Salary"
+    assert d["by_category_income"][0]["amount"] == 1000.0
+
+
 def test_dashboard_by_category_income_breakdown(seeded):
     c = seeded["client"]
     c.post(
@@ -499,7 +520,10 @@ def test_dashboard_by_category_income_breakdown(seeded):
 def test_dashboard_category_drilldown_works_for_income_category(seeded):
     """Regression: _by_category used to be hardcoded to expense splits, so
     drilling into an income category (category_id filter) silently returned
-    an empty breakdown instead of that category's income."""
+    an empty breakdown instead of that category's income. Fixed by generalizing
+    on kind — the income-kind call (by_category_income) now picks up the
+    drill-down, while the expense-kind call (by_category) correctly ignores
+    a category_id that isn't one of its own categories."""
     c = seeded["client"]
     c.post(
         "/api/transactions",
@@ -509,8 +533,9 @@ def test_dashboard_category_drilldown_works_for_income_category(seeded):
     d = c.get(
         f"/api/dashboard/summary?date_from=2026-06-01&date_to=2026-06-30&category_id={seeded['salary']['id']}"
     ).json()
-    assert len(d["by_category"]) == 1
-    assert d["by_category"][0]["amount"] == 1000.0
+    assert len(d["by_category_income"]) == 1
+    assert d["by_category_income"][0]["amount"] == 1000.0
+    assert d["by_category"] == []
 
 
 def test_dashboard_series_hides_future_months(seeded):

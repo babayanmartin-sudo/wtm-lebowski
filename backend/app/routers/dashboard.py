@@ -174,17 +174,21 @@ def _by_category(
 ) -> list[dict]:
     """Breakdown for the period for the given kind ("expense" or "income").
     With no category filter, children roll up into their top-level parent.
-    With a category filter, breaks the chosen category down into its own
-    children (or itself if it has none) — the category's own kind wins over
-    the `kind` argument, so drilling into an income category correctly
-    aggregates income splits even when called from an expense-oriented caller.
+    With a category filter that belongs to this `kind`, breaks the chosen
+    category down into its own children (or itself if it has none) — a
+    category_id belonging to the *other* kind is ignored here, since the
+    caller runs this once per kind and each pass should only ever drill its
+    own kind's breakdown, never the other one's.
 
     Splits of the opposite kind under a same-kind category are refund-style
     corrections (e.g. an expense return recorded as income) — they net
     against the total instead of being ignored or double-counted."""
     categories = {c.id: c for c in db.scalars(select(Category))}
-    if category_id is not None and category_id in categories:
-        kind = categories[category_id].kind
+    drill_id = (
+        category_id
+        if category_id is not None and category_id in categories and categories[category_id].kind == kind
+        else None
+    )
     other_kind = "income" if kind == "expense" else "expense"
     matching_cat_ids = [cid for cid, c in categories.items() if c.kind == kind]
 
@@ -208,10 +212,10 @@ def _by_category(
         signed = (amt or 0.0) if txn_kind == kind else -(amt or 0.0)
         amounts[cid] = amounts.get(cid, 0.0) + signed
 
-    if category_id:
-        children = [c.id for c in categories.values() if c.parent_id == category_id]
+    if drill_id:
+        children = [c.id for c in categories.values() if c.parent_id == drill_id]
         # Include parent in the breakdown to show total + child breakdown
-        wanted = ([category_id] + children) if children else [category_id]
+        wanted = ([drill_id] + children) if children else [drill_id]
         totals = {cid: amounts.get(cid, 0.0) for cid in wanted}
     else:
         totals: dict[int | None, float] = {}

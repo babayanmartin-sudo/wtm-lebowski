@@ -234,9 +234,10 @@ function CategoryDrilldown({ cat, onClose }: { cat: Category; onClose: () => voi
   const [pickerDate, setPickerDate] = useState(toISO(new Date()));
   const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate), pickerDate), [pickerMode, pickerDate]);
   const { data } = useDashboard({ date_from: period.from, date_to: period.to, category_id: cat.id });
+  const breakdown = cat.kind === "income" ? (data?.by_category_income ?? []) : (data?.by_category ?? []);
 
-  const rows = (data?.by_category ?? []).filter((c) => c.category_id !== cat.id);
-  const total = data?.by_category.find((c) => c.category_id === cat.id)?.amount ?? 0;
+  const rows = breakdown.filter((c) => c.category_id !== cat.id);
+  const total = breakdown.find((c) => c.category_id === cat.id)?.amount ?? 0;
   const childTotal = rows.reduce((sum, r) => sum + r.amount, 0);
 
   return (
