@@ -228,11 +228,7 @@ export default function TransactionsPage() {
     <div>
       <PageHeader
         title="Transactions"
-        subtitle={
-          hasActiveFilter && data
-            ? `${total} records · net ${fmtMoney(data.sum_base)}`
-            : `${total} records`
-        }
+        subtitle={`${total} records`}
         actions={
           <>
             <div className="flex items-center gap-1">
@@ -440,6 +436,23 @@ export default function TransactionsPage() {
             <button onClick={() => { setLoanId(null); setPage(0); }}>
               <X size={12} />
             </button>
+          </span>
+        </div>
+      )}
+
+      {hasActiveFilter && data && (
+        <div
+          className={`glass mb-4 flex items-center justify-between border-l-4 p-4 ${
+            data.sum_base >= 0 ? "border-l-emerald-400" : "border-l-rose-400"
+          }`}
+        >
+          <span className="text-sm text-gray-300">Net for {total} filtered transaction{total === 1 ? "" : "s"}</span>
+          <span
+            className={`text-xl font-semibold tabular-nums ${
+              data.sum_base >= 0 ? "text-emerald-300" : "text-rose-300"
+            }`}
+          >
+            {fmtMoney(data.sum_base)}
           </span>
         </div>
       )}

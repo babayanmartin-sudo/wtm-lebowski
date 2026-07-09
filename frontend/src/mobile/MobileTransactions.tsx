@@ -1,50 +1,78 @@
-import { Plus, Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, RotateCcw, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useAccounts, useCategories, useLoans, useTransactions } from "../api/hooks";
 import type { Transaction } from "../api/types";
+import PeriodPicker from "../components/PeriodPicker";
+import { CategorySelect, UNCATEGORIZED_ID } from "../components/ui";
 import TransactionModal from "../components/TransactionModal";
 import { fmtMoney } from "../lib/format";
-import { type PickerMode, parseISO, periodFor } from "../lib/period";
+import { type PickerMode, parseISO, periodFor, shiftAnchor, toISO } from "../lib/period";
 import { useSessionState } from "../lib/session";
 
 const PAGE_SIZE = 30;
+const ALL_MODES: PickerMode[] = ["day", "week", "month", "year", "custom"];
 
 export default function MobileTransactions() {
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
   const { data: loans = [] } = useLoans();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [q, setQ] = useSessionState("transactions.q", "");
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [creating, setCreating] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
-  const accountId = searchParams.get("account") ?? undefined;
-  const categoryId = searchParams.get("category") ?? undefined;
-  const mode = searchParams.get("mode") as PickerMode | null;
-  const dateParam = searchParams.get("date");
-  const period = useMemo(
-    () => (mode && dateParam ? periodFor(mode, parseISO(dateParam), dateParam) : null),
-    [mode, dateParam],
+  const [accountId, setAccountId] = useSessionState(
+    "transactions.account",
+    "",
+    searchParams.get("account") ?? undefined,
   );
+  const [categoryId, setCategoryId] = useSessionState<number | null>(
+    "transactions.category",
+    null,
+    searchParams.get("category") ? Number(searchParams.get("category")) : undefined,
+  );
+  const [kind, setKind] = useSessionState("transactions.kind", "");
+  const [amountOp, setAmountOp] = useSessionState<"" | "eq" | "gt" | "lt">("transactions.amountOp", "");
+  const [amountValue, setAmountValue] = useSessionState("transactions.amountValue", "");
+  const [pickerMode, setPickerMode] = useSessionState<PickerMode>(
+    "transactions.periodMode",
+    "month",
+    (searchParams.get("mode") as PickerMode) ?? undefined,
+  );
+  const [pickerDate, setPickerDate] = useSessionState(
+    "transactions.periodDate",
+    toISO(new Date()),
+    searchParams.get("date") ?? undefined,
+  );
+
+  const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate), pickerDate), [pickerMode, pickerDate]);
+  const isCurrentMonth = pickerMode === "month" && pickerDate.slice(0, 7) === toISO(new Date()).slice(0, 7);
 
   const { data } = useTransactions({
     q,
     account_id: accountId,
-    category_id: categoryId,
-    date_from: period?.from,
-    date_to: period?.to,
+    category_id: categoryId && categoryId !== UNCATEGORIZED_ID ? categoryId : undefined,
+    uncategorized: categoryId === UNCATEGORIZED_ID ? "true" : undefined,
+    kind,
+    amount_op: amountOp || undefined,
+    amount_value: amountOp && amountValue !== "" ? Number(amountValue) : undefined,
+    date_from: period.from,
+    date_to: period.to,
     limit: PAGE_SIZE,
     offset: 0,
   });
 
-  const filterAccount = accountId ? accounts.find((a) => String(a.id) === accountId) : null;
-  const filterCategory = categoryId ? categories.find((c) => String(c.id) === categoryId) : null;
-  const hasUrlFilter = Boolean(filterAccount || filterCategory || period);
+  const hasActiveFilter = Boolean(accountId || categoryId || kind || (amountOp && amountValue !== ""));
 
-  function clearUrlFilters() {
-    setSearchParams({});
+  function clearFilters() {
+    setAccountId("");
+    setCategoryId(null);
+    setKind("");
+    setAmountOp("");
+    setAmountValue("");
   }
 
   const categoryById = new Map(categories.map((c) => [c.id, c]));
@@ -68,6 +96,48 @@ export default function MobileTransactions() {
           <Plus size={14} /> Add
         </button>
       </div>
+
+      <div className="flex items-center gap-1">
+        <button
+          className="rounded-full bg-white/5 p-2 text-gray-400 active:bg-white/10 disabled:opacity-30"
+          disabled={pickerMode === "custom"}
+          onClick={() => setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, -1)))}
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <div className="flex-1">
+          <PeriodPicker
+            mode={pickerMode}
+            date={pickerDate}
+            modes={ALL_MODES}
+            triggerClassName="w-full"
+            onChange={(m, d) => {
+              setPickerMode(m);
+              setPickerDate(d);
+            }}
+          />
+        </div>
+        <button
+          className="rounded-full bg-white/5 p-2 text-gray-400 active:bg-white/10 disabled:opacity-30"
+          disabled={pickerMode === "custom"}
+          onClick={() => setPickerDate(toISO(shiftAnchor(parseISO(pickerDate), pickerMode, 1)))}
+        >
+          <ChevronRight size={16} />
+        </button>
+        {!isCurrentMonth && (
+          <button
+            className="rounded-full bg-white/5 p-2 text-gray-400 active:bg-white/10"
+            title="Back to current month"
+            onClick={() => {
+              setPickerMode("month");
+              setPickerDate(toISO(new Date()));
+            }}
+          >
+            <RotateCcw size={14} />
+          </button>
+        )}
+      </div>
+
       <div className="relative">
         <Search size={15} className="absolute top-3 left-3 text-gray-500" />
         <input
@@ -78,19 +148,90 @@ export default function MobileTransactions() {
         />
       </div>
 
-      {hasUrlFilter && (
-        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
-          Filtering by
-          {filterAccount && (
-            <span className="rounded-full bg-white/5 px-2 py-1">{filterAccount.name}</span>
+      <button
+        onClick={() => setShowFilters((v) => !v)}
+        className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-gray-300"
+      >
+        Filters{hasActiveFilter ? " (active)" : ""}
+        <span className="text-xs text-gray-500">{showFilters ? "Hide" : "Show"}</span>
+      </button>
+
+      {showFilters && (
+        <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/5 p-3">
+          <select
+            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-gray-100 outline-none"
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
+          >
+            <option value="">All accounts</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+          <CategorySelect
+            categories={categories}
+            value={categoryId}
+            onChange={setCategoryId}
+            emptyLabel="All categories"
+            uncategorizedOption
+            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-gray-100 outline-none"
+          />
+          <select
+            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-gray-100 outline-none"
+            value={kind}
+            onChange={(e) => setKind(e.target.value)}
+          >
+            <option value="">All kinds</option>
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+            <option value="transfer">Transfer</option>
+          </select>
+          <div className="flex items-center gap-2">
+            <select
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-gray-100 outline-none"
+              value={amountOp}
+              onChange={(e) => setAmountOp(e.target.value as "" | "eq" | "gt" | "lt")}
+            >
+              <option value="">Amount</option>
+              <option value="eq">=</option>
+              <option value="gt">&gt;</option>
+              <option value="lt">&lt;</option>
+            </select>
+            {amountOp && (
+              <input
+                type="number"
+                step="0.01"
+                className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-gray-100 outline-none"
+                placeholder="0.00"
+                value={amountValue}
+                onChange={(e) => setAmountValue(e.target.value)}
+              />
+            )}
+          </div>
+          {hasActiveFilter && (
+            <button onClick={clearFilters} className="flex items-center justify-center gap-1.5 py-1 text-xs text-gray-400">
+              <X size={12} /> Clear filters
+            </button>
           )}
-          {filterCategory && (
-            <span className="rounded-full bg-white/5 px-2 py-1">{filterCategory.name}</span>
-          )}
-          {period && <span className="rounded-full bg-white/5 px-2 py-1">period</span>}
-          <button onClick={clearUrlFilters} className="rounded-full p-1 hover:bg-white/10">
-            <X size={12} />
-          </button>
+        </div>
+      )}
+
+      {hasActiveFilter && data && (
+        <div
+          className={`flex items-center justify-between rounded-2xl border-l-4 bg-white/5 p-3 ${
+            data.sum_base >= 0 ? "border-l-emerald-400" : "border-l-rose-400"
+          }`}
+        >
+          <span className="text-xs text-gray-400">Net · {data.total} matching</span>
+          <span
+            className={`text-base font-semibold tabular-nums ${
+              data.sum_base >= 0 ? "text-emerald-300" : "text-rose-300"
+            }`}
+          >
+            {fmtMoney(data.sum_base)}
+          </span>
         </div>
       )}
 
