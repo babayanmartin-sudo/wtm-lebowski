@@ -462,6 +462,26 @@ def test_dashboard_summary_shape(seeded):
     assert d["net_worth"] > 0
 
 
+def test_dashboard_by_category_nets_expense_return_income(seeded):
+    """An income transaction categorized under an expense category (e.g. a
+    refund marked as an expense return during import) should reduce that
+    category's spending total, not be ignored or double-counted."""
+    c = seeded["client"]
+    c.post(
+        "/api/transactions",
+        json=_tx(seeded, date="2026-06-16", amount=99, kind="expense",
+                 splits=[{"category_id": seeded["food"]["id"], "amount": 99, "note": ""}]),
+    )
+    c.post(
+        "/api/transactions",
+        json=_tx(seeded, date="2026-06-16", amount=89, kind="income",
+                 splits=[{"category_id": seeded["food"]["id"], "amount": 89, "note": ""}]),
+    )
+    d = c.get("/api/dashboard/summary?date_from=2026-06-01&date_to=2026-06-30").json()
+    food = next(row for row in d["by_category"] if row["name"] == "Food")
+    assert food["amount"] == 10.0
+
+
 def test_dashboard_series_hides_future_months(seeded):
     c = seeded["client"]
     d = c.get("/api/dashboard/summary?date_from=2026-01-01&date_to=2026-12-31").json()

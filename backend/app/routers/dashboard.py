@@ -168,17 +168,33 @@ def _by_category(
 ) -> list[dict]:
     """Expense breakdown for the period. With no category filter, children
     roll up into their top-level parent. With a category filter, breaks the
-    chosen category down into its own children (or itself if it has none)."""
+    chosen category down into its own children (or itself if it has none).
+
+    Income splits under an expense-kind category are expense returns
+    (refunds) — they net against that category's spending instead of
+    being ignored or counted as separate income."""
+    categories = {c.id: c for c in db.scalars(select(Category))}
+    expense_cat_ids = [cid for cid, c in categories.items() if c.kind == "expense"]
+
     stmt = (
-        select(Split.category_id, func.sum(Split.amount_base))
+        select(Split.category_id, Transaction.kind, func.sum(Split.amount_base))
         .join(Transaction, Transaction.id == Split.transaction_id)
-        .where(Transaction.kind == "expense", Transaction.date >= start, Transaction.date <= end)
+        .where(
+            Transaction.date >= start,
+            Transaction.date <= end,
+            or_(
+                Transaction.kind == "expense",
+                (Transaction.kind == "income") & Split.category_id.in_(expense_cat_ids),
+            ),
+        )
     )
     if account_id:
         stmt = stmt.where(Transaction.account_id == account_id)
-    rows = db.execute(stmt.group_by(Split.category_id)).all()
-    categories = {c.id: c for c in db.scalars(select(Category))}
-    amounts = {cid: (amt or 0.0) for cid, amt in rows}
+    rows = db.execute(stmt.group_by(Split.category_id, Transaction.kind)).all()
+    amounts: dict[int | None, float] = {}
+    for cid, kind, amt in rows:
+        signed = (amt or 0.0) if kind == "expense" else -(amt or 0.0)
+        amounts[cid] = amounts.get(cid, 0.0) + signed
 
     if category_id:
         children = [c.id for c in categories.values() if c.parent_id == category_id]
