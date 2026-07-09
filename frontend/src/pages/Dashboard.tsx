@@ -54,6 +54,12 @@ export default function DashboardPage() {
   const donut = (data?.by_category ?? []).slice(0, 8);
   const donutIncome = (data?.by_category_income ?? []).slice(0, 8);
   const granularityData = data?.series_granularity ?? "day";
+  const transactionsLink = useMemo(() => {
+    const params = new URLSearchParams({ mode: pickerMode, date: pickerDate });
+    if (accountId) params.set("account", String(accountId));
+    if (categoryId) params.set("category", String(categoryId));
+    return `/transactions?${params.toString()}`;
+  }, [pickerMode, pickerDate, accountId, categoryId]);
 
   function goToMonth() {
     setPickerMode("month");
@@ -329,7 +335,7 @@ export default function DashboardPage() {
 
         <div className="glass p-5">
           <Link
-            to="/transactions"
+            to={transactionsLink}
             className="mb-3 flex items-center justify-between text-sm font-semibold text-gray-300 transition-colors hover:text-lime-300"
           >
             Recent transactions

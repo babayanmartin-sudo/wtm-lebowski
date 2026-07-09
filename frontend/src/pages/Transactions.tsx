@@ -30,11 +30,23 @@ export default function TransactionsPage() {
     null,
     searchParams.get("loan") ?? undefined,
   );
-  const [categoryId, setCategoryId] = useSessionState<number | null>("transactions.category", null);
+  const [categoryId, setCategoryId] = useSessionState<number | null>(
+    "transactions.category",
+    null,
+    searchParams.get("category") ? Number(searchParams.get("category")) : undefined,
+  );
   const [kind, setKind] = useSessionState("transactions.kind", "");
   const [q, setQ] = useSessionState("transactions.q", "");
-  const [pickerMode, setPickerMode] = useSessionState<PickerMode>("transactions.periodMode", "month");
-  const [pickerDate, setPickerDate] = useSessionState("transactions.periodDate", toISO(new Date()));
+  const [pickerMode, setPickerMode] = useSessionState<PickerMode>(
+    "transactions.periodMode",
+    "month",
+    (searchParams.get("mode") as PickerMode) ?? undefined,
+  );
+  const [pickerDate, setPickerDate] = useSessionState(
+    "transactions.periodDate",
+    toISO(new Date()),
+    searchParams.get("date") ?? undefined,
+  );
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [creating, setCreating] = useState(false);
