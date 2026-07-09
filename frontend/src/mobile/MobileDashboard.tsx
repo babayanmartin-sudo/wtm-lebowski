@@ -91,19 +91,21 @@ export default function MobileDashboard() {
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold text-gray-200">Accounts</h2>
+        <button
+          onClick={() => navigate("/accounts")}
+          className="mb-3 flex w-full items-center justify-between text-sm font-semibold text-gray-200 active:text-lime-300"
+        >
+          Accounts
+          <ChevronRight size={15} className="text-gray-500" />
+        </button>
         <div className="flex flex-col gap-1 rounded-2xl bg-white/5 p-2">
           {activeAccounts.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => navigate(`/transactions?account=${a.id}`)}
-              className="flex w-full items-center gap-2 rounded-xl px-2 py-2.5 text-left active:bg-white/5"
-            >
+            <div key={a.id} className="flex items-center gap-2 rounded-xl px-2 py-2.5">
               <span className="min-w-0 flex-1 truncate text-sm text-gray-100">{a.name}</span>
               <span className="shrink-0 text-sm font-medium tabular-nums text-gray-300">
                 {fmtMoney(a.balance, a.currency)}
               </span>
-            </button>
+            </div>
           ))}
           {activeAccounts.length === 0 && (
             <p className="py-6 text-center text-sm text-gray-500">No accounts yet.</p>
