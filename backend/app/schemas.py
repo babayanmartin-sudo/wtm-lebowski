@@ -266,6 +266,7 @@ class RateOut(ORMModel):
     date: date
     currency: str
     rate_to_base: float
+    previous_rate_to_base: float | None = None
 
 
 # ---- imports ----

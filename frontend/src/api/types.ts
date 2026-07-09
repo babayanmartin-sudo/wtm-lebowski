@@ -225,4 +225,5 @@ export interface ExchangeRate {
   date: string;
   currency: string;
   rate_to_base: number;
+  previous_rate_to_base: number | null;
 }

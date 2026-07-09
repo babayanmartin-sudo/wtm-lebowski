@@ -85,6 +85,14 @@ export function useRates() {
   return useQuery({ queryKey: ["rates"], queryFn: () => api.get<ExchangeRate[]>("/api/rates") });
 }
 
+export function useBaseCurrency() {
+  return useQuery({
+    queryKey: ["rates", "base"],
+    queryFn: () => api.get<{ base: string }>("/api/rates/base"),
+    staleTime: Infinity,
+  });
+}
+
 export function useVersion() {
   return useQuery({
     queryKey: ["version"],

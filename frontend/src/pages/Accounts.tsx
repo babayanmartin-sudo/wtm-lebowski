@@ -22,6 +22,7 @@ import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useInvalidating } from "../api/hooks";
 import type { Account, Transaction } from "../api/types";
 import { ColorPicker, Field, Modal, PageHeader } from "../components/ui";
+import RateTicker from "../components/RateTicker";
 import { fmtMoney } from "../lib/format";
 import { ACCOUNT_ICON_KEYS, getAccountIcon } from "../lib/icons";
 
@@ -198,6 +199,7 @@ export default function AccountsPage() {
       {pageError && (
         <div className="glass mb-4 border-rose-400/30 p-3 text-sm text-rose-300">{pageError}</div>
       )}
+      <RateTicker />
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext
           items={active.map((a) => a.id)}

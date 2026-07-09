@@ -19,12 +19,30 @@ def latest_rates(db: Session = Depends(get_db)):
         .group_by(ExchangeRate.currency)
         .subquery()
     )
-    return db.scalars(
+    rows = db.scalars(
         select(ExchangeRate).join(
             latest,
             (ExchangeRate.currency == latest.c.currency) & (ExchangeRate.date == latest.c.d),
         )
     ).all()
+
+    out = []
+    for row in rows:
+        prev = db.scalar(
+            select(ExchangeRate.rate_to_base)
+            .where(ExchangeRate.currency == row.currency, ExchangeRate.date < row.date)
+            .order_by(ExchangeRate.date.desc())
+            .limit(1)
+        )
+        out.append(
+            RateOut(
+                date=row.date,
+                currency=row.currency,
+                rate_to_base=row.rate_to_base,
+                previous_rate_to_base=prev,
+            )
+        )
+    return out
 
 
 @router.get("/base")

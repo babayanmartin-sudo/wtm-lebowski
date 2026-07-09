@@ -106,3 +106,19 @@ body {
 .m-sheet {
   animation: mobileSlideUp 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
+
+/* ---- rate ticker ---- */
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.rate-ticker-track {
+  animation: ticker-scroll 24s linear infinite;
+}
+.rate-ticker-track:hover {
+  animation-play-state: paused;
+}
