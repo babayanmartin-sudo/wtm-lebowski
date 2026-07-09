@@ -8,7 +8,7 @@ import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, UNCATEGORIZED_ID } from "../components/ui";
 import TransactionModal from "../components/TransactionModal";
 import { fmtMoney } from "../lib/format";
-import { type PickerMode, parseISO, periodFor, shiftAnchor, toISO } from "../lib/period";
+import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
 import { useSessionState } from "../lib/session";
 
 const PAGE_SIZE = 30;
@@ -66,6 +66,7 @@ export default function MobileTransactions() {
   });
 
   const hasActiveFilter = Boolean(accountId || categoryId || kind || (amountOp && amountValue !== ""));
+  const hasFilterChips = hasActiveFilter || !isCurrentMonth;
 
   function clearFilters() {
     setAccountId("");
@@ -214,6 +215,52 @@ export default function MobileTransactions() {
             <button onClick={clearFilters} className="flex items-center justify-center gap-1.5 py-1 text-xs text-gray-400">
               <X size={12} /> Clear filters
             </button>
+          )}
+        </div>
+      )}
+
+      {hasFilterChips && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+          Filtering by
+          {!isCurrentMonth && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              {periodLabel(pickerMode, pickerMode === "custom" ? pickerDate : period.from)}
+              <button onClick={() => { setPickerMode("month"); setPickerDate(toISO(new Date())); }}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {accountId && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              {accounts.find((a) => String(a.id) === accountId)?.name ?? accountId}
+              <button onClick={() => setAccountId("")}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {categoryId && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              {categoryId === UNCATEGORIZED_ID ? "Uncategorized" : (categoryById.get(categoryId)?.name ?? categoryId)}
+              <button onClick={() => setCategoryId(null)}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {kind && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              {kind}
+              <button onClick={() => setKind("")}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {amountOp && amountValue !== "" && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              amount {{ eq: "=", gt: ">", lt: "<" }[amountOp]} {amountValue}
+              <button onClick={() => { setAmountOp(""); setAmountValue(""); }}>
+                <X size={12} />
+              </button>
+            </span>
           )}
         </div>
       )}

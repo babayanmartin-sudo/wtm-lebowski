@@ -9,7 +9,7 @@ import TransactionModal from "../components/TransactionModal";
 import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ColorDot, EmptyState, PageHeader, UNCATEGORIZED_ID } from "../components/ui";
 import { fmtDate, fmtMoney } from "../lib/format";
-import { type PickerMode, parseISO, periodFor, shiftAnchor, toISO } from "../lib/period";
+import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
 import { useSessionState } from "../lib/session";
 
 const PAGE_SIZE = 50;
@@ -212,6 +212,9 @@ export default function TransactionsPage() {
   const total = data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const hasActiveFilter = Boolean(accountId || categoryId || kind || q || (amountOp && amountValue !== ""));
+  const hasFilterChips = Boolean(
+    accountId || categoryId || kind || (amountOp && amountValue !== "") || loanId || !isCurrentMonth,
+  );
   const allOnPageSelected = items.length > 0 && items.every((t) => selected.has(t.id));
 
   const kindsInSelection = new Set(selectedKinds.values());
@@ -428,15 +431,64 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {loanId && (
-        <div className="mb-4 flex items-center gap-2 text-xs text-gray-400">
-          Filtering by loan
-          <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
-            {filteredLoan?.name ?? `#${loanId}`}
-            <button onClick={() => { setLoanId(null); setPage(0); }}>
-              <X size={12} />
-            </button>
-          </span>
+      {hasFilterChips && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-gray-400">
+          Filtering by
+          {!isCurrentMonth && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              {periodLabel(pickerMode, pickerMode === "custom" ? pickerDate : period.from)}
+              <button onClick={() => { resetPeriod(); setPage(0); }}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {accountId && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              {accountById.get(Number(accountId))?.name ?? accountId}
+              <button onClick={() => { setAccountId(""); setPage(0); }}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {categoryId && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              {categoryId === UNCATEGORIZED_ID ? (
+                "Uncategorized"
+              ) : (
+                <>
+                  <ColorDot color={categoryById.get(categoryId)?.color ?? "#64748b"} />
+                  {categoryById.get(categoryId)?.name ?? categoryId}
+                </>
+              )}
+              <button onClick={() => { setCategoryId(null); setPage(0); }}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {kind && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              {kind}
+              <button onClick={() => { setKind(""); setPage(0); }}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {amountOp && amountValue !== "" && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              amount {{ eq: "=", gt: ">", lt: "<" }[amountOp]} {amountValue}
+              <button onClick={() => { setAmountOp(""); setAmountValue(""); setPage(0); }}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {loanId && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              {filteredLoan?.name ?? `#${loanId}`}
+              <button onClick={() => { setLoanId(null); setPage(0); }}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
         </div>
       )}
 

@@ -23,6 +23,7 @@ import {
   granularityToMode,
   parseISO,
   periodFor,
+  periodLabel,
   shiftAnchor,
   toISO,
 } from "../lib/period";
@@ -162,9 +163,17 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {hasFilter && (
-        <div className="flex items-center gap-2 text-xs text-gray-400">
+      {(hasFilter || zoomed) && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
           Filtering by
+          {zoomed && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              {periodLabel(pickerMode, pickerMode === "custom" ? pickerDate : period.from)}
+              <button onClick={goToMonth}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
           {filterAccount && (
             <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
               {filterAccount.name}
