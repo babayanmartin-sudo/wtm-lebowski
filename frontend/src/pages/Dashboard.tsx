@@ -7,7 +7,7 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
@@ -61,14 +61,28 @@ export default function DashboardPage() {
     return `/transactions?${params.toString()}`;
   }, [pickerMode, pickerDate, accountId, categoryId]);
 
+  const [periodHistory, setPeriodHistory] = useState<{ mode: PickerMode; date: string }[]>([]);
+
   function goToMonth() {
     setPickerMode("month");
     setPickerDate(toISO(new Date()));
+    setPeriodHistory([]);
   }
 
   function drillInto(label: string) {
+    setPeriodHistory((h) => [...h, { mode: pickerMode, date: pickerDate }]);
     setPickerMode(granularityToMode(granularityData));
     setPickerDate(label);
+  }
+
+  function drillBack() {
+    setPeriodHistory((h) => {
+      if (h.length === 0) return h;
+      const prev = h[h.length - 1];
+      setPickerMode(prev.mode);
+      setPickerDate(prev.date);
+      return h.slice(0, -1);
+    });
   }
 
   function resetView() {
@@ -106,7 +120,16 @@ export default function DashboardPage() {
             >
               <ChevronLeft size={16} />
             </button>
-            <PeriodPicker mode={pickerMode} date={pickerDate} modes={ALL_MODES} onChange={(m, d) => { setPickerMode(m); setPickerDate(d); }} />
+            <PeriodPicker
+              mode={pickerMode}
+              date={pickerDate}
+              modes={ALL_MODES}
+              onChange={(m, d) => {
+                setPickerMode(m);
+                setPickerDate(d);
+                setPeriodHistory([]);
+              }}
+            />
             <button
               className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 disabled:opacity-30"
               disabled={pickerMode === "custom"}
@@ -192,13 +215,20 @@ export default function DashboardPage() {
       <div className="glass p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-300">Income vs spending</h2>
-          {zoomed ? (
-            <button className="btn-ghost px-2.5 py-1 text-xs" onClick={goToMonth}>
-              <RotateCcw size={12} /> Reset
-            </button>
-          ) : (
-            <span className="text-xs text-gray-500">Click a bar to zoom in</span>
-          )}
+          <div className="flex items-center gap-2">
+            {periodHistory.length > 0 && (
+              <button className="btn-ghost px-2.5 py-1 text-xs" onClick={drillBack}>
+                <ChevronLeft size={12} /> Back
+              </button>
+            )}
+            {zoomed ? (
+              <button className="btn-ghost px-2.5 py-1 text-xs" onClick={goToMonth}>
+                <RotateCcw size={12} /> Reset
+              </button>
+            ) : (
+              <span className="text-xs text-gray-500">Click a bar to zoom in</span>
+            )}
+          </div>
         </div>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart
@@ -387,6 +417,11 @@ function CategoryPie({
   onToggle: (id: number | null) => void;
   baseCurrency: string | undefined;
 }) {
+  // a categoryId belonging to the other pie's kind shouldn't dim this one
+  const activeCategoryId = categoryId != null && items.some((i) => i.category_id === categoryId)
+    ? categoryId
+    : null;
+
   return (
     <div>
       <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">{title}</h3>
@@ -411,7 +446,7 @@ function CategoryPie({
                   <Cell
                     key={entry.name}
                     fill={entry.color}
-                    opacity={categoryId && entry.category_id !== categoryId ? 0.35 : 1}
+                    opacity={activeCategoryId && entry.category_id !== activeCategoryId ? 0.35 : 1}
                   />
                 ))}
               </Pie>
@@ -437,7 +472,7 @@ function CategoryPie({
                 key={c.name}
                 onClick={() => onToggle(c.category_id)}
                 className={`flex items-center gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-white/5 ${
-                  categoryId && c.category_id !== categoryId ? "opacity-40" : ""
+                  activeCategoryId && c.category_id !== activeCategoryId ? "opacity-40" : ""
                 }`}
               >
                 <ColorDot color={c.color} />
