@@ -191,7 +191,7 @@ export default function MobileAccounts() {
                 className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm outline-none"
                 placeholder="Initial balance"
                 value={draft.initial_balance}
-                onChange={(e) => setDraft({ ...draft, initial_balance: e.target.value })}
+                onChange={(e) => setDraft({ ...draft, initial_balance: e.target.value.replace(/,/g, ".") })}
               />
               <div className="flex flex-wrap gap-2">
                 {PALETTE.map((c) => (

@@ -292,14 +292,11 @@ export default function AccountsPage() {
             <Field label="Initial balance">
               <input
                 type="text"
+                inputMode="decimal"
                 className="input"
                 placeholder="0.00"
                 value={draft.initial_balance}
-                onChange={(e) => setDraft({ ...draft, initial_balance: e.target.value })}
-                onBlur={(e) => {
-                  const val = e.target.value.trim();
-                  setDraft({ ...draft, initial_balance: val === "" ? 0 : Number(val) || draft.initial_balance });
-                }}
+                onChange={(e) => setDraft({ ...draft, initial_balance: e.target.value.replace(/,/g, ".") })}
               />
             </Field>
             <Field label="Color">
