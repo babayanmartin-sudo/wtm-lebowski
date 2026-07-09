@@ -37,6 +37,8 @@ export default function TransactionsPage() {
   );
   const [kind, setKind] = useSessionState("transactions.kind", "");
   const [q, setQ] = useSessionState("transactions.q", "");
+  const [amountOp, setAmountOp] = useSessionState<"" | "eq" | "gt" | "lt">("transactions.amountOp", "");
+  const [amountValue, setAmountValue] = useSessionState("transactions.amountValue", "");
   const [pickerMode, setPickerMode] = useSessionState<PickerMode>(
     "transactions.periodMode",
     "month",
@@ -74,6 +76,8 @@ export default function TransactionsPage() {
     date_to: period.to,
     kind,
     q,
+    amount_op: amountOp || undefined,
+    amount_value: amountOp && amountValue !== "" ? Number(amountValue) : undefined,
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
   });
@@ -207,6 +211,7 @@ export default function TransactionsPage() {
 
   const total = data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hasActiveFilter = Boolean(accountId || categoryId || kind || q || (amountOp && amountValue !== ""));
   const allOnPageSelected = items.length > 0 && items.every((t) => selected.has(t.id));
 
   const kindsInSelection = new Set(selectedKinds.values());
@@ -223,7 +228,11 @@ export default function TransactionsPage() {
     <div>
       <PageHeader
         title="Transactions"
-        subtitle={`${total} records`}
+        subtitle={
+          hasActiveFilter && data
+            ? `${total} records · net ${fmtMoney(data.sum_base)}`
+            : `${total} records`
+        }
         actions={
           <>
             <div className="flex items-center gap-1">
@@ -392,6 +401,34 @@ export default function TransactionsPage() {
             <option value="income">Income</option>
             <option value="transfer">Transfer</option>
           </select>
+          <div className="flex items-center gap-1">
+            <select
+              className="input w-20"
+              value={amountOp}
+              onChange={(e) => {
+                setAmountOp(e.target.value as "" | "eq" | "gt" | "lt");
+                setPage(0);
+              }}
+            >
+              <option value="">Amount</option>
+              <option value="eq">=</option>
+              <option value="gt">&gt;</option>
+              <option value="lt">&lt;</option>
+            </select>
+            {amountOp && (
+              <input
+                type="number"
+                step="0.01"
+                className="input w-28"
+                placeholder="0.00"
+                value={amountValue}
+                onChange={(e) => {
+                  setAmountValue(e.target.value);
+                  setPage(0);
+                }}
+              />
+            )}
+          </div>
         </div>
       )}
 

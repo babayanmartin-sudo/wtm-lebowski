@@ -127,6 +127,7 @@ class TransactionOut(ORMModel):
 class TransactionPage(BaseModel):
     items: list[TransactionOut]
     total: int
+    sum_base: float = 0.0
 
 
 class BulkTransactionIn(BaseModel):

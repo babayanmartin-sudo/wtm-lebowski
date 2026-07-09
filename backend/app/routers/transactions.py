@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from ..auth import require_auth
@@ -25,9 +25,14 @@ def list_transactions(
     date_from: str | None = None,
     date_to: str | None = None,
     q: str | None = None,
+    amount_op: str | None = None,
+    amount_value: float | None = None,
     limit: int = Query(default=50, le=200),
     offset: int = 0,
 ):
+    if amount_op and amount_op not in ("eq", "gt", "lt"):
+        raise HTTPException(400, "amount_op must be 'eq', 'gt', or 'lt'")
+
     stmt = select(Transaction)
     if account_id:
         stmt = stmt.where(
@@ -57,15 +62,29 @@ def list_transactions(
     if q:
         like = f"%{q}%"
         stmt = stmt.where(or_(Transaction.payee.ilike(like), Transaction.note.ilike(like)))
+    if amount_op and amount_value is not None:
+        if amount_op == "eq":
+            stmt = stmt.where(Transaction.amount_base == amount_value)
+        elif amount_op == "gt":
+            stmt = stmt.where(Transaction.amount_base > amount_value)
+        else:
+            stmt = stmt.where(Transaction.amount_base < amount_value)
 
-    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    sub = stmt.subquery()
+    total = db.scalar(select(func.count()).select_from(sub)) or 0
+    sum_base = db.scalar(
+        select(
+            func.sum(case((sub.c.kind == "income", sub.c.amount_base), else_=0.0))
+            - func.sum(case((sub.c.kind == "expense", sub.c.amount_base), else_=0.0))
+        ).select_from(sub)
+    ) or 0.0
     items = db.scalars(
         stmt.options(selectinload(Transaction.splits))
         .order_by(Transaction.date.desc(), Transaction.id.desc())
         .limit(limit)
         .offset(offset)
     ).all()
-    return TransactionPage(items=items, total=total)
+    return TransactionPage(items=items, total=total, sum_base=round(sum_base, 2))
 
 
 @router.post("", response_model=TransactionOut, status_code=201)

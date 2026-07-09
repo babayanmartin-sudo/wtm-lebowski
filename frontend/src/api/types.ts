@@ -59,6 +59,7 @@ export interface Transaction {
 export interface TransactionPage {
   items: Transaction[];
   total: number;
+  sum_base: number;
 }
 
 export interface Template {

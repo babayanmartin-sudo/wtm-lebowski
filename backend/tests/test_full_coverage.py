@@ -235,6 +235,40 @@ def test_transaction_crud_filters_pagination(seeded):
     assert r.status_code == 400
 
 
+def test_transaction_amount_filter(seeded):
+    c = seeded["client"]
+    for amount in (10.0, 20.0, 30.0):
+        c.post(
+            "/api/transactions",
+            json=_tx(seeded, amount=amount,
+                     splits=[{"category_id": seeded["food"]["id"], "amount": amount, "note": ""}]),
+        )
+    assert c.get("/api/transactions?amount_op=eq&amount_value=20").json()["total"] == 1
+    assert c.get("/api/transactions?amount_op=gt&amount_value=15").json()["total"] == 2
+    assert c.get("/api/transactions?amount_op=lt&amount_value=25").json()["total"] == 2
+    assert c.get("/api/transactions?amount_op=bogus&amount_value=20").status_code == 400
+
+
+def test_transaction_sum_base_nets_by_kind_excludes_transfers(seeded):
+    c = seeded["client"]
+    c.post(
+        "/api/transactions",
+        json=_tx(seeded, kind="expense", amount=40.0,
+                 splits=[{"category_id": seeded["food"]["id"], "amount": 40.0, "note": ""}]),
+    )
+    c.post(
+        "/api/transactions",
+        json=_tx(seeded, kind="income", amount=100.0,
+                 splits=[{"category_id": seeded["salary"]["id"], "amount": 100.0, "note": ""}]),
+    )
+    c.post(
+        "/api/transactions",
+        json=_tx(seeded, kind="transfer", transfer_account_id=seeded["usd"]["id"], splits=[], amount=500.0),
+    )
+    d = c.get("/api/transactions").json()
+    assert d["sum_base"] == 60.0  # 100 income - 40 expense, transfer excluded
+
+
 def test_uncategorized_filter(seeded):
     c = seeded["client"]
     categorized = c.post(
