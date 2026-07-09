@@ -1,8 +1,17 @@
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import {
+  Area,
+  AreaChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { api } from "../api/client";
-import { useBudgets, useBudgetStatus, useCategories, useInvalidating } from "../api/hooks";
+import { useBudgets, useBudgetStatus, useCategories, useInvalidating, useProjection } from "../api/hooks";
 import type { BudgetPeriod } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ColorDot, EmptyState, Field, Modal, PageHeader, ProgressBar } from "../components/ui";
@@ -25,6 +34,8 @@ export default function BudgetsPage() {
   const { data: categories = [] } = useCategories();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
+  const [forecastMonths, setForecastMonths] = useSessionState("budgets.forecastMonths", 12);
+  const { data: forecast } = useProjection(forecastMonths);
 
   const keys = [["budgets"], ["dashboard"], ["projection"]];
   const save = useInvalidating(
@@ -104,6 +115,86 @@ export default function BudgetsPage() {
           <ProgressBar value={totalLimit > 0 ? totalSpent / totalLimit : 0} />
         </div>
       )}
+
+      <div className="glass mb-4 p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-300">
+            Net worth forecast
+            <span className="ml-2 text-xs font-normal text-gray-500">
+              from recurring transactions + budgets
+            </span>
+          </h2>
+          <div className="flex rounded-lg bg-white/5 p-1 text-xs">
+            {[6, 12, 24].map((m) => (
+              <button
+                key={m}
+                onClick={() => setForecastMonths(m)}
+                className={`rounded-md px-2.5 py-1 transition-colors ${
+                  forecastMonths === m ? "bg-lime-400 text-black" : "text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                {m}m
+              </button>
+            ))}
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={200}>
+          <AreaChart data={forecast?.points ?? []}>
+            <defs>
+              <linearGradient id="nwGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#c6f135" stopOpacity={0.5} />
+                <stop offset="100%" stopColor="#c6f135" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <XAxis
+              dataKey="month"
+              tickFormatter={fmtMonth}
+              stroke="#4b5563"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              stroke="#4b5563"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+              width={70}
+              domain={["auto", "auto"]}
+              tickFormatter={(v) => new Intl.NumberFormat("en-US", { notation: "compact" }).format(v)}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "#374151",
+                border: "1px solid rgba(255,255,255,0.3)",
+                borderRadius: 12,
+                fontSize: 12,
+                color: "#ffffff",
+                padding: 8,
+              }}
+              wrapperStyle={{ color: "#ffffff" }}
+              labelStyle={{ color: "#ffffff" }}
+              itemStyle={{ color: "#ffffff" }}
+              labelFormatter={fmtMonth}
+              formatter={(v) => [fmtMoney(Number(v), forecast?.base_currency), "Net worth"]}
+            />
+            {forecast && (
+              <ReferenceLine
+                y={forecast.current_net_worth}
+                stroke="#64748b"
+                strokeDasharray="4 4"
+                label={{
+                  value: "today",
+                  position: "insideTopRight",
+                  fill: "#64748b",
+                  fontSize: 10,
+                }}
+              />
+            )}
+            <Area type="monotone" dataKey="net_worth" stroke="#c6f135" strokeWidth={2} fill="url(#nwGradient)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
 
       {budgets.length === 0 ? (
         <EmptyState text="No budgets yet. Set a monthly or yearly limit for a category to start tracking." />

@@ -9,25 +9,12 @@ import {
 } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  Cell,
-  Pie,
-  PieChart,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-import { useAccounts, useBudgetStatus, useCategories, useDashboard, useProjection } from "../api/hooks";
+import { useAccounts, useBudgetStatus, useCategories, useDashboard } from "../api/hooks";
 import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ColorDot, ProgressBar } from "../components/ui";
-import { fmtMoney, fmtMonth } from "../lib/format";
+import { fmtMoney } from "../lib/format";
 import { useSessionState } from "../lib/session";
 import {
   type PickerMode,
@@ -47,7 +34,6 @@ export default function DashboardPage() {
   const [pickerDate, setPickerDate] = useSessionState("dashboard.date", toISO(new Date()));
   const [accountId, setAccountId] = useSessionState<number | null>("dashboard.account", null);
   const [categoryId, setCategoryId] = useSessionState<number | null>("dashboard.category", null);
-  const [forecastMonths, setForecastMonths] = useSessionState("dashboard.forecastMonths", 12);
 
   const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate), pickerDate), [pickerMode, pickerDate]);
 
@@ -61,7 +47,6 @@ export default function DashboardPage() {
   const { data: categories = [] } = useCategories();
   const budgetMonth = period.from.slice(0, 7);
   const { data: budgetStatus = [] } = useBudgetStatus(budgetMonth);
-  const { data: forecast } = useProjection(forecastMonths);
 
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const activeAccounts = useMemo(() => accounts.filter((a) => !a.archived), [accounts]);
@@ -175,24 +160,24 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard
+      <div className="glass flex flex-wrap items-center divide-x divide-white/10 p-4">
+        <StatInline
           label="Net worth"
           value={data ? fmtMoney(data.net_worth, data.base_currency) : "…"}
-          icon={<TrendingUp size={18} />}
-          tint="from-lime-500/25"
+          icon={<TrendingUp size={15} />}
+          color="text-lime-400"
         />
-        <StatCard
+        <StatInline
           label="Income"
           value={data ? fmtMoney(data.income, data.base_currency) : "…"}
-          icon={<ArrowUpRight size={18} />}
-          tint="from-emerald-500/25"
+          icon={<ArrowUpRight size={15} />}
+          color="text-emerald-400"
         />
-        <StatCard
+        <StatInline
           label="Spent"
           value={data ? fmtMoney(data.expense, data.base_currency) : "…"}
-          icon={<ArrowDownRight size={18} />}
-          tint="from-rose-500/25"
+          icon={<ArrowDownRight size={15} />}
+          color="text-rose-400"
         />
       </div>
 
@@ -321,92 +306,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="glass p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-300">
-            Net worth forecast
-            <span className="ml-2 text-xs font-normal text-gray-500">
-              from recurring transactions + budgets
-            </span>
-          </h2>
-          <div className="flex rounded-lg bg-white/5 p-1 text-xs">
-            {[6, 12, 24].map((m) => (
-              <button
-                key={m}
-                onClick={() => setForecastMonths(m)}
-                className={`rounded-md px-2.5 py-1 transition-colors ${
-                  forecastMonths === m ? "bg-lime-400 text-black" : "text-gray-400 hover:text-gray-200"
-                }`}
-              >
-                {m}m
-              </button>
-            ))}
-          </div>
-        </div>
-        <ResponsiveContainer width="100%" height={200}>
-          <AreaChart data={forecast?.points ?? []}>
-            <defs>
-              <linearGradient id="nwGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#c6f135" stopOpacity={0.5} />
-                <stop offset="100%" stopColor="#c6f135" stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <XAxis
-              dataKey="month"
-              tickFormatter={fmtMonth}
-              stroke="#4b5563"
-              fontSize={11}
-              tickLine={false}
-              axisLine={false}
-            />
-            <YAxis
-              stroke="#4b5563"
-              fontSize={11}
-              tickLine={false}
-              axisLine={false}
-              width={70}
-              domain={["auto", "auto"]}
-              tickFormatter={(v) => new Intl.NumberFormat("en-US", { notation: "compact" }).format(v)}
-            />
-            <Tooltip
-              contentStyle={{
-                background: "#374151",
-                border: "1px solid rgba(255,255,255,0.3)",
-                borderRadius: 12,
-                fontSize: 12,
-                color: "#ffffff",
-                padding: 8,
-              }}
-              wrapperStyle={{ color: "#ffffff" }}
-              labelStyle={{ color: "#ffffff" }}
-              itemStyle={{ color: "#ffffff" }}
-              labelFormatter={fmtMonth}
-              formatter={(v) => [fmtMoney(Number(v), forecast?.base_currency), "Net worth"]}
-            />
-            {forecast && (
-              <ReferenceLine
-                y={forecast.current_net_worth}
-                stroke="#64748b"
-                strokeDasharray="4 4"
-                label={{
-                  value: "today",
-                  position: "insideTopRight",
-                  fill: "#64748b",
-                  fontSize: 10,
-                }}
-              />
-            )}
-            <Area
-              type="monotone"
-              dataKey="net_worth"
-              stroke="#c6f135"
-              strokeWidth={2}
-              fill="url(#nwGradient)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="glass p-5">
           <Link
@@ -505,24 +404,22 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({
+function StatInline({
   label,
   value,
   icon,
-  tint,
+  color,
 }: {
   label: string;
   value: string;
   icon: React.ReactNode;
-  tint: string;
+  color: string;
 }) {
   return (
-    <div className={`glass glass-hover bg-gradient-to-br ${tint} to-transparent p-5`}>
-      <div className="mb-3 flex items-center justify-between text-gray-400">
-        <span className="text-xs font-medium uppercase tracking-wider">{label}</span>
-        {icon}
-      </div>
-      <p className="text-2xl font-semibold tabular-nums">{value}</p>
+    <div className="flex items-center gap-2 px-4 first:pl-0 last:pr-0">
+      <span className={color}>{icon}</span>
+      <span className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</span>
+      <span className="text-sm font-semibold tabular-nums">{value}</span>
     </div>
   );
 }
