@@ -480,29 +480,25 @@ function AccountItemBody({
         style={dragStyle}
         onClick={onOpen}
         title="View transactions for this account"
-        className={`glass glass-hover flex cursor-pointer flex-col gap-1.5 p-3 ${acc.archived ? "opacity-50" : ""}`}
+        className={`glass glass-hover flex cursor-pointer items-center gap-3 p-3 ${acc.archived ? "opacity-50" : ""}`}
       >
-        <div className="flex min-w-0 items-center gap-3">
-          <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white"
-            style={{ background: acc.color }}
-          >
-            <Icon size={16} />
-          </div>
+        <div
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white"
+          style={{ background: acc.color }}
+        >
+          <Icon size={16} />
+        </div>
+        <div className="min-w-0 flex-1">
           <p className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
             <span className="truncate">{acc.name}</span>
             <span className="flex shrink-0 items-center gap-1.5">{badges}</span>
           </p>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 pl-12">
           <p className="text-xs uppercase tracking-wide text-gray-500">
             {acc.type} · {acc.currency}
           </p>
-          <div className="flex items-center gap-4">
-            <p className="text-sm font-semibold tabular-nums">{fmtMoney(acc.balance, acc.currency)}</p>
-            {actions}
-          </div>
         </div>
+        <p className="shrink-0 text-sm font-semibold tabular-nums">{fmtMoney(acc.balance, acc.currency)}</p>
+        {actions}
       </div>
     );
   }
