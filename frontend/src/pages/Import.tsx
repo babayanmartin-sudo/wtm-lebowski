@@ -278,11 +278,6 @@ export default function ImportPage() {
               />
               Uncategorized only
             </label>
-            {uncategorizedOnly && (
-              <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setUncategorizedOnly(false)}>
-                <RotateCcw size={12} /> Reset
-              </button>
-            )}
             <button
               className="btn-ghost"
               onClick={() => {

@@ -6,6 +6,18 @@ export class ApiError extends Error {
   }
 }
 
+/** FastAPI/Pydantic validation errors come back as `detail: [{msg, loc, ...}]`,
+ * not a plain string — pull out the human-readable message instead of
+ * dumping the raw JSON array to the user. */
+function extractErrorMessage(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    const msg = detail[0]?.msg;
+    if (typeof msg === "string") return msg.replace(/^Value error, /, "");
+  }
+  return JSON.stringify(detail);
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     headers: init?.body instanceof FormData ? undefined : { "Content-Type": "application/json" },
@@ -19,14 +31,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(401, "Not authenticated");
   }
   if (!res.ok) {
-    let detail = res.statusText;
+    let detail: unknown = res.statusText;
     try {
       const body = await res.json();
       detail = body.detail ?? detail;
     } catch {
       /* not json */
     }
-    throw new ApiError(res.status, typeof detail === "string" ? detail : JSON.stringify(detail));
+    throw new ApiError(res.status, extractErrorMessage(detail));
   }
   if (res.status === 204) return undefined as T;
   return res.json();
