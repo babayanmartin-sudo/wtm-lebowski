@@ -482,6 +482,37 @@ def test_dashboard_by_category_nets_expense_return_income(seeded):
     assert food["amount"] == 10.0
 
 
+def test_dashboard_by_category_income_breakdown(seeded):
+    c = seeded["client"]
+    c.post(
+        "/api/transactions",
+        json=_tx(seeded, date="2026-06-10", amount=1000, kind="income",
+                 splits=[{"category_id": seeded["salary"]["id"], "amount": 1000, "note": ""}]),
+    )
+    d = c.get("/api/dashboard/summary?date_from=2026-06-01&date_to=2026-06-30").json()
+    salary = next(row for row in d["by_category_income"] if row["name"] == "Salary")
+    assert salary["amount"] == 1000.0
+    # the expense breakdown is unaffected by income-category splits
+    assert all(row["name"] != "Salary" for row in d["by_category"])
+
+
+def test_dashboard_category_drilldown_works_for_income_category(seeded):
+    """Regression: _by_category used to be hardcoded to expense splits, so
+    drilling into an income category (category_id filter) silently returned
+    an empty breakdown instead of that category's income."""
+    c = seeded["client"]
+    c.post(
+        "/api/transactions",
+        json=_tx(seeded, date="2026-06-10", amount=1000, kind="income",
+                 splits=[{"category_id": seeded["salary"]["id"], "amount": 1000, "note": ""}]),
+    )
+    d = c.get(
+        f"/api/dashboard/summary?date_from=2026-06-01&date_to=2026-06-30&category_id={seeded['salary']['id']}"
+    ).json()
+    assert len(d["by_category"]) == 1
+    assert d["by_category"][0]["amount"] == 1000.0
+
+
 def test_dashboard_series_hides_future_months(seeded):
     c = seeded["client"]
     d = c.get("/api/dashboard/summary?date_from=2026-01-01&date_to=2026-12-31").json()

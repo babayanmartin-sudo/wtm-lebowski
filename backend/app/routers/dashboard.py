@@ -58,10 +58,11 @@ def summary(
         "net_worth": net_worth,
         "income": round(totals.get("income") or 0.0, 2),
         "expense": round(totals.get("expense") or 0.0, 2),
-        "by_category": _by_category(db, start, end, account_id, category_id),
+        "by_category": _by_category(db, start, end, account_id, category_id, kind="expense"),
+        "by_category_income": _by_category(db, start, end, account_id, category_id, kind="income"),
         "series": series,
         "series_granularity": granularity,
-        "recent": _recent(db, account_id, cat_ids),
+        "recent": _recent(db, start, end, account_id, cat_ids),
     }
 
 
@@ -164,17 +165,28 @@ def _totals(
 
 
 def _by_category(
-    db: Session, start: date, end: date, account_id: int | None, category_id: int | None
+    db: Session,
+    start: date,
+    end: date,
+    account_id: int | None,
+    category_id: int | None,
+    kind: str = "expense",
 ) -> list[dict]:
-    """Expense breakdown for the period. With no category filter, children
-    roll up into their top-level parent. With a category filter, breaks the
-    chosen category down into its own children (or itself if it has none).
+    """Breakdown for the period for the given kind ("expense" or "income").
+    With no category filter, children roll up into their top-level parent.
+    With a category filter, breaks the chosen category down into its own
+    children (or itself if it has none) — the category's own kind wins over
+    the `kind` argument, so drilling into an income category correctly
+    aggregates income splits even when called from an expense-oriented caller.
 
-    Income splits under an expense-kind category are expense returns
-    (refunds) — they net against that category's spending instead of
-    being ignored or counted as separate income."""
+    Splits of the opposite kind under a same-kind category are refund-style
+    corrections (e.g. an expense return recorded as income) — they net
+    against the total instead of being ignored or double-counted."""
     categories = {c.id: c for c in db.scalars(select(Category))}
-    expense_cat_ids = [cid for cid, c in categories.items() if c.kind == "expense"]
+    if category_id is not None and category_id in categories:
+        kind = categories[category_id].kind
+    other_kind = "income" if kind == "expense" else "expense"
+    matching_cat_ids = [cid for cid, c in categories.items() if c.kind == kind]
 
     stmt = (
         select(Split.category_id, Transaction.kind, func.sum(Split.amount_base))
@@ -183,8 +195,8 @@ def _by_category(
             Transaction.date >= start,
             Transaction.date <= end,
             or_(
-                Transaction.kind == "expense",
-                (Transaction.kind == "income") & Split.category_id.in_(expense_cat_ids),
+                Transaction.kind == kind,
+                (Transaction.kind == other_kind) & Split.category_id.in_(matching_cat_ids),
             ),
         )
     )
@@ -192,8 +204,8 @@ def _by_category(
         stmt = stmt.where(Transaction.account_id == account_id)
     rows = db.execute(stmt.group_by(Split.category_id, Transaction.kind)).all()
     amounts: dict[int | None, float] = {}
-    for cid, kind, amt in rows:
-        signed = (amt or 0.0) if kind == "expense" else -(amt or 0.0)
+    for cid, txn_kind, amt in rows:
+        signed = (amt or 0.0) if txn_kind == kind else -(amt or 0.0)
         amounts[cid] = amounts.get(cid, 0.0) + signed
 
     if category_id:
@@ -289,8 +301,12 @@ def _series(
     return granularity, ordered
 
 
-def _recent(db: Session, account_id: int | None, cat_ids: list[int] | None, limit: int = 10) -> list[dict]:
-    stmt = select(Transaction).options(selectinload(Transaction.splits))
+def _recent(
+    db: Session, start: date, end: date, account_id: int | None, cat_ids: list[int] | None, limit: int = 10
+) -> list[dict]:
+    stmt = select(Transaction).options(selectinload(Transaction.splits)).where(
+        Transaction.date >= start, Transaction.date <= end
+    )
     if account_id:
         stmt = stmt.where(
             or_(Transaction.account_id == account_id, Transaction.transfer_account_id == account_id)

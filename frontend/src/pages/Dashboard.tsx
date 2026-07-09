@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { useAccounts, useBudgetStatus, useCategories, useDashboard } from "../api/hooks";
+import type { CategoryTotal } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ColorDot, ProgressBar } from "../components/ui";
 import { fmtMoney } from "../lib/format";
@@ -51,6 +52,7 @@ export default function DashboardPage() {
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const activeAccounts = useMemo(() => accounts.filter((a) => !a.archived), [accounts]);
   const donut = (data?.by_category ?? []).slice(0, 8);
+  const donutIncome = (data?.by_category_income ?? []).slice(0, 8);
   const granularityData = data?.series_granularity ?? "day";
 
   function goToMonth() {
@@ -181,128 +183,88 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="glass p-5 xl:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-300">Income vs spending</h2>
-            {zoomed ? (
-              <button className="btn-ghost px-2.5 py-1 text-xs" onClick={goToMonth}>
-                <RotateCcw size={12} /> Reset
-              </button>
-            ) : (
-              <span className="text-xs text-gray-500">Click a bar to zoom in</span>
-            )}
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart
-              data={data?.series ?? []}
-              barGap={4}
-              onClick={(state) => {
-                const label = state?.activeLabel;
-                if (typeof label === "string") drillInto(label);
-              }}
-              className="cursor-pointer"
-            >
-              <XAxis
-                dataKey="label"
-                tickFormatter={(v) => bucketLabel(v, granularityData)}
-                stroke="#4b5563"
-                fontSize={11}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis stroke="#4b5563" fontSize={11} tickLine={false} axisLine={false} width={50} />
-              <Tooltip
-                cursor={{ fill: "rgba(255,255,255,0.04)" }}
-                contentStyle={{
-                  background: "#374151",
-                  border: "1px solid rgba(255,255,255,0.3)",
-                  borderRadius: 12,
-                  fontSize: 12,
-                  color: "#ffffff",
-                  padding: 8,
-                }}
-                wrapperStyle={{ color: "#ffffff" }}
-                labelStyle={{ color: "#ffffff" }}
-                itemStyle={{ color: "#ffffff" }}
-                formatter={(v, name) => [v, name]}
-                labelFormatter={(v) => bucketLabel(String(v), granularityData)}
-              />
-              <Bar dataKey="income" fill="#34d399" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="expense" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="glass p-5">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-300">Spending by category</h2>
-            {categoryId ? (
-              <button className="btn-ghost px-2.5 py-1 text-xs" onClick={() => setCategoryId(null)}>
-                <RotateCcw size={12} /> Reset
-              </button>
-            ) : (
-              donut.length > 0 && <span className="text-xs text-gray-500">Click to filter</span>
-            )}
-          </div>
-          {donut.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-500">No expenses in this period.</p>
+      <div className="glass p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-300">Income vs spending</h2>
+          {zoomed ? (
+            <button className="btn-ghost px-2.5 py-1 text-xs" onClick={goToMonth}>
+              <RotateCcw size={12} /> Reset
+            </button>
           ) : (
-            <>
-              <ResponsiveContainer width="100%" height={160}>
-                <PieChart>
-                  <Pie
-                    data={donut}
-                    dataKey="amount"
-                    nameKey="name"
-                    innerRadius={45}
-                    outerRadius={70}
-                    paddingAngle={3}
-                    strokeWidth={0}
-                    onClick={(entry) => toggleCategory(entry.category_id)}
-                    className="cursor-pointer"
-                  >
-                    {donut.map((entry) => (
-                      <Cell
-                        key={entry.name}
-                        fill={entry.color}
-                        opacity={categoryId && entry.category_id !== categoryId ? 0.35 : 1}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: "#374151",
-                      border: "1px solid rgba(255,255,255,0.3)",
-                      borderRadius: 12,
-                      fontSize: 12,
-                      color: "#ffffff",
-                      padding: 8,
-                    }}
-                    wrapperStyle={{ color: "#ffffff" }}
-                    labelStyle={{ color: "#ffffff" }}
-                    itemStyle={{ color: "#ffffff" }}
-                    formatter={(v, name) => [fmtMoney(Number(v), data?.base_currency), name]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="mt-2 flex flex-col gap-1.5">
-                {donut.map((c) => (
-                  <button
-                    key={c.name}
-                    onClick={() => toggleCategory(c.category_id)}
-                    className={`flex items-center gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-white/5 ${
-                      categoryId && c.category_id !== categoryId ? "opacity-40" : ""
-                    }`}
-                  >
-                    <ColorDot color={c.color} />
-                    <span className="flex-1 text-gray-300">{c.name}</span>
-                    <span className="tabular-nums text-gray-400">{fmtMoney(c.amount)}</span>
-                  </button>
-                ))}
-              </div>
-            </>
+            <span className="text-xs text-gray-500">Click a bar to zoom in</span>
           )}
+        </div>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart
+            data={data?.series ?? []}
+            barGap={4}
+            onClick={(state) => {
+              const label = state?.activeLabel;
+              if (typeof label === "string") drillInto(label);
+            }}
+            className="cursor-pointer"
+          >
+            <XAxis
+              dataKey="label"
+              tickFormatter={(v) => bucketLabel(v, granularityData)}
+              stroke="#4b5563"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis stroke="#4b5563" fontSize={11} tickLine={false} axisLine={false} width={50} />
+            <Tooltip
+              cursor={{ fill: "rgba(255,255,255,0.04)" }}
+              contentStyle={{
+                background: "#374151",
+                border: "1px solid rgba(255,255,255,0.3)",
+                borderRadius: 12,
+                fontSize: 12,
+                color: "#ffffff",
+                padding: 8,
+              }}
+              wrapperStyle={{ color: "#ffffff" }}
+              labelStyle={{ color: "#ffffff" }}
+              itemStyle={{ color: "#ffffff" }}
+              formatter={(v, name) => [v, name]}
+              labelFormatter={(v) => bucketLabel(String(v), granularityData)}
+            />
+            <Bar dataKey="income" fill="#34d399" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="expense" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="glass p-5">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-300">Category</h2>
+          {categoryId ? (
+            <button className="btn-ghost px-2.5 py-1 text-xs" onClick={() => setCategoryId(null)}>
+              <RotateCcw size={12} /> Reset
+            </button>
+          ) : (
+            (donut.length > 0 || donutIncome.length > 0) && (
+              <span className="text-xs text-gray-500">Click a slice to filter</span>
+            )
+          )}
+        </div>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <CategoryPie
+            title="Expense"
+            items={donut}
+            emptyText="No expenses in this period."
+            categoryId={categoryId}
+            onToggle={toggleCategory}
+            baseCurrency={data?.base_currency}
+          />
+          <CategoryPie
+            title="Income"
+            items={donutIncome}
+            emptyText="No income in this period."
+            categoryId={categoryId}
+            onToggle={toggleCategory}
+            baseCurrency={data?.base_currency}
+          />
         </div>
       </div>
 
@@ -374,7 +336,7 @@ export default function DashboardPage() {
             <ChevronRight size={14} className="text-gray-500" />
           </Link>
           <div className="flex flex-col gap-2">
-            {(data?.recent ?? []).slice(0, 7).map((tx) => (
+            {(data?.recent ?? []).slice(0, 10).map((tx) => (
               <div key={tx.id} className="flex items-center gap-2 text-sm">
                 <span className="w-12 shrink-0 text-xs text-gray-500">{tx.date.slice(5)}</span>
                 <span className="flex-1 truncate text-gray-300">
@@ -400,6 +362,86 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CategoryPie({
+  title,
+  items,
+  emptyText,
+  categoryId,
+  onToggle,
+  baseCurrency,
+}: {
+  title: string;
+  items: CategoryTotal[];
+  emptyText: string;
+  categoryId: number | null;
+  onToggle: (id: number | null) => void;
+  baseCurrency: string | undefined;
+}) {
+  return (
+    <div>
+      <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">{title}</h3>
+      {items.length === 0 ? (
+        <p className="py-10 text-center text-sm text-gray-500">{emptyText}</p>
+      ) : (
+        <>
+          <ResponsiveContainer width="100%" height={160}>
+            <PieChart>
+              <Pie
+                data={items}
+                dataKey="amount"
+                nameKey="name"
+                innerRadius={45}
+                outerRadius={70}
+                paddingAngle={3}
+                strokeWidth={0}
+                onClick={(entry) => onToggle(entry.category_id)}
+                className="cursor-pointer"
+              >
+                {items.map((entry) => (
+                  <Cell
+                    key={entry.name}
+                    fill={entry.color}
+                    opacity={categoryId && entry.category_id !== categoryId ? 0.35 : 1}
+                  />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  background: "#374151",
+                  border: "1px solid rgba(255,255,255,0.3)",
+                  borderRadius: 12,
+                  fontSize: 12,
+                  color: "#ffffff",
+                  padding: 8,
+                }}
+                wrapperStyle={{ color: "#ffffff" }}
+                labelStyle={{ color: "#ffffff" }}
+                itemStyle={{ color: "#ffffff" }}
+                formatter={(v, name) => [fmtMoney(Number(v), baseCurrency), name]}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="mt-2 flex flex-col gap-1.5">
+            {items.map((c) => (
+              <button
+                key={c.name}
+                onClick={() => onToggle(c.category_id)}
+                className={`flex items-center gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-white/5 ${
+                  categoryId && c.category_id !== categoryId ? "opacity-40" : ""
+                }`}
+              >
+                <ColorDot color={c.color} />
+                <span className="flex-1 text-gray-300">{c.name}</span>
+                <span className="tabular-nums text-gray-400">{fmtMoney(c.amount)}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

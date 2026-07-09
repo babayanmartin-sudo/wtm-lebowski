@@ -237,7 +237,10 @@ def test_category_filter_with_no_children_shows_itself(seeded):
     assert d["income"] == 1000.0
 
 
-def test_recent_ignores_period_but_respects_filters(seeded):
+def test_recent_respects_period_filter(seeded):
+    """Recent transactions now scope to the selected period — a transaction
+    dated outside date_from/date_to shouldn't appear, matching the rest of
+    the dashboard (previously `recent` ignored the period entirely)."""
     c = seeded["client"]
     c.post(
         "/api/transactions",
@@ -249,6 +252,17 @@ def test_recent_ignores_period_but_respects_filters(seeded):
             "splits": [{"category_id": seeded["food"]["id"], "amount": 5.0, "note": ""}],
         },
     )
+    c.post(
+        "/api/transactions",
+        json={
+            "date": "2026-07-15",
+            "kind": "expense",
+            "account_id": seeded["aed"]["id"],
+            "amount": 7.0,
+            "splits": [{"category_id": seeded["food"]["id"], "amount": 7.0, "note": ""}],
+        },
+    )
     d = c.get("/api/dashboard/summary?date_from=2026-07-01&date_to=2026-07-31").json()
-    assert d["expense"] == 0.0  # outside the period
-    assert len(d["recent"]) == 1  # but still shows up as recent activity
+    assert d["expense"] == 7.0
+    assert len(d["recent"]) == 1
+    assert d["recent"][0]["date"] == "2026-07-15"
