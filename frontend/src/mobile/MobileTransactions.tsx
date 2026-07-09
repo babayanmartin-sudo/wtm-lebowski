@@ -1,10 +1,12 @@
-import { Plus, Search } from "lucide-react";
-import { useState } from "react";
+import { Plus, Search, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { useAccounts, useCategories, useLoans, useTransactions } from "../api/hooks";
 import type { Transaction } from "../api/types";
 import TransactionModal from "../components/TransactionModal";
 import { fmtMoney } from "../lib/format";
+import { type PickerMode, parseISO, periodFor } from "../lib/period";
 import { useSessionState } from "../lib/session";
 
 const PAGE_SIZE = 30;
@@ -13,10 +15,37 @@ export default function MobileTransactions() {
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
   const { data: loans = [] } = useLoans();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [q, setQ] = useSessionState("transactions.q", "");
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [creating, setCreating] = useState(false);
-  const { data } = useTransactions({ q, limit: PAGE_SIZE, offset: 0 });
+
+  const accountId = searchParams.get("account") ?? undefined;
+  const categoryId = searchParams.get("category") ?? undefined;
+  const mode = searchParams.get("mode") as PickerMode | null;
+  const dateParam = searchParams.get("date");
+  const period = useMemo(
+    () => (mode && dateParam ? periodFor(mode, parseISO(dateParam), dateParam) : null),
+    [mode, dateParam],
+  );
+
+  const { data } = useTransactions({
+    q,
+    account_id: accountId,
+    category_id: categoryId,
+    date_from: period?.from,
+    date_to: period?.to,
+    limit: PAGE_SIZE,
+    offset: 0,
+  });
+
+  const filterAccount = accountId ? accounts.find((a) => String(a.id) === accountId) : null;
+  const filterCategory = categoryId ? categories.find((c) => String(c.id) === categoryId) : null;
+  const hasUrlFilter = Boolean(filterAccount || filterCategory || period);
+
+  function clearUrlFilters() {
+    setSearchParams({});
+  }
 
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   const items = data?.items ?? [];
@@ -48,6 +77,22 @@ export default function MobileTransactions() {
           onChange={(e) => setQ(e.target.value)}
         />
       </div>
+
+      {hasUrlFilter && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+          Filtering by
+          {filterAccount && (
+            <span className="rounded-full bg-white/5 px-2 py-1">{filterAccount.name}</span>
+          )}
+          {filterCategory && (
+            <span className="rounded-full bg-white/5 px-2 py-1">{filterCategory.name}</span>
+          )}
+          {period && <span className="rounded-full bg-white/5 px-2 py-1">period</span>}
+          <button onClick={clearUrlFilters} className="rounded-full p-1 hover:bg-white/10">
+            <X size={12} />
+          </button>
+        </div>
+      )}
 
       {items.length === 0 ? (
         <p className="py-10 text-center text-sm text-gray-500">No transactions match.</p>
