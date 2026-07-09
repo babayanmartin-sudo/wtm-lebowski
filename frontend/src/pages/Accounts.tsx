@@ -480,7 +480,7 @@ function AccountItemBody({
         style={dragStyle}
         onClick={onOpen}
         title="View transactions for this account"
-        className={`glass glass-hover flex cursor-pointer items-center justify-between gap-3 p-3 ${acc.archived ? "opacity-50" : ""}`}
+        className={`glass glass-hover flex cursor-pointer flex-col gap-1.5 p-3 ${acc.archived ? "opacity-50" : ""}`}
       >
         <div className="flex min-w-0 items-center gap-3">
           <div
@@ -489,19 +489,19 @@ function AccountItemBody({
           >
             <Icon size={16} />
           </div>
-          <div className="min-w-0">
-            <p className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
-              <span className="truncate">{acc.name}</span>
-              <span className="flex shrink-0 items-center gap-1.5">{badges}</span>
-            </p>
-            <p className="text-xs uppercase tracking-wide text-gray-500">
-              {acc.type} · {acc.currency}
-            </p>
-          </div>
+          <p className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
+            <span className="truncate">{acc.name}</span>
+            <span className="flex shrink-0 items-center gap-1.5">{badges}</span>
+          </p>
         </div>
-        <div className="flex shrink-0 items-center gap-4">
-          <p className="text-sm font-semibold tabular-nums">{fmtMoney(acc.balance, acc.currency)}</p>
-          {actions}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 pl-12">
+          <p className="text-xs uppercase tracking-wide text-gray-500">
+            {acc.type} · {acc.currency}
+          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-sm font-semibold tabular-nums">{fmtMoney(acc.balance, acc.currency)}</p>
+            {actions}
+          </div>
         </div>
       </div>
     );
@@ -515,25 +515,23 @@ function AccountItemBody({
       title="View transactions for this account"
       className={`glass glass-hover cursor-pointer p-5 ${acc.archived ? "opacity-50" : ""}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-3">
-          <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white"
-            style={{ background: acc.color }}
-          >
-            <Icon size={18} />
-          </div>
-          <div className="min-w-0">
-            <p className="flex min-w-0 items-center gap-1.5 font-medium">
-              <span className="truncate">{acc.name}</span>
-              <span className="flex shrink-0 items-center gap-1.5">{badges}</span>
-            </p>
-            <p className="text-xs uppercase tracking-wide text-gray-500">
-              {acc.type} · {acc.currency}
-              {acc.archived ? " · archived" : ""}
-            </p>
-          </div>
+      <div className="flex min-w-0 items-center gap-3">
+        <div
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white"
+          style={{ background: acc.color }}
+        >
+          <Icon size={18} />
         </div>
+        <p className="flex min-w-0 items-center gap-1.5 font-medium">
+          <span className="truncate">{acc.name}</span>
+          <span className="flex shrink-0 items-center gap-1.5">{badges}</span>
+        </p>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <p className="text-xs uppercase tracking-wide text-gray-500">
+          {acc.type} · {acc.currency}
+          {acc.archived ? " · archived" : ""}
+        </p>
         {actions}
       </div>
       <p className="mt-4 text-2xl font-semibold tabular-nums">{fmtMoney(acc.balance, acc.currency)}</p>
