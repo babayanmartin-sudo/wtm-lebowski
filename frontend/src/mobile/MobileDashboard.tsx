@@ -4,7 +4,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { useAccounts, useDashboard } from "../api/hooks";
 import { fmtMoney } from "../lib/format";
-import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
+import { type PickerMode, parseISO, periodFor, shiftAnchor, toISO } from "../lib/period";
 import { useSessionState } from "../lib/session";
 import PeriodPicker from "../components/PeriodPicker";
 
@@ -22,12 +22,7 @@ export default function MobileDashboard() {
 
   return (
     <div className="flex flex-col gap-5 px-4 pt-6">
-      <div>
-        <p className="text-sm text-gray-400">Overview</p>
-        <h1 className="text-xl font-semibold">
-          {periodLabel(pickerMode, pickerMode === "custom" ? pickerDate : period.from)}
-        </h1>
-      </div>
+      <h1 className="text-xl font-semibold">Overview</h1>
 
       <div className="flex items-center gap-1">
         <button
