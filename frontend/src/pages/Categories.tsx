@@ -267,10 +267,17 @@ function CategoryDrilldown({ cat, onClose }: { cat: Category; onClose: () => voi
   const { data } = useDashboard({ date_from: period.from, date_to: period.to, category_id: cat.id });
   const breakdown = cat.kind === "income" ? (data?.by_category_income ?? []) : (data?.by_category ?? []);
 
-  const rows = breakdown.filter((c) => c.category_id !== cat.id);
-  const parentDirect = breakdown.find((c) => c.category_id === cat.id)?.amount ?? 0;
-  const childTotal = rows.reduce((sum, r) => sum + r.amount, 0);
+  const parentRow = breakdown.find((c) => c.category_id === cat.id);
+  const childRows = breakdown.filter((c) => c.category_id !== cat.id);
+  const parentDirect = parentRow?.amount ?? 0;
+  const childTotal = childRows.reduce((sum, r) => sum + r.amount, 0);
   const total = parentDirect + childTotal;
+  // Show the parent's own direct amount as its own row (it can be negative —
+  // e.g. a refund booked directly on the parent nets against the total but
+  // isn't attributable to any single subcategory) instead of hiding it,
+  // since folding it silently into `total` made subcategory percentages
+  // look nonsensical (>100%) with no visible explanation.
+  const rows = parentRow ? [parentRow, ...childRows] : childRows;
 
   return (
     <Modal title={`${cat.name} — drill-down`} onClose={onClose}>
@@ -322,10 +329,6 @@ function CategoryDrilldown({ cat, onClose }: { cat: Category; onClose: () => voi
                   </span>
                 </div>
               ))}
-            <div className="mt-1 flex items-center justify-between border-t border-white/10 pt-2 text-xs text-gray-500">
-              <span>Sum of subcategories</span>
-              <span className="tabular-nums">{fmtMoney(childTotal, data?.base_currency)}</span>
-            </div>
           </div>
         ) : (
           <p className="text-sm text-gray-500">No subcategories for this period.</p>

@@ -300,7 +300,7 @@ export default function TransactionsPage() {
       />
 
       {selected.size > 0 ? (
-        <div className="glass mb-4 flex flex-wrap items-center gap-2 p-3">
+        <div className="glass relative z-20 mb-4 flex flex-wrap items-center gap-2 p-3">
           <span className="text-sm font-medium text-gray-200">{selected.size} selected</span>
           {selectionAllIncome && (
             <label className="flex items-center gap-1.5 text-xs text-gray-400">
@@ -373,7 +373,7 @@ export default function TransactionsPage() {
           {bulkError && <p className="w-full text-xs text-rose-400">{bulkError}</p>}
         </div>
       ) : (
-        <div className="glass mb-4 flex flex-wrap items-center gap-2 p-3">
+        <div className="glass relative z-20 mb-4 flex flex-wrap items-center gap-2 p-3">
           <div className="relative">
             <Search size={14} className="absolute top-2.5 left-2.5 text-gray-500" />
             <input
@@ -428,7 +428,7 @@ export default function TransactionsPage() {
           </select>
           <div className="flex items-center gap-1">
             <select
-              className="input w-20"
+              className="input w-[5.5rem]"
               value={amountOp}
               onChange={(e) => {
                 setAmountOp(e.target.value as "" | "eq" | "gt" | "lt");
