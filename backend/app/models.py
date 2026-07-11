@@ -56,6 +56,7 @@ class Category(Base):
     icon: Mapped[str] = mapped_column(String, default="tag")
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    excluded_from_reports: Mapped[bool] = mapped_column(Boolean, default=False)
 
     parent: Mapped["Category | None"] = relationship(remote_side=[id], backref="children")
 

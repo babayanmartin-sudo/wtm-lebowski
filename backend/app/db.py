@@ -72,6 +72,12 @@ def _migrate() -> None:
         if "currency" not in loan_cols:
             conn.exec_driver_sql("ALTER TABLE loans ADD COLUMN currency VARCHAR(3) DEFAULT 'AED'")
 
+        category_cols = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(categories)")]
+        if "excluded_from_reports" not in category_cols:
+            conn.exec_driver_sql(
+                "ALTER TABLE categories ADD COLUMN excluded_from_reports BOOLEAN DEFAULT 0"
+            )
+
         _migrate_budget_uniqueness(conn)
 
 

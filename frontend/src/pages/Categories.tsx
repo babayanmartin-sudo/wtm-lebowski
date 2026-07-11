@@ -1,4 +1,15 @@
-import { Archive, BarChart3, ChevronLeft, ChevronRight, CornerDownRight, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  Archive,
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  CornerDownRight,
+  Eye,
+  EyeOff,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { api } from "../api/client";
@@ -20,6 +31,7 @@ interface Draft {
   icon: string;
   archived: boolean;
   sort_order: number;
+  excluded_from_reports: boolean;
 }
 
 const empty: Draft = {
@@ -30,6 +42,7 @@ const empty: Draft = {
   icon: "tag",
   archived: false,
   sort_order: 0,
+  excluded_from_reports: false,
 };
 
 export default function CategoriesPage() {
@@ -104,6 +117,9 @@ export default function CategoriesPage() {
   }
 
   function Row({ cat, child }: { cat: Category; child?: boolean }) {
+    const parent = cat.parent_id ? categories.find((c) => c.id === cat.parent_id) : undefined;
+    const cascadedExcluded = !!parent?.excluded_from_reports && !cat.excluded_from_reports;
+    const effectiveExcluded = cat.excluded_from_reports || cascadedExcluded;
     return (
       <div
         className={`group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white/5 ${
@@ -115,6 +131,14 @@ export default function CategoriesPage() {
         <button className="flex-1 truncate text-left text-sm hover:underline" onClick={() => setDrillCat(cat)}>
           {cat.name}
         </button>
+        {effectiveExcluded && (
+          <span
+            title={cascadedExcluded ? "Excluded (parent excluded)" : "Excluded from reports"}
+            className="text-xs text-gray-500"
+          >
+            <EyeOff size={12} />
+          </span>
+        )}
         <div className="hidden gap-1 group-hover:flex">
           <button
             title="Drill down"
@@ -132,6 +156,13 @@ export default function CategoriesPage() {
               <Plus size={13} />
             </button>
           )}
+          <button
+            title={cat.excluded_from_reports ? "Include in reports" : "Exclude from reports"}
+            className="rounded p-1 text-gray-400 hover:bg-white/10"
+            onClick={() => save.mutate({ ...cat, excluded_from_reports: !cat.excluded_from_reports })}
+          >
+            {cat.excluded_from_reports ? <EyeOff size={13} /> : <Eye size={13} />}
+          </button>
           <button
             className="rounded p-1 text-gray-400 hover:bg-white/10"
             onClick={() => setDraft({ ...cat })}
@@ -237,8 +268,9 @@ function CategoryDrilldown({ cat, onClose }: { cat: Category; onClose: () => voi
   const breakdown = cat.kind === "income" ? (data?.by_category_income ?? []) : (data?.by_category ?? []);
 
   const rows = breakdown.filter((c) => c.category_id !== cat.id);
-  const total = breakdown.find((c) => c.category_id === cat.id)?.amount ?? 0;
+  const parentDirect = breakdown.find((c) => c.category_id === cat.id)?.amount ?? 0;
   const childTotal = rows.reduce((sum, r) => sum + r.amount, 0);
+  const total = parentDirect + childTotal;
 
   return (
     <Modal title={`${cat.name} — drill-down`} onClose={onClose}>

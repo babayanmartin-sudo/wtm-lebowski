@@ -2,7 +2,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { api } from "../api/client";
-import { MONEY_KEYS, useInvalidating } from "../api/hooks";
+import { MONEY_KEYS, useCategoryUsage, useInvalidating } from "../api/hooks";
 import type { Account, Category, Loan, Transaction } from "../api/types";
 import { today } from "../lib/format";
 import { CategorySelect, Field, Modal } from "./ui";
@@ -30,6 +30,7 @@ export default function TransactionModal({
 }) {
   const active = accounts.filter((a) => !a.archived);
   const mainAccount = active.find((a) => a.is_main) ?? active[0];
+  const { data: categoryUsage = {} } = useCategoryUsage();
   const [kind, setKind] = useState<Kind>(existing?.kind ?? "expense");
   const [date, setDate] = useState(existing?.date ?? today());
   const [accountId, setAccountId] = useState<number>(existing?.account_id ?? mainAccount?.id ?? 0);
@@ -45,6 +46,9 @@ export default function TransactionModal({
       : [{ category_id: null, amount: "", note: "" }],
   );
   const [error, setError] = useState("");
+  const [isReturn, setIsReturn] = useState(
+    () => !!existing && existing.kind === "income" && existing.splits.some((s) => s.category_id != null && categories.find((c) => c.id === s.category_id)?.kind === "expense"),
+  );
 
   const save = useInvalidating(
     (body: object) =>
@@ -72,7 +76,10 @@ export default function TransactionModal({
     setKind(k);
     const direction = k === "expense" ? "debt" : k === "income" ? "receivable" : null;
     if (!loans.some((l) => l.id === loanId && l.direction === direction)) setLoanId(null);
+    if (k !== "income") setIsReturn(false);
   }
+
+  const categorySelectKind = kind === "transfer" ? undefined : isReturn ? "expense" : kind;
 
   async function submit() {
     setError("");
@@ -232,14 +239,25 @@ export default function TransactionModal({
                   Add split
                 </button>
               </div>
+              {kind === "income" && (
+                <label className="flex items-center gap-2 text-xs text-gray-400">
+                  <input
+                    type="checkbox"
+                    checked={isReturn}
+                    onChange={(e) => setIsReturn(e.target.checked)}
+                  />
+                  This is a refund/return — categorize under an expense category
+                </label>
+              )}
               {splits.map((s, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <CategorySelect
                     categories={categories}
-                    kind={kind}
+                    kind={categorySelectKind}
                     value={s.category_id}
                     onChange={(id) => setSplits(splits.map((x, j) => (j === i ? { ...x, category_id: id } : x)))}
                     className="input min-w-0 flex-1"
+                    usage={categoryUsage}
                   />
                   {isSplit && (
                     <>

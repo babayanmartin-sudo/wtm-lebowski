@@ -164,6 +164,13 @@ def _totals(
     return totals
 
 
+def _excluded_category_ids(categories: dict[int, Category]) -> set[int]:
+    """A category excluded from reports also excludes its children —
+    toggling the parent cascades down without writing the flag on each child."""
+    excluded = {cid for cid, c in categories.items() if c.excluded_from_reports}
+    return excluded | {cid for cid, c in categories.items() if c.parent_id in excluded}
+
+
 def _by_category(
     db: Session,
     start: date,
@@ -184,13 +191,14 @@ def _by_category(
     corrections (e.g. an expense return recorded as income) — they net
     against the total instead of being ignored or double-counted."""
     categories = {c.id: c for c in db.scalars(select(Category))}
+    excluded_ids = _excluded_category_ids(categories)
     drill_id = (
         category_id
         if category_id is not None and category_id in categories and categories[category_id].kind == kind
         else None
     )
     other_kind = "income" if kind == "expense" else "expense"
-    matching_cat_ids = [cid for cid, c in categories.items() if c.kind == kind]
+    matching_cat_ids = [cid for cid, c in categories.items() if c.kind == kind and cid not in excluded_ids]
 
     stmt = (
         select(Split.category_id, Transaction.kind, func.sum(Split.amount_base))
@@ -209,6 +217,8 @@ def _by_category(
     rows = db.execute(stmt.group_by(Split.category_id, Transaction.kind)).all()
     amounts: dict[int | None, float] = {}
     for cid, txn_kind, amt in rows:
+        if cid in excluded_ids:
+            continue
         signed = (amt or 0.0) if txn_kind == kind else -(amt or 0.0)
         amounts[cid] = amounts.get(cid, 0.0) + signed
 

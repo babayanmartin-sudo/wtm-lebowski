@@ -1,4 +1,5 @@
-import { X } from "lucide-react";
+import { Check, ChevronDown, Search, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import type { Category } from "../api/types";
@@ -100,6 +101,7 @@ export function CategorySelect({
   className = "input",
   disabled = false,
   disabledIds,
+  usage,
 }: {
   categories: Category[];
   value: number | null;
@@ -111,34 +113,169 @@ export function CategorySelect({
   className?: string;
   disabled?: boolean;
   disabledIds?: Set<number>;
+  /** Split-count per top-level category id — enables the "most used" sort toggle when provided. */
+  usage?: Record<number, number>;
 }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [sortMode, setSortMode] = useState<"alpha" | "usage">("alpha");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) searchRef.current?.focus();
+    else setQuery("");
+  }, [open]);
+
   const active = categories.filter((c) => !c.archived && (!kind || c.kind === kind));
   const tops = active.filter((c) => c.parent_id === null);
+  const sortedTops = usage
+    ? [...tops].sort((a, b) =>
+        sortMode === "usage" ? (usage[b.id] ?? 0) - (usage[a.id] ?? 0) : a.name.localeCompare(b.name),
+      )
+    : tops;
+
+  const q = query.trim().toLowerCase();
+  const groups = sortedTops
+    .map((top) => {
+      const children = active.filter((c) => c.parent_id === top.id);
+      const topMatches = !q || top.name.toLowerCase().includes(q);
+      const matchingChildren = q ? children.filter((c) => c.name.toLowerCase().includes(q)) : children;
+      if (q && !topMatches && matchingChildren.length === 0) return null;
+      return { top, children: topMatches ? children : matchingChildren };
+    })
+    .filter((g): g is { top: Category; children: Category[] } => g !== null);
+
+  const selected =
+    value === UNCATEGORIZED_ID
+      ? "Uncategorized"
+      : active.find((c) => c.id === value)
+        ? (() => {
+            const c = active.find((c) => c.id === value)!;
+            const parent = c.parent_id ? active.find((p) => p.id === c.parent_id) : null;
+            return parent ? `${parent.name} / ${c.name}` : c.name;
+          })()
+        : null;
+
+  function pick(id: number | null) {
+    onChange(id);
+    setOpen(false);
+  }
+
   return (
-    <select
-      className={className}
-      value={value ?? ""}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
-    >
-      {allowEmpty && <option value="">{emptyLabel}</option>}
-      {uncategorizedOption && <option value={UNCATEGORIZED_ID}>Uncategorized</option>}
-      {tops.map((top) => {
-        const children = active.filter((c) => c.parent_id === top.id);
-        return (
-          <optgroup key={top.id} label={top.name}>
-            <option value={top.id} disabled={disabledIds?.has(top.id)}>
-              {top.name}
-            </option>
-            {children.map((c) => (
-              <option key={c.id} value={c.id} disabled={disabledIds?.has(c.id)}>
-                {top.name} / {c.name}
-              </option>
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        className={`${className} flex items-center justify-between gap-1 text-left`}
+        disabled={disabled}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className={selected ? "" : "text-gray-500"}>{selected ?? emptyLabel}</span>
+        <ChevronDown size={14} className="shrink-0 text-gray-500" />
+      </button>
+      {open && (
+        <div className="absolute z-20 mt-1 max-h-72 w-full min-w-[14rem] overflow-hidden rounded-xl border border-white/10 bg-gray-900 shadow-xl">
+          <div className="flex items-center gap-2 border-b border-white/10 px-2 py-1.5">
+            <Search size={13} className="shrink-0 text-gray-500" />
+            <input
+              ref={searchRef}
+              className="w-full bg-transparent text-sm outline-none placeholder:text-gray-500"
+              placeholder="Search categories…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          {usage && (
+            <div className="flex gap-1 border-b border-white/10 px-2 py-1 text-xs">
+              <button
+                type="button"
+                className={`rounded px-1.5 py-0.5 ${sortMode === "alpha" ? "bg-white/10 text-gray-200" : "text-gray-500"}`}
+                onClick={() => setSortMode("alpha")}
+              >
+                A–Z
+              </button>
+              <button
+                type="button"
+                className={`rounded px-1.5 py-0.5 ${sortMode === "usage" ? "bg-white/10 text-gray-200" : "text-gray-500"}`}
+                onClick={() => setSortMode("usage")}
+              >
+                Most used
+              </button>
+            </div>
+          )}
+          <div className="max-h-56 overflow-y-auto py-1">
+            {allowEmpty && (
+              <Option label={emptyLabel} selected={value === null} onClick={() => pick(null)} />
+            )}
+            {uncategorizedOption && (
+              <Option
+                label="Uncategorized"
+                selected={value === UNCATEGORIZED_ID}
+                onClick={() => pick(UNCATEGORIZED_ID)}
+              />
+            )}
+            {groups.map(({ top, children }) => (
+              <div key={top.id}>
+                <Option
+                  label={top.name}
+                  selected={value === top.id}
+                  disabled={disabledIds?.has(top.id)}
+                  onClick={() => pick(top.id)}
+                />
+                {children.map((c) => (
+                  <Option
+                    key={c.id}
+                    label={c.name}
+                    indent
+                    selected={value === c.id}
+                    disabled={disabledIds?.has(c.id)}
+                    onClick={() => pick(c.id)}
+                  />
+                ))}
+              </div>
             ))}
-          </optgroup>
-        );
-      })}
-    </select>
+            {groups.length === 0 && <p className="px-3 py-2 text-xs text-gray-500">No matches.</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Option({
+  label,
+  selected,
+  disabled,
+  indent,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  disabled?: boolean;
+  indent?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-sm hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 ${
+        indent ? "pl-7 text-gray-400" : ""
+      }`}
+    >
+      <span className="w-3.5 shrink-0">{selected && <Check size={13} />}</span>
+      <span className="truncate">{label}</span>
+    </button>
   );
 }
 

@@ -3,7 +3,15 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { api } from "../api/client";
-import { MONEY_KEYS, useAccounts, useCategories, useInvalidating, useLoans, useTransactions } from "../api/hooks";
+import {
+  MONEY_KEYS,
+  useAccounts,
+  useCategories,
+  useCategoryUsage,
+  useInvalidating,
+  useLoans,
+  useTransactions,
+} from "../api/hooks";
 import type { Transaction } from "../api/types";
 import TransactionModal from "../components/TransactionModal";
 import PeriodPicker from "../components/PeriodPicker";
@@ -18,6 +26,7 @@ const ALL_MODES: PickerMode[] = ["day", "week", "month", "year", "custom"];
 export default function TransactionsPage() {
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
+  const { data: categoryUsage = {} } = useCategoryUsage();
   const { data: loans = [] } = useLoans();
   const [searchParams] = useSearchParams();
   const [accountId, setAccountId] = useSessionState(
@@ -58,6 +67,7 @@ export default function TransactionsPage() {
   const [bulkAccount, setBulkAccount] = useState<number | "">("");
   const [bulkKind, setBulkKind] = useState<"" | "expense" | "income">("");
   const [bulkError, setBulkError] = useState("");
+  const [bulkIsReturn, setBulkIsReturn] = useState(false);
 
   const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate), pickerDate), [pickerMode, pickerDate]);
   const isCurrentMonth = pickerMode === "month" && pickerDate.slice(0, 7) === toISO(new Date()).slice(0, 7);
@@ -127,6 +137,7 @@ export default function TransactionsPage() {
     setBulkAccount("");
     setBulkKind("");
     setBulkError("");
+    setBulkIsReturn(false);
   }
 
   async function applyBulkCategory() {
@@ -219,13 +230,16 @@ export default function TransactionsPage() {
 
   const kindsInSelection = new Set(selectedKinds.values());
   const categoryBlocked = kindsInSelection.has("expense") && kindsInSelection.has("income");
+  const selectionAllIncome = kindsInSelection.size === 1 && kindsInSelection.has("income");
   const bulkCategoryKind = categoryBlocked
     ? undefined
-    : kindsInSelection.has("income")
-      ? "income"
-      : kindsInSelection.has("expense")
-        ? "expense"
-        : undefined;
+    : selectionAllIncome && bulkIsReturn
+      ? "expense"
+      : kindsInSelection.has("income")
+        ? "income"
+        : kindsInSelection.has("expense")
+          ? "expense"
+          : undefined;
 
   return (
     <div>
@@ -288,6 +302,16 @@ export default function TransactionsPage() {
       {selected.size > 0 ? (
         <div className="glass mb-4 flex flex-wrap items-center gap-2 p-3">
           <span className="text-sm font-medium text-gray-200">{selected.size} selected</span>
+          {selectionAllIncome && (
+            <label className="flex items-center gap-1.5 text-xs text-gray-400">
+              <input
+                type="checkbox"
+                checked={bulkIsReturn}
+                onChange={(e) => setBulkIsReturn(e.target.checked)}
+              />
+              Refund/return
+            </label>
+          )}
           <CategorySelect
             categories={categories}
             kind={bulkCategoryKind}
@@ -296,6 +320,7 @@ export default function TransactionsPage() {
             emptyLabel="Uncategorized"
             className="input w-44"
             disabled={categoryBlocked}
+            usage={categoryUsage}
           />
           <button
             className="btn-ghost px-3 py-1.5 text-xs"
@@ -386,6 +411,7 @@ export default function TransactionsPage() {
             emptyLabel="All categories"
             uncategorizedOption
             className="input w-48"
+            usage={categoryUsage}
           />
           <select
             className="input w-32"

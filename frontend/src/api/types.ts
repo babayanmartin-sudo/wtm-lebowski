@@ -28,6 +28,7 @@ export interface Category {
   icon: string;
   archived: boolean;
   sort_order: number;
+  excluded_from_reports: boolean;
 }
 
 export interface Split {

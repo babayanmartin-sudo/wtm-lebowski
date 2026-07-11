@@ -75,6 +75,7 @@ class CategoryIn(BaseModel):
     icon: str = "tag"
     archived: bool = False
     sort_order: int = 0
+    excluded_from_reports: bool = False
 
 
 class CategoryOut(ORMModel, CategoryIn):
