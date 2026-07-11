@@ -1,5 +1,33 @@
 # Changelog
 
+## v1.3.0 — 2026-07-11
+
+### Transactions
+
+- **Reclassify existing income as a refund/return.** An income transaction
+  can now be marked "refund/return" (single edit + bulk), which unlocks
+  the category picker to expense categories. Netting logic already
+  existed (v1.2.0); this closes the gap where the UI blocked assigning
+  an expense category to an income transaction.
+
+### Categories
+
+- **Exclude a category from reports.** New per-category toggle
+  (`excluded_from_reports`); excluding a parent cascades to all its
+  subcategories automatically. Dashboard category breakdown now filters
+  these out. Category stays usable when categorizing transactions —
+  only reporting/dashboard aggregation is affected.
+- **Searchable category picker.** `CategorySelect` is now a combobox with
+  fuzzy search and an A–Z / most-used sort toggle, replacing the plain
+  `<select>`, across Transactions (row + bulk) and the transaction
+  edit modal.
+
+### Bug fixes
+
+- **Fixed #35: category drill-down showed 0% for all subcategories** when
+  the parent category itself had no direct spending. Total is now
+  parent-direct + sum(children), so percentages compute correctly.
+
 ## v1.2.0 — 2026-07-09
 
 ### Dashboard
