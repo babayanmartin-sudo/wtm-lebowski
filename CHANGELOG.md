@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.3.1 — 2026-07-12
+
+### Bug fixes
+
+- **Fixed #36: couldn't re-include a category excluded from reports.**
+  The excluded-state indicator next to a category name was a static,
+  non-interactive icon; the real toggle was hidden in the row's
+  hover-only action group. The indicator is now itself the toggle —
+  click it to include the category again. A separate non-interactive
+  badge still shows when exclusion is inherited from a parent category.
+
 ## v1.3.0 — 2026-07-11
 
 ### Transactions

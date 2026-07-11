@@ -119,7 +119,6 @@ export default function CategoriesPage() {
   function Row({ cat, child }: { cat: Category; child?: boolean }) {
     const parent = cat.parent_id ? categories.find((c) => c.id === cat.parent_id) : undefined;
     const cascadedExcluded = !!parent?.excluded_from_reports && !cat.excluded_from_reports;
-    const effectiveExcluded = cat.excluded_from_reports || cascadedExcluded;
     return (
       <div
         className={`group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white/5 ${
@@ -131,11 +130,17 @@ export default function CategoriesPage() {
         <button className="flex-1 truncate text-left text-sm hover:underline" onClick={() => setDrillCat(cat)}>
           {cat.name}
         </button>
-        {effectiveExcluded && (
-          <span
-            title={cascadedExcluded ? "Excluded (parent excluded)" : "Excluded from reports"}
-            className="text-xs text-gray-500"
+        {cat.excluded_from_reports && (
+          <button
+            title="Excluded from reports — click to include again"
+            className="rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-300"
+            onClick={() => save.mutate({ ...cat, excluded_from_reports: false })}
           >
+            <EyeOff size={12} />
+          </button>
+        )}
+        {cascadedExcluded && (
+          <span title="Excluded because its parent category is excluded" className="text-xs text-gray-500">
             <EyeOff size={12} />
           </span>
         )}
