@@ -105,14 +105,14 @@ export function SegmentedToggle<T extends string | number>({
   options: { value: T; label: ReactNode; title?: string }[];
 }) {
   return (
-    <div className="flex rounded-lg bg-white/5 p-1 text-xs">
+    <div className="flex rounded-md border border-white/10 p-0.5 text-xs">
       {options.map((opt) => (
         <button
           key={String(opt.value)}
           type="button"
           title={opt.title}
           onClick={() => onChange(opt.value)}
-          className={`flex items-center justify-center rounded-md px-2.5 py-1.5 transition-colors ${
+          className={`flex items-center justify-center rounded-sm px-2.5 py-1.5 transition-colors ${
             value === opt.value ? "bg-lime-400 text-black" : "text-gray-400 hover:text-gray-200"
           }`}
         >
@@ -128,15 +128,16 @@ export function ColorDot({ color }: { color: string }) {
 }
 
 const BADGE_COLORS = {
-  gray: "bg-white/5 text-gray-400",
-  rose: "bg-rose-500/15 text-rose-300",
-  amber: "bg-amber-500/15 text-amber-300",
-  emerald: "bg-emerald-500/15 text-emerald-300",
-  sky: "bg-sky-500/15 text-sky-300",
-  lime: "bg-lime-400/15 text-lime-300",
+  gray: "border-white/15 text-gray-400",
+  rose: "border-rose-500/40 text-rose-300",
+  amber: "border-amber-500/40 text-amber-300",
+  emerald: "border-emerald-500/40 text-emerald-300",
+  sky: "border-sky-500/40 text-sky-300",
+  lime: "border-lime-400/40 text-lime-300",
 } as const;
 
-/** Small uppercase status/label pill — the one recipe every page used to hand-roll separately. */
+/** Small uppercase status/label tag — hairline border, no fill, mono type
+ * (the one recipe every page used to hand-roll separately, filled/rounded-full before Signal Room). */
 export function Badge({
   children,
   color = "gray",
@@ -151,7 +152,7 @@ export function Badge({
   return (
     <span
       title={title}
-      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${BADGE_COLORS[color]} ${className}`}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-0.5 font-mono text-[10px] tracking-wide uppercase ${BADGE_COLORS[color]} ${className}`}
     >
       {children}
     </span>

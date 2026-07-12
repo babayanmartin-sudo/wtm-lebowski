@@ -1,17 +1,26 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0a0b08;
-  --color-panel: #12130d;
-  --color-accent: #c6f135;
-  --color-accent-2: #8fd11a;
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* ---- Signal Room ----
+     Ops-console palette: graphite ground, amber reserved for the accent
+     (flags, primary actions, "current" emphasis) — not decoration. */
+  --color-bg: #0b0d0c;
+  --color-panel: #101312;
+  --color-line: #22302c;
+  --color-accent: #ffb545;
+  --color-accent-2: #ffcb7a;
+  --font-sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Menlo", "Consolas", monospace;
 
-  /* Brand accent is a custom lime, not Tailwind's stock lime-400 (#a3e635) —
-     override so every existing lime-400 utility (bg/text/border/ring) and
-     the ~15 hardcoded #c6f135 literals across the app resolve to the same
-     green instead of two visibly different shades of "lime". */
-  --color-lime-400: #c6f135;
+  /* Every existing lime-* utility (bg/text/border/ring) across the app —
+     and the accent literals that mirror it — now resolves through this
+     ramp instead of the old lime-green brand color, so the whole app
+     re-themes from these five lines. */
+  --color-lime-200: #ffe1ad;
+  --color-lime-300: #ffcb7a;
+  --color-lime-400: #ffb545;
+  --color-lime-500: #f59e0b;
+  --color-lime-600: #d97706;
 }
 
 html,
@@ -21,37 +30,34 @@ body,
 }
 
 body {
-  background: radial-gradient(1200px 800px at 80% -10%, rgba(198, 241, 53, 0.1), transparent 60%),
-    radial-gradient(900px 600px at -10% 110%, rgba(143, 209, 26, 0.08), transparent 55%),
-    var(--color-bg);
-  color: #e5e7eb;
+  background: var(--color-bg);
+  color: #dfe8e4;
   font-family: var(--font-sans);
 }
 
 @layer components {
   .glass {
-    background: rgba(255, 255, 255, 0.045);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(14px);
-    border-radius: 1rem;
+    background: var(--color-panel);
+    border: 1px solid var(--color-line);
+    border-radius: 0.5rem;
   }
 
   .glass-hover {
-    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    transition: border-color 0.2s, background 0.2s;
   }
   .glass-hover:hover {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 181, 69, 0.35);
   }
 
   .input {
-    @apply w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-lime-400/60 focus:bg-white/10;
+    @apply w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-lime-400/60 focus:bg-white/10;
   }
 
   .btn-primary,
   .btn-ghost,
   .btn-danger {
-    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
     @apply bg-lime-400 text-black hover:bg-lime-300;
@@ -76,7 +82,7 @@ body {
   background: transparent;
 }
 
-/* ---- mobile shell (lime-accent alt UI) ---- */
+/* ---- mobile shell (accent-driven alt UI) ---- */
 @keyframes mobileFadeSlide {
   from {
     opacity: 0;
