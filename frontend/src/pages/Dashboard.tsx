@@ -112,6 +112,7 @@ export default function DashboardPage() {
               mode={pickerMode}
               date={pickerDate}
               modes={ALL_MODES}
+              triggerClassName="h-9 w-56"
               onChange={(m, d) => {
                 setPickerMode(m);
                 setPickerDate(d);
@@ -128,13 +129,13 @@ export default function DashboardPage() {
           </div>
 
           {(zoomed || hasFilter) && (
-            <button className="btn-ghost px-3 py-1.5 text-xs" title="Back to current month, clear filters" onClick={resetView}>
+            <button className="btn-ghost h-9 px-3 text-xs" title="Back to current month, clear filters" onClick={resetView}>
               <RotateCcw size={13} /> Reset
             </button>
           )}
 
           <select
-            className="input w-40"
+            className="input h-9 w-40"
             value={accountId ?? ""}
             onChange={(e) => setAccountId(e.target.value === "" ? null : Number(e.target.value))}
           >
@@ -151,7 +152,7 @@ export default function DashboardPage() {
             value={categoryId}
             onChange={setCategoryId}
             emptyLabel="All categories"
-            className="input w-40"
+            className="input h-9 w-40"
           />
         </div>
       </div>

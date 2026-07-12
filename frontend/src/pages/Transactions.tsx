@@ -263,6 +263,7 @@ export default function TransactionsPage() {
                 mode={pickerMode}
                 date={pickerDate}
                 modes={ALL_MODES}
+                triggerClassName="h-9 w-56"
                 onChange={(m, d) => {
                   setPickerMode(m);
                   setPickerDate(d);
@@ -282,7 +283,7 @@ export default function TransactionsPage() {
             </div>
             {!isCurrentMonth && (
               <button
-                className="btn-ghost px-3 py-1.5 text-xs"
+                className="btn-ghost h-9 px-3 text-xs"
                 title="Back to current month"
                 onClick={() => {
                   resetPeriod();
@@ -318,12 +319,12 @@ export default function TransactionsPage() {
             value={bulkCategory}
             onChange={setBulkCategory}
             emptyLabel="Uncategorized"
-            className="input w-44"
+            className="input h-9 w-44"
             disabled={categoryBlocked}
             usage={categoryUsage}
           />
           <button
-            className="btn-ghost px-3 py-1.5 text-xs"
+            className="btn-ghost h-9 px-3 text-xs"
             onClick={applyBulkCategory}
             disabled={categoryBlocked}
             title={categoryBlocked ? "Select only Expense or only Income to set a category" : undefined}
@@ -331,7 +332,7 @@ export default function TransactionsPage() {
             Set category
           </button>
           <select
-            className="input w-40"
+            className="input h-9 w-40"
             value={bulkAccount}
             onChange={(e) => setBulkAccount(e.target.value === "" ? "" : Number(e.target.value))}
           >
@@ -342,11 +343,11 @@ export default function TransactionsPage() {
               </option>
             ))}
           </select>
-          <button className="btn-ghost px-3 py-1.5 text-xs" disabled={bulkAccount === ""} onClick={applyBulkAccount}>
+          <button className="btn-ghost h-9 px-3 text-xs" disabled={bulkAccount === ""} onClick={applyBulkAccount}>
             Set account
           </button>
           <select
-            className="input w-40"
+            className="input h-9 w-40"
             value={bulkKind}
             onChange={(e) => setBulkKind(e.target.value as "" | "expense" | "income")}
             title="Reclassify expense/income (e.g. after import mis-tagged a refund)"
@@ -355,10 +356,10 @@ export default function TransactionsPage() {
             <option value="expense">Expense</option>
             <option value="income">Income</option>
           </select>
-          <button className="btn-ghost px-3 py-1.5 text-xs" disabled={bulkKind === ""} onClick={applyBulkKind}>
+          <button className="btn-ghost h-9 px-3 text-xs" disabled={bulkKind === ""} onClick={applyBulkKind}>
             Set kind
           </button>
-          <button className="btn-danger px-3 py-1.5 text-xs" onClick={applyBulkDelete}>
+          <button className="btn-danger h-9 px-3 text-xs" onClick={applyBulkDelete}>
             <Trash2 size={13} /> Delete
           </button>
           <span className="flex-1" />
@@ -377,7 +378,7 @@ export default function TransactionsPage() {
           <div className="relative">
             <Search size={14} className="absolute top-2.5 left-2.5 text-gray-500" />
             <input
-              className="input w-52 pl-8"
+              className="input h-9 w-52 pl-8"
               placeholder="Search payee, note…"
               value={q}
               onChange={(e) => {
@@ -387,7 +388,7 @@ export default function TransactionsPage() {
             />
           </div>
           <select
-            className="input w-40"
+            className="input h-9 w-40"
             value={accountId}
             onChange={(e) => {
               setAccountId(e.target.value);
@@ -410,11 +411,11 @@ export default function TransactionsPage() {
             }}
             emptyLabel="All categories"
             uncategorizedOption
-            className="input w-48"
+            className="input h-9 w-48"
             usage={categoryUsage}
           />
           <select
-            className="input w-32"
+            className="input h-9 w-32"
             value={kind}
             onChange={(e) => {
               setKind(e.target.value);
@@ -428,7 +429,7 @@ export default function TransactionsPage() {
           </select>
           <div className="flex items-center gap-1">
             <select
-              className="input w-[5.5rem]"
+              className="input h-9 w-[5.5rem]"
               value={amountOp}
               onChange={(e) => {
                 setAmountOp(e.target.value as "" | "eq" | "gt" | "lt");
@@ -444,7 +445,7 @@ export default function TransactionsPage() {
               <input
                 type="number"
                 step="0.01"
-                className="input w-28"
+                className="input h-9 w-28"
                 placeholder="0.00"
                 value={amountValue}
                 onChange={(e) => {
