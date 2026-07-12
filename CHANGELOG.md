@@ -1,5 +1,35 @@
 # Changelog
 
+## v1.3.2 — 2026-07-13
+
+### UI consistency (#37)
+
+- Fixed chart tooltips rendering with a hardcoded gray theme that
+  clashed with the app's dark-glass UI.
+- Added the real sidebar logo, replacing the emoji placeholder.
+- Consolidated 4 stray near-black hex literals into the theme's
+  `--color-bg`/`--color-panel` tokens.
+- Fixed the brand accent being two different greens: Tailwind's stock
+  `lime-400` and the custom `#c6f135` were used interchangeably;
+  overrode the token so both resolve to the same color.
+- Normalized row-action icon sizes (13/14/15px → 14px) and header
+  "Add" icons (→16px) across Categories/Rules/Accounts/Templates.
+- Unified account avatar size/radius between list and card views.
+- Matched PeriodPicker's dropdown radius to CategorySelect's.
+- Added a shared `Badge` component, retrofitting 9 hand-rolled status
+  pills (Budgets, Rules, Accounts, Import) onto one consistent style.
+- Fixed mobile input fields silently drifting from desktop (hand-typed
+  recipe instead of the shared `.input` class) and a duplicated/
+  drifted color palette in the mobile account picker.
+- Added a shared `SuccessIcon`, deduplicating two different sizes used
+  for the same "operation succeeded" concept.
+- Unified the two different hover-to-reveal techniques for row action
+  buttons, and added a shared `SegmentedToggle` component replacing
+  two different "pick one of N" toggle styles.
+- Added column headers (Date/Payee/Category/Amount) to the
+  Transactions list, and fixed its selected-row highlight opacity to
+  match the rest of the app.
+
 ## v1.3.1 — 2026-07-12
 
 ### Bug fixes
