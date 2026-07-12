@@ -10,7 +10,7 @@ import {
   useInvalidating,
 } from "../api/hooks";
 import type { ImportDetail, ImportRow } from "../api/types";
-import { CategorySelect, Field, PageHeader } from "../components/ui";
+import { Badge, CategorySelect, Field, PageHeader } from "../components/ui";
 import { fmtMoney } from "../lib/format";
 
 const FIELDS: { key: string; label: string; hint: string }[] = [
@@ -326,20 +326,13 @@ export default function ImportPage() {
                       <span className="flex items-center gap-2">
                         <span className="truncate">{r.parsed_payee || r.parsed_note || "—"}</span>
                         {r.error && (
-                          <span
-                            title={r.error}
-                            className="flex shrink-0 items-center gap-1 rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] text-rose-300"
-                          >
+                          <Badge color="rose" title={r.error}>
                             <AlertTriangle size={10} /> {r.error}
-                          </span>
+                          </Badge>
                         )}
-                        {!r.error && r.ignored && (
-                          <span className="shrink-0 rounded-full bg-gray-500/20 px-1.5 py-0.5 text-[10px] text-gray-400">
-                            ignored
-                          </span>
-                        )}
+                        {!r.error && r.ignored && <Badge>ignored</Badge>}
                         {!r.error && !r.ignored && r.is_duplicate && (
-                          <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-300">
+                          <Badge color="amber">
                             duplicate
                             <button
                               title="Not a duplicate — import it anyway"
@@ -348,13 +341,9 @@ export default function ImportPage() {
                             >
                               <Undo2 size={11} />
                             </button>
-                          </span>
+                          </Badge>
                         )}
-                        {r.kind === "expense_return" && (
-                          <span className="shrink-0 rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[10px] text-sky-300">
-                            expense return
-                          </span>
-                        )}
+                        {r.kind === "expense_return" && <Badge color="sky">expense return</Badge>}
                       </span>
                     </td>
                     <td
@@ -377,16 +366,12 @@ export default function ImportPage() {
                             className="input w-44 py-1 text-xs"
                           />
                           {r.suggestion_confidence && r.category_id === r.suggested_category_id && (
-                            <span
+                            <Badge
+                              color={r.suggestion_confidence === "fuzzy" ? "amber" : "emerald"}
                               title={`Suggested via ${r.suggestion_confidence} match`}
-                              className={`rounded-full px-1.5 py-0.5 text-[10px] ${
-                                r.suggestion_confidence === "fuzzy"
-                                  ? "bg-amber-500/20 text-amber-300"
-                                  : "bg-emerald-500/20 text-emerald-300"
-                              }`}
                             >
                               {r.suggestion_confidence}
-                            </span>
+                            </Badge>
                           )}
                           {(r.parsed_amount ?? 0) > 0 && (
                             <button

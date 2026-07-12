@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { api } from "../api/client";
 import { useCategories, useIgnoreRules, useInvalidating, useRules } from "../api/hooks";
-import { CategorySelect, ColorDot, EmptyState, Field, Modal, PageHeader } from "../components/ui";
+import { Badge, CategorySelect, ColorDot, EmptyState, Field, Modal, PageHeader } from "../components/ui";
 import { useSessionState } from "../lib/session";
 
 interface Draft {
@@ -126,15 +126,7 @@ export default function RulesPage() {
                     <td className="px-4 py-2 font-mono text-xs">{r.pattern}</td>
                     <td className="px-4 py-2 text-xs text-gray-300">{r.alias || "—"}</td>
                     <td className="px-4 py-2">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide ${
-                          r.match_kind === "exact"
-                            ? "bg-emerald-500/15 text-emerald-300"
-                            : "bg-sky-500/15 text-sky-300"
-                        }`}
-                      >
-                        {r.match_kind}
-                      </span>
+                      <Badge color={r.match_kind === "exact" ? "emerald" : "sky"}>{r.match_kind}</Badge>
                     </td>
                     <td className="px-4 py-2">
                       <span className="flex items-center gap-1.5">
@@ -276,15 +268,7 @@ export default function RulesPage() {
                     </span>
                   </td>
                   <td className="px-4 py-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide ${
-                        r.match_kind === "exact"
-                          ? "bg-emerald-500/15 text-emerald-300"
-                          : "bg-sky-500/15 text-sky-300"
-                      }`}
-                    >
-                      {r.match_kind}
-                    </span>
+                    <Badge color={r.match_kind === "exact" ? "emerald" : "sky"}>{r.match_kind}</Badge>
                   </td>
                   <td className="px-4 py-2 text-right tabular-nums text-gray-400">{r.hit_count}</td>
                   <td className="px-4 py-2">

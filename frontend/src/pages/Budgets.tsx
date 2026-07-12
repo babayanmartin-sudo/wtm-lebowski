@@ -14,7 +14,7 @@ import { api } from "../api/client";
 import { useBudgets, useBudgetStatus, useCategories, useInvalidating, useProjection } from "../api/hooks";
 import type { BudgetPeriod } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import { CategorySelect, ColorDot, EmptyState, Field, Modal, PageHeader, ProgressBar } from "../components/ui";
+import { Badge, CategorySelect, ColorDot, EmptyState, Field, Modal, PageHeader, ProgressBar } from "../components/ui";
 import { chartTooltipProps } from "../lib/charts";
 import { fmtMoney, fmtMonth } from "../lib/format";
 import { toISO } from "../lib/period";
@@ -204,14 +204,8 @@ export default function BudgetsPage() {
                   <span className="flex items-center gap-2 font-medium">
                     {cat && <ColorDot color={cat.color} />}
                     {cat?.name ?? "?"}
-                    <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-wide text-gray-400">
-                      {b.period}
-                    </span>
-                    {ratio >= 1 && (
-                      <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-xs text-rose-300">
-                        over budget
-                      </span>
-                    )}
+                    <Badge>{b.period}</Badge>
+                    {ratio >= 1 && <Badge color="rose">over budget</Badge>}
                   </span>
                   <div className="flex gap-1">
                     <button

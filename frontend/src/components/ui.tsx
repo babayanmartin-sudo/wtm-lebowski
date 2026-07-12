@@ -86,6 +86,37 @@ export function ColorDot({ color }: { color: string }) {
   return <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />;
 }
 
+const BADGE_COLORS = {
+  gray: "bg-white/5 text-gray-400",
+  rose: "bg-rose-500/15 text-rose-300",
+  amber: "bg-amber-500/15 text-amber-300",
+  emerald: "bg-emerald-500/15 text-emerald-300",
+  sky: "bg-sky-500/15 text-sky-300",
+  lime: "bg-lime-400/15 text-lime-300",
+} as const;
+
+/** Small uppercase status/label pill — the one recipe every page used to hand-roll separately. */
+export function Badge({
+  children,
+  color = "gray",
+  className = "",
+  title,
+}: {
+  children: ReactNode;
+  color?: keyof typeof BADGE_COLORS;
+  className?: string;
+  title?: string;
+}) {
+  return (
+    <span
+      title={title}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${BADGE_COLORS[color]} ${className}`}
+    >
+      {children}
+    </span>
+  );
+}
+
 /** Select with top-level categories as optgroups and children indented. */
 /** Sentinel id for the "Uncategorized" filter option — no real category uses a negative id. */
 export const UNCATEGORIZED_ID = -1;

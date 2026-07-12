@@ -21,7 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useInvalidating } from "../api/hooks";
 import type { Account, Transaction } from "../api/types";
-import { ColorPicker, Field, Modal, PageHeader } from "../components/ui";
+import { Badge, ColorPicker, Field, Modal, PageHeader } from "../components/ui";
 import RateTicker from "../components/RateTicker";
 import { fmtMoney } from "../lib/format";
 import { ACCOUNT_ICON_KEYS, getAccountIcon } from "../lib/icons";
@@ -462,16 +462,8 @@ function AccountItemBody({
 
   const badges = (
     <>
-      {acc.is_main && (
-        <span className="rounded-full bg-lime-400/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-lime-300 uppercase">
-          Main
-        </span>
-      )}
-      {acc.exclude_from_net_worth && (
-        <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-300 uppercase">
-          Excluded
-        </span>
-      )}
+      {acc.is_main && <Badge color="lime">Main</Badge>}
+      {acc.exclude_from_net_worth && <Badge color="amber">Excluded</Badge>}
     </>
   );
 
