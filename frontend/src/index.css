@@ -6,6 +6,12 @@
   --color-accent: #c6f135;
   --color-accent-2: #8fd11a;
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Brand accent is a custom lime, not Tailwind's stock lime-400 (#a3e635) —
+     override so every existing lime-400 utility (bg/text/border/ring) and
+     the ~15 hardcoded #c6f135 literals across the app resolve to the same
+     green instead of two visibly different shades of "lime". */
+  --color-lime-400: #c6f135;
 }
 
 html,
