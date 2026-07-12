@@ -149,13 +149,13 @@ export default function RulesPage() {
                           className="rounded p-1 text-gray-400 hover:bg-white/10"
                           onClick={() => setDraft({ ...r })}
                         >
-                          <Pencil size={13} />
+                          <Pencil size={14} />
                         </button>
                         <button
                           className="rounded p-1 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
                           onClick={() => remove.mutate(r.id)}
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -293,13 +293,13 @@ export default function RulesPage() {
                         className="rounded p-1 text-gray-400 hover:bg-white/10"
                         onClick={() => setIdraft({ ...r })}
                       >
-                        <Pencil size={13} />
+                        <Pencil size={14} />
                       </button>
                       <button
                         className="rounded p-1 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
                         onClick={() => iremove.mutate(r.id)}
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </td>

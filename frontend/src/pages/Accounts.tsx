@@ -384,7 +384,7 @@ export default function AccountsPage() {
                 onClick={submitReconcile}
                 disabled={actualBalance === "" || Number.isNaN(parseFloat(actualBalance))}
               >
-                <Scale size={15} /> Reconcile
+                <Scale size={14} /> Reconcile
               </button>
             </div>
           )}
@@ -432,30 +432,30 @@ function AccountItemBody({
         title={acc.is_main ? "This is your main account" : "Set as main account"}
         onClick={onSetMain}
       >
-        <Star size={15} fill={acc.is_main ? "currentColor" : "none"} />
+        <Star size={14} fill={acc.is_main ? "currentColor" : "none"} />
       </button>
       <button
         className={`rounded-lg p-1.5 hover:bg-white/10 ${acc.exclude_from_net_worth ? "text-amber-300" : "text-gray-400"}`}
         title={acc.exclude_from_net_worth ? "Excluded from net worth — click to include" : "Exclude from net worth"}
         onClick={onToggleNetWorth}
       >
-        {acc.exclude_from_net_worth ? <EyeOff size={15} /> : <Eye size={15} />}
+        {acc.exclude_from_net_worth ? <EyeOff size={14} /> : <Eye size={14} />}
       </button>
       <button className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10" title="Reconcile balance" onClick={onReconcile}>
-        <Scale size={15} />
+        <Scale size={14} />
       </button>
       <button className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10" onClick={onEdit}>
-        <Pencil size={15} />
+        <Pencil size={14} />
       </button>
       <button
         className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
         title={acc.archived ? "Unarchive" : "Archive"}
         onClick={onArchive}
       >
-        <Archive size={15} />
+        <Archive size={14} />
       </button>
       <button className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300" onClick={onDelete}>
-        <Trash2 size={15} />
+        <Trash2 size={14} />
       </button>
     </div>
   );

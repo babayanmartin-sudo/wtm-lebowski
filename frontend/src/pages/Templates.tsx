@@ -177,13 +177,13 @@ export default function TemplatesPage() {
                   </>
                 )}
                 <button className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10" onClick={() => edit(t)}>
-                  <Pencil size={15} />
+                  <Pencil size={14} />
                 </button>
                 <button
                   className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
                   onClick={() => remove.mutate(t.id)}
                 >
-                  <Trash2 size={15} />
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>

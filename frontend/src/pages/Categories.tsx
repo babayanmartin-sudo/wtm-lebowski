@@ -96,7 +96,7 @@ export default function CategoriesPage() {
             className="btn-ghost px-2 py-1 text-xs"
             onClick={() => setDraft({ ...empty, kind })}
           >
-            <Plus size={13} /> Add
+            <Plus size={16} /> Add
           </button>
         </div>
         <div className="flex flex-col">
@@ -136,12 +136,12 @@ export default function CategoriesPage() {
             className="rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-300"
             onClick={() => save.mutate({ ...cat, excluded_from_reports: false })}
           >
-            <EyeOff size={12} />
+            <EyeOff size={14} />
           </button>
         )}
         {cascadedExcluded && (
           <span title="Excluded because its parent category is excluded" className="text-xs text-gray-500">
-            <EyeOff size={12} />
+            <EyeOff size={14} />
           </span>
         )}
         <div className="hidden gap-1 group-hover:flex">
@@ -150,7 +150,7 @@ export default function CategoriesPage() {
             className="rounded p-1 text-gray-400 hover:bg-white/10"
             onClick={() => setDrillCat(cat)}
           >
-            <BarChart3 size={13} />
+            <BarChart3 size={14} />
           </button>
           {!child && (
             <button
@@ -158,7 +158,7 @@ export default function CategoriesPage() {
               className="rounded p-1 text-gray-400 hover:bg-white/10"
               onClick={() => setDraft({ ...empty, kind: cat.kind, parent_id: cat.id, color: cat.color })}
             >
-              <Plus size={13} />
+              <Plus size={14} />
             </button>
           )}
           <button
@@ -166,26 +166,26 @@ export default function CategoriesPage() {
             className="rounded p-1 text-gray-400 hover:bg-white/10"
             onClick={() => save.mutate({ ...cat, excluded_from_reports: !cat.excluded_from_reports })}
           >
-            {cat.excluded_from_reports ? <EyeOff size={13} /> : <Eye size={13} />}
+            {cat.excluded_from_reports ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>
           <button
             className="rounded p-1 text-gray-400 hover:bg-white/10"
             onClick={() => setDraft({ ...cat })}
           >
-            <Pencil size={13} />
+            <Pencil size={14} />
           </button>
           <button
             title={cat.archived ? "Unarchive" : "Archive"}
             className="rounded p-1 text-gray-400 hover:bg-white/10"
             onClick={() => save.mutate({ ...cat, archived: !cat.archived })}
           >
-            <Archive size={13} />
+            <Archive size={14} />
           </button>
           <button
             className="rounded p-1 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
             onClick={() => del(cat)}
           >
-            <Trash2 size={13} />
+            <Trash2 size={14} />
           </button>
         </div>
       </div>
