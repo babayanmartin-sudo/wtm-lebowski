@@ -146,7 +146,7 @@ export default function MobileAccounts() {
           className="m-sheet-backdrop fixed inset-0 z-30 flex items-end bg-black/60"
           onMouseDown={(e) => e.target === e.currentTarget && setDraft(null)}
         >
-          <div className="m-sheet w-full rounded-t-3xl border-t border-white/10 bg-[#111309] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)]">
+          <div className="m-sheet w-full rounded-t-3xl border-t border-white/10 bg-[var(--color-panel)] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)]">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-base font-semibold">{draft.id ? "Edit account" : "New account"}</h2>
               <button onClick={() => setDraft(null)} className="rounded-full p-1.5 text-gray-400 hover:bg-white/10">

@@ -43,14 +43,14 @@ export default function MobileShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-[#0a0b08] text-white">
+    <div className="flex h-full flex-col bg-[var(--color-bg)] text-white">
       <main className="min-h-0 flex-1 overflow-y-auto pb-24">
         <div key={location.pathname} className="m-page-transition">
           {children}
         </div>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-around border-t border-white/5 bg-[#111309]/95 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] backdrop-blur-lg">
+      <nav className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-around border-t border-white/5 bg-[var(--color-panel)]/95 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] backdrop-blur-lg">
         <TabButton
           icon={LayoutDashboard}
           label="Home"
@@ -77,7 +77,7 @@ export default function MobileShell({ children }: { children: ReactNode }) {
           className="m-sheet-backdrop fixed inset-0 z-30 flex items-end bg-black/60"
           onMouseDown={(e) => e.target === e.currentTarget && setMenuOpen(false)}
         >
-          <div className="m-sheet w-full rounded-t-3xl border-t border-white/10 bg-[#111309] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)]">
+          <div className="m-sheet w-full rounded-t-3xl border-t border-white/10 bg-[var(--color-panel)] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)]">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-base font-semibold">Menu</h2>
               <button

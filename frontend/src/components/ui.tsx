@@ -183,7 +183,7 @@ export function CategorySelect({
         <ChevronDown size={14} className="shrink-0 text-gray-500" />
       </button>
       {open && (
-        <div className="absolute z-20 mt-1 max-h-72 w-full min-w-[14rem] overflow-hidden rounded-xl border border-white/10 bg-[#12130d] shadow-xl">
+        <div className="absolute z-20 mt-1 max-h-72 w-full min-w-[14rem] overflow-hidden rounded-xl border border-white/10 bg-[var(--color-panel)] shadow-xl">
           <div className="flex items-center gap-2 border-b border-white/10 px-2 py-1.5">
             <Search size={13} className="shrink-0 text-gray-500" />
             <input

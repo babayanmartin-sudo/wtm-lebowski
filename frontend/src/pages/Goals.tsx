@@ -138,7 +138,7 @@ export default function GoalsPage() {
                         background: `conic-gradient(${g.color} ${deg}deg, rgba(255,255,255,0.08) ${deg}deg)`,
                       }}
                     >
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#12151f] text-xs font-semibold">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-panel)] text-xs font-semibold">
                         {Math.round(ratio * 100)}%
                       </div>
                     </div>
@@ -296,7 +296,7 @@ export default function GoalsPage() {
                         background: `conic-gradient(${l.color} ${deg}deg, rgba(255,255,255,0.08) ${deg}deg)`,
                       }}
                     >
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#12151f] text-xs font-semibold">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-panel)] text-xs font-semibold">
                         {Math.round(ratio * 100)}%
                       </div>
                     </div>
