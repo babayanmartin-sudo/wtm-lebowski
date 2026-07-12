@@ -20,7 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useInvalidating } from "../api/hooks";
 import type { Account, Transaction } from "../api/types";
-import { Badge, ColorPicker, Field, Modal, PageHeader, SuccessIcon } from "../components/ui";
+import { Badge, ColorPicker, Field, Modal, PageHeader, SegmentedToggle, SuccessIcon } from "../components/ui";
 import RateTicker from "../components/RateTicker";
 import { fmtMoney } from "../lib/format";
 import { ACCOUNT_ICON_KEYS, getAccountIcon } from "../lib/icons";
@@ -173,22 +173,14 @@ export default function AccountsPage() {
         subtitle="Cash, banks and cards"
         actions={
           <div className="flex items-center gap-2">
-            <div className="flex rounded-lg border border-white/10 p-0.5">
-              <button
-                className={`rounded-md p-1.5 ${viewMode === "card" ? "bg-white/10 text-lime-300" : "text-gray-500"}`}
-                title="Card view"
-                onClick={() => setView("card")}
-              >
-                <LayoutGrid size={15} />
-              </button>
-              <button
-                className={`rounded-md p-1.5 ${viewMode === "list" ? "bg-white/10 text-lime-300" : "text-gray-500"}`}
-                title="List view"
-                onClick={() => setView("list")}
-              >
-                <List size={15} />
-              </button>
-            </div>
+            <SegmentedToggle
+              value={viewMode}
+              onChange={setView}
+              options={[
+                { value: "card", label: <LayoutGrid size={15} />, title: "Card view" },
+                { value: "list", label: <List size={15} />, title: "List view" },
+              ]}
+            />
             <button className="btn-primary" onClick={() => setDraft({ ...empty })}>
               <Plus size={16} /> Add account
             </button>

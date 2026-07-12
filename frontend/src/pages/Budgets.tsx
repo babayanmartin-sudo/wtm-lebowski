@@ -14,7 +14,17 @@ import { api } from "../api/client";
 import { useBudgets, useBudgetStatus, useCategories, useInvalidating, useProjection } from "../api/hooks";
 import type { BudgetPeriod } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import { Badge, CategorySelect, ColorDot, EmptyState, Field, Modal, PageHeader, ProgressBar } from "../components/ui";
+import {
+  Badge,
+  CategorySelect,
+  ColorDot,
+  EmptyState,
+  Field,
+  Modal,
+  PageHeader,
+  ProgressBar,
+  SegmentedToggle,
+} from "../components/ui";
 import { chartTooltipProps } from "../lib/charts";
 import { fmtMoney, fmtMonth } from "../lib/format";
 import { toISO } from "../lib/period";
@@ -125,19 +135,11 @@ export default function BudgetsPage() {
               from recurring transactions + budgets
             </span>
           </h2>
-          <div className="flex rounded-lg bg-white/5 p-1 text-xs">
-            {[6, 12, 24].map((m) => (
-              <button
-                key={m}
-                onClick={() => setForecastMonths(m)}
-                className={`rounded-md px-2.5 py-1 transition-colors ${
-                  forecastMonths === m ? "bg-lime-400 text-black" : "text-gray-400 hover:text-gray-200"
-                }`}
-              >
-                {m}m
-              </button>
-            ))}
-          </div>
+          <SegmentedToggle
+            value={forecastMonths}
+            onChange={setForecastMonths}
+            options={[6, 12, 24].map((m) => ({ value: m, label: `${m}m` }))}
+          />
         </div>
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={forecast?.points ?? []}>

@@ -92,6 +92,37 @@ export function SuccessIcon() {
   );
 }
 
+/** "Pick one of N" pill toggle — was implemented two different ways
+ * (outline+tint active state vs. solid-fill active state) across pages.
+ * Standardized on the solid-fill treatment. */
+export function SegmentedToggle<T extends string | number>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: ReactNode; title?: string }[];
+}) {
+  return (
+    <div className="flex rounded-lg bg-white/5 p-1 text-xs">
+      {options.map((opt) => (
+        <button
+          key={String(opt.value)}
+          type="button"
+          title={opt.title}
+          onClick={() => onChange(opt.value)}
+          className={`flex items-center justify-center rounded-md px-2.5 py-1.5 transition-colors ${
+            value === opt.value ? "bg-lime-400 text-black" : "text-gray-400 hover:text-gray-200"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function ColorDot({ color }: { color: string }) {
   return <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />;
 }
