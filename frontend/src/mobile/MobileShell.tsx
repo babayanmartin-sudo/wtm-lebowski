@@ -50,7 +50,7 @@ export default function MobileShell({ children }: { children: ReactNode }) {
         </div>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-around border-t border-white/5 bg-[var(--color-panel)]/95 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] backdrop-blur-lg">
+      <nav className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-around border-t border-[var(--color-line)] bg-[var(--color-panel)] px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)]">
         <TabButton
           icon={LayoutDashboard}
           label="Home"
@@ -77,12 +77,12 @@ export default function MobileShell({ children }: { children: ReactNode }) {
           className="m-sheet-backdrop fixed inset-0 z-30 flex items-end bg-black/60"
           onMouseDown={(e) => e.target === e.currentTarget && setMenuOpen(false)}
         >
-          <div className="m-sheet w-full rounded-t-3xl border-t border-white/10 bg-[var(--color-panel)] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)]">
+          <div className="m-sheet w-full rounded-t-xl border-t border-[var(--color-line)] bg-[var(--color-panel)] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)]">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-base font-semibold">Menu</h2>
               <button
                 onClick={() => setMenuOpen(false)}
-                className="rounded-full p-1.5 text-gray-400 hover:bg-white/10"
+                className="rounded-md p-1.5 text-gray-400 hover:bg-white/10"
               >
                 <X size={18} />
               </button>
@@ -95,7 +95,7 @@ export default function MobileShell({ children }: { children: ReactNode }) {
                     navigate(to);
                     setMenuOpen(false);
                   }}
-                  className="flex flex-col items-center gap-2 rounded-2xl bg-white/5 px-2 py-4 text-center transition-colors active:bg-[#ffb545]/10"
+                  className="flex flex-col items-center gap-2 rounded-md border border-white/10 bg-white/5 px-2 py-4 text-center transition-colors active:bg-[#ffb545]/10"
                 >
                   <Icon size={20} className="text-[#ffb545]" />
                   <span className="line-clamp-2 text-xs leading-tight text-gray-300">{label}</span>
@@ -104,7 +104,7 @@ export default function MobileShell({ children }: { children: ReactNode }) {
             </div>
             <button
               onClick={logout}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-white/5 py-3 text-sm text-gray-300 active:bg-white/10"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-white/5 py-3 text-sm text-gray-300 active:bg-white/10"
             >
               <LogOut size={15} /> Lock
             </button>
