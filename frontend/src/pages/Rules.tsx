@@ -136,7 +136,7 @@ export default function RulesPage() {
                     </td>
                     <td className="px-4 py-2 text-right tabular-nums text-gray-400">{r.hit_count}</td>
                     <td className="px-4 py-2">
-                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100">
+                      <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                         <button
                           className="rounded p-1 text-gray-400 hover:bg-white/10"
                           onClick={() => setDraft({ ...r })}
@@ -272,7 +272,7 @@ export default function RulesPage() {
                   </td>
                   <td className="px-4 py-2 text-right tabular-nums text-gray-400">{r.hit_count}</td>
                   <td className="px-4 py-2">
-                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100">
+                    <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                       <button
                         className="rounded p-1 text-gray-400 hover:bg-white/10"
                         onClick={() => setIdraft({ ...r })}

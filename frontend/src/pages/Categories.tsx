@@ -144,7 +144,7 @@ export default function CategoriesPage() {
             <EyeOff size={14} />
           </span>
         )}
-        <div className="hidden gap-1 group-hover:flex">
+        <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           <button
             title="Drill down"
             className="rounded p-1 text-gray-400 hover:bg-white/10"
