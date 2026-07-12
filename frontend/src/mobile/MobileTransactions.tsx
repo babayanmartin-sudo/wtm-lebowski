@@ -142,7 +142,7 @@ export default function MobileTransactions() {
       <div className="relative">
         <Search size={15} className="absolute top-3 left-3 text-gray-500" />
         <input
-          className="w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 pr-3 pl-9 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-[#c6f135]/50"
+          className="input pl-9"
           placeholder="Search payee, note…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -151,7 +151,7 @@ export default function MobileTransactions() {
 
       <button
         onClick={() => setShowFilters((v) => !v)}
-        className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-gray-300"
+        className="input flex items-center justify-between text-gray-300"
       >
         Filters{hasActiveFilter ? " (active)" : ""}
         <span className="text-xs text-gray-500">{showFilters ? "Hide" : "Show"}</span>
@@ -160,7 +160,7 @@ export default function MobileTransactions() {
       {showFilters && (
         <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/5 p-3">
           <select
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-gray-100 outline-none"
+            className="input"
             value={accountId}
             onChange={(e) => setAccountId(e.target.value)}
           >
@@ -177,10 +177,10 @@ export default function MobileTransactions() {
             onChange={setCategoryId}
             emptyLabel="All categories"
             uncategorizedOption
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-gray-100 outline-none"
+            className="input"
           />
           <select
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-gray-100 outline-none"
+            className="input"
             value={kind}
             onChange={(e) => setKind(e.target.value)}
           >
@@ -191,7 +191,7 @@ export default function MobileTransactions() {
           </select>
           <div className="flex items-center gap-2">
             <select
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-gray-100 outline-none"
+              className="input"
               value={amountOp}
               onChange={(e) => setAmountOp(e.target.value as "" | "eq" | "gt" | "lt")}
             >
@@ -204,7 +204,7 @@ export default function MobileTransactions() {
               <input
                 type="number"
                 step="0.01"
-                className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-gray-100 outline-none"
+                className="input min-w-0 flex-1"
                 placeholder="0.00"
                 value={amountValue}
                 onChange={(e) => setAmountValue(e.target.value)}

@@ -7,12 +7,12 @@ import { type CSSProperties, type ReactNode, useState } from "react";
 import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useInvalidating } from "../api/hooks";
 import type { Account } from "../api/types";
+import { PALETTE } from "../components/ui";
 import { fmtMoney } from "../lib/format";
 import { ACCOUNT_ICON_KEYS, getAccountIcon } from "../lib/icons";
 
 const TYPES = ["cash", "bank", "card", "savings"];
 const CURRENCIES = ["AED", "USD", "EUR", "RUB", "AMD", "GBP", "CHF", "TRY", "GEL", "RSD"];
-const PALETTE = ["#c6f135", "#6366f1", "#22d3ee", "#f472b6", "#fb923c", "#34d399", "#f43f5e", "#a78bfa"];
 
 interface Draft {
   id?: number;
@@ -155,7 +155,7 @@ export default function MobileAccounts() {
             </div>
             <div className="flex flex-col gap-3">
               <input
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm outline-none focus:border-[#c6f135]/50"
+                className="input"
                 placeholder="Account name"
                 value={draft.name}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
@@ -163,7 +163,7 @@ export default function MobileAccounts() {
               />
               <div className="grid grid-cols-2 gap-3">
                 <select
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm outline-none"
+                  className="input"
                   value={draft.type}
                   onChange={(e) => setDraft({ ...draft, type: e.target.value })}
                 >
@@ -174,7 +174,7 @@ export default function MobileAccounts() {
                   ))}
                 </select>
                 <select
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm outline-none"
+                  className="input"
                   value={draft.currency}
                   onChange={(e) => setDraft({ ...draft, currency: e.target.value })}
                 >
@@ -188,7 +188,7 @@ export default function MobileAccounts() {
               <input
                 type="text"
                 inputMode="decimal"
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm outline-none"
+                className="input"
                 placeholder="Initial balance"
                 value={draft.initial_balance}
                 onChange={(e) => setDraft({ ...draft, initial_balance: e.target.value.replace(/,/g, ".") })}
