@@ -25,7 +25,7 @@ import {
   ProgressBar,
   SegmentedToggle,
 } from "../components/ui";
-import { chartTooltipProps } from "../lib/charts";
+import { CHART_COLORS, chartTooltipProps } from "../lib/charts";
 import { fmtMoney, fmtMonth } from "../lib/format";
 import { toISO } from "../lib/period";
 import { useSessionState } from "../lib/session";
@@ -145,20 +145,20 @@ export default function BudgetsPage() {
           <AreaChart data={forecast?.points ?? []}>
             <defs>
               <linearGradient id="nwGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#c6f135" stopOpacity={0.5} />
-                <stop offset="100%" stopColor="#c6f135" stopOpacity={0.02} />
+                <stop offset="0%" stopColor={CHART_COLORS.accent} stopOpacity={0.5} />
+                <stop offset="100%" stopColor={CHART_COLORS.accent} stopOpacity={0.02} />
               </linearGradient>
             </defs>
             <XAxis
               dataKey="month"
               tickFormatter={fmtMonth}
-              stroke="#4b5563"
+              stroke={CHART_COLORS.axis}
               fontSize={11}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
-              stroke="#4b5563"
+              stroke={CHART_COLORS.axis}
               fontSize={11}
               tickLine={false}
               axisLine={false}
@@ -174,17 +174,23 @@ export default function BudgetsPage() {
             {forecast && (
               <ReferenceLine
                 y={forecast.current_net_worth}
-                stroke="#64748b"
+                stroke={CHART_COLORS.axis}
                 strokeDasharray="4 4"
                 label={{
                   value: "today",
                   position: "insideTopRight",
-                  fill: "#64748b",
+                  fill: CHART_COLORS.axis,
                   fontSize: 10,
                 }}
               />
             )}
-            <Area type="monotone" dataKey="net_worth" stroke="#c6f135" strokeWidth={2} fill="url(#nwGradient)" />
+            <Area
+              type="monotone"
+              dataKey="net_worth"
+              stroke={CHART_COLORS.accent}
+              strokeWidth={2}
+              fill="url(#nwGradient)"
+            />
           </AreaChart>
         </ResponsiveContainer>
       </div>

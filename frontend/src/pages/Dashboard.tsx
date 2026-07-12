@@ -15,7 +15,7 @@ import { useAccounts, useBudgetStatus, useCategories, useDashboard } from "../ap
 import type { CategoryTotal } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ColorDot, ProgressBar } from "../components/ui";
-import { chartTooltipProps } from "../lib/charts";
+import { CHART_COLORS, chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
 import { useSessionState } from "../lib/session";
 import {
@@ -247,20 +247,20 @@ export default function DashboardPage() {
             <XAxis
               dataKey="label"
               tickFormatter={(v) => bucketLabel(v, granularityData)}
-              stroke="#4b5563"
+              stroke={CHART_COLORS.axis}
               fontSize={11}
               tickLine={false}
               axisLine={false}
             />
-            <YAxis stroke="#4b5563" fontSize={11} tickLine={false} axisLine={false} width={50} />
+            <YAxis stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} width={50} />
             <Tooltip
               cursor={{ fill: "rgba(255,255,255,0.04)" }}
               {...chartTooltipProps}
               formatter={(v, name) => [v, name]}
               labelFormatter={(v) => bucketLabel(String(v), granularityData)}
             />
-            <Bar dataKey="income" fill="#34d399" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="expense" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="income" fill={CHART_COLORS.income} radius={[2, 2, 0, 0]} />
+            <Bar dataKey="expense" fill={CHART_COLORS.expense} radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
