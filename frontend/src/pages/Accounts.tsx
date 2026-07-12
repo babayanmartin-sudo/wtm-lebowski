@@ -485,10 +485,10 @@ function AccountItemBody({
         className={`glass glass-hover flex cursor-pointer items-center gap-3 p-3 ${acc.archived ? "opacity-50" : ""}`}
       >
         <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white"
           style={{ background: acc.color }}
         >
-          <Icon size={16} />
+          <Icon size={18} />
         </div>
         <div className="min-w-0 flex-1">
           <p className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
