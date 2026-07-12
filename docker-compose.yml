@@ -1,6 +1,9 @@
 services:
   wtm-lebowski:
-    build: .
+    build:
+      context: .
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
     container_name: wtm-lebowski
     ports:
       - "8000:8000"

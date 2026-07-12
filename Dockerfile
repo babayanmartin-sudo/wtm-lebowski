@@ -14,8 +14,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/app ./app
 COPY --from=frontend /build/dist ./static
 
+ARG APP_VERSION=dev
 ENV ET_DATA_DIR=/data \
-    ET_STATIC_DIR=/app/static
+    ET_STATIC_DIR=/app/static \
+    ET_APP_VERSION=${APP_VERSION}
 RUN useradd --system --create-home --uid 1000 appuser \
     && mkdir -p /data \
     && chown -R appuser:appuser /app /data
