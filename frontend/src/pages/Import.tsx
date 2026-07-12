@@ -10,7 +10,7 @@ import {
   useInvalidating,
 } from "../api/hooks";
 import type { ImportDetail, ImportRow } from "../api/types";
-import { Badge, CategorySelect, Field, PageHeader } from "../components/ui";
+import { Badge, CategorySelect, Field, PageHeader, SuccessIcon } from "../components/ui";
 import { fmtMoney } from "../lib/format";
 
 const FIELDS: { key: string; label: string; hint: string }[] = [
@@ -414,9 +414,7 @@ export default function ImportPage() {
       {/* Done */}
       {imp && imp.status === "done" && (
         <div className="glass flex flex-col items-center gap-4 p-12">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300">
-            <Check size={26} />
-          </div>
+          <SuccessIcon />
           <p className="text-sm text-gray-300">
             Imported into <span className="font-medium text-white">{account?.name}</span>. The matcher
             learned from your corrections.

@@ -3,7 +3,6 @@ import { SortableContext, rectSortingStrategy, useSortable, verticalListSortingS
 import { CSS } from "@dnd-kit/utilities";
 import {
   Archive,
-  Check,
   Eye,
   EyeOff,
   GripVertical,
@@ -21,7 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useInvalidating } from "../api/hooks";
 import type { Account, Transaction } from "../api/types";
-import { Badge, ColorPicker, Field, Modal, PageHeader } from "../components/ui";
+import { Badge, ColorPicker, Field, Modal, PageHeader, SuccessIcon } from "../components/ui";
 import RateTicker from "../components/RateTicker";
 import { fmtMoney } from "../lib/format";
 import { ACCOUNT_ICON_KEYS, getAccountIcon } from "../lib/icons";
@@ -337,9 +336,7 @@ export default function AccountsPage() {
         <Modal title={`Reconcile “${reconciling.name}”`} onClose={() => setReconciling(null)}>
           {reconcileDone !== null ? (
             <div className="flex flex-col items-center gap-3 py-4 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300">
-                <Check size={22} />
-              </div>
+              <SuccessIcon />
               {reconcileDone === "noop" ? (
                 <p className="text-sm text-gray-300">Already matched — no adjustment needed.</p>
               ) : (

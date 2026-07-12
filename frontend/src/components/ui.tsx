@@ -82,6 +82,16 @@ export function ProgressBar({ value, color }: { value: number; color?: string })
   );
 }
 
+/** Success-state icon circle — was duplicated at two different sizes
+ * (h-12/icon-22 vs h-14/icon-26) for the same "operation succeeded" concept. */
+export function SuccessIcon() {
+  return (
+    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300">
+      <Check size={22} />
+    </div>
+  );
+}
+
 export function ColorDot({ color }: { color: string }) {
   return <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />;
 }
