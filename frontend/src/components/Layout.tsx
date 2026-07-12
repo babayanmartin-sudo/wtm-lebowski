@@ -19,6 +19,7 @@ import { NavLink } from "react-router-dom";
 
 import { api } from "../api/client";
 import { useVersion } from "../api/hooks";
+import logo from "../assets/lebowski.png";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -60,9 +61,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         }`}
       >
         <div className={`mb-6 flex items-center pt-2 ${collapsed ? "justify-center" : "gap-2 px-2"}`}>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-lime-400 to-lime-600 text-sm font-bold text-black">
-            🕶️
-          </div>
+          <img src={logo} alt="" className="h-8 w-8 shrink-0 rounded-lg object-cover" />
           {!collapsed && (
             <span className="text-xs leading-tight font-semibold tracking-tight">
               Where's the Money,

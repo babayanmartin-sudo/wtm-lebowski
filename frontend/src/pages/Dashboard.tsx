@@ -15,6 +15,7 @@ import { useAccounts, useBudgetStatus, useCategories, useDashboard } from "../ap
 import type { CategoryTotal } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ColorDot, ProgressBar } from "../components/ui";
+import { chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
 import { useSessionState } from "../lib/session";
 import {
@@ -254,17 +255,7 @@ export default function DashboardPage() {
             <YAxis stroke="#4b5563" fontSize={11} tickLine={false} axisLine={false} width={50} />
             <Tooltip
               cursor={{ fill: "rgba(255,255,255,0.04)" }}
-              contentStyle={{
-                background: "#374151",
-                border: "1px solid rgba(255,255,255,0.3)",
-                borderRadius: 12,
-                fontSize: 12,
-                color: "#ffffff",
-                padding: 8,
-              }}
-              wrapperStyle={{ color: "#ffffff" }}
-              labelStyle={{ color: "#ffffff" }}
-              itemStyle={{ color: "#ffffff" }}
+              {...chartTooltipProps}
               formatter={(v, name) => [v, name]}
               labelFormatter={(v) => bucketLabel(String(v), granularityData)}
             />
@@ -454,17 +445,7 @@ function CategoryPie({
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{
-                  background: "#374151",
-                  border: "1px solid rgba(255,255,255,0.3)",
-                  borderRadius: 12,
-                  fontSize: 12,
-                  color: "#ffffff",
-                  padding: 8,
-                }}
-                wrapperStyle={{ color: "#ffffff" }}
-                labelStyle={{ color: "#ffffff" }}
-                itemStyle={{ color: "#ffffff" }}
+                {...chartTooltipProps}
                 formatter={(v, name) => [fmtMoney(Number(v), baseCurrency), name]}
               />
             </PieChart>

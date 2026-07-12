@@ -15,6 +15,7 @@ import { useBudgets, useBudgetStatus, useCategories, useInvalidating, useProject
 import type { BudgetPeriod } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ColorDot, EmptyState, Field, Modal, PageHeader, ProgressBar } from "../components/ui";
+import { chartTooltipProps } from "../lib/charts";
 import { fmtMoney, fmtMonth } from "../lib/format";
 import { toISO } from "../lib/period";
 import { useSessionState } from "../lib/session";
@@ -164,17 +165,7 @@ export default function BudgetsPage() {
               tickFormatter={(v) => new Intl.NumberFormat("en-US", { notation: "compact" }).format(v)}
             />
             <Tooltip
-              contentStyle={{
-                background: "#374151",
-                border: "1px solid rgba(255,255,255,0.3)",
-                borderRadius: 12,
-                fontSize: 12,
-                color: "#ffffff",
-                padding: 8,
-              }}
-              wrapperStyle={{ color: "#ffffff" }}
-              labelStyle={{ color: "#ffffff" }}
-              itemStyle={{ color: "#ffffff" }}
+              {...chartTooltipProps}
               labelFormatter={fmtMonth}
               formatter={(v) => [fmtMoney(Number(v), forecast?.base_currency), "Net worth"]}
             />

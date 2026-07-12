@@ -6,6 +6,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { useAccounts, useCategories, useDashboard } from "../api/hooks";
 import type { CategoryTotal } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
+import { chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
 import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
 import { useSessionState } from "../lib/session";
@@ -272,17 +273,7 @@ function MobileCategoryPie({
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{
-                  background: "#374151",
-                  border: "1px solid rgba(255,255,255,0.3)",
-                  borderRadius: 12,
-                  fontSize: 12,
-                  color: "#ffffff",
-                  padding: 8,
-                }}
-                wrapperStyle={{ color: "#ffffff" }}
-                labelStyle={{ color: "#ffffff" }}
-                itemStyle={{ color: "#ffffff" }}
+                {...chartTooltipProps}
                 formatter={(v, name) => [fmtMoney(Number(v), baseCurrency), name]}
               />
             </PieChart>
