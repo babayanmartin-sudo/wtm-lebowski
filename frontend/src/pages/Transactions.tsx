@@ -539,14 +539,17 @@ export default function TransactionsPage() {
         <EmptyState text="No transactions match." />
       ) : (
         <div className="glass overflow-hidden">
-          <div className="flex items-center gap-4 border-b border-white/5 px-4 py-2">
+          <div className="flex items-center gap-4 border-b border-white/5 px-4 py-2 text-xs tracking-wide text-gray-500 uppercase">
             <input
               type="checkbox"
               checked={allOnPageSelected}
               onChange={toggleAllOnPage}
               title="Select all on this page"
             />
-            <span className="text-xs text-gray-500">Select all on page</span>
+            <span className="w-24 shrink-0">Date</span>
+            <span className="min-w-0 flex-1">Payee</span>
+            <span className="hidden w-44 shrink-0 sm:block">Category</span>
+            <span className="w-36 shrink-0 text-right">Amount</span>
           </div>
           {items.map((tx) => {
             const acc = accountById.get(tx.account_id);
@@ -555,7 +558,7 @@ export default function TransactionsPage() {
                 key={tx.id}
                 onClick={() => setEditing(tx)}
                 className={`flex w-full cursor-pointer items-center gap-4 border-b border-white/5 px-4 py-3 text-left transition-colors last:border-0 hover:bg-white/5 ${
-                  selected.has(tx.id) ? "bg-lime-500/10" : ""
+                  selected.has(tx.id) ? "bg-lime-500/15" : ""
                 }`}
               >
                 <input
