@@ -110,7 +110,7 @@ export default function PeriodPicker({
         onClick={() => setOpen((v) => !v)}
       >
         <Calendar size={14} className="shrink-0 text-gray-500" />
-        <span className="truncate">{periodLabel(mode, date)}</span>
+        <span className="truncate font-mono text-xs tracking-wide uppercase">{periodLabel(mode, date)}</span>
       </button>
 
       {open && (

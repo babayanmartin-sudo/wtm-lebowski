@@ -1,20 +1,12 @@
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
-  TrendingUp,
-  X,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { useAccounts, useBudgetStatus, useCategories, useDashboard } from "../api/hooks";
-import type { CategoryTotal } from "../api/types";
+import type { CategoryTotal, Transaction } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import { CategorySelect, ColorDot, ProgressBar } from "../components/ui";
+import { Badge, CategorySelect, ColorDot, ProgressBar } from "../components/ui";
 import { CHART_COLORS, chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
 import { useSessionState } from "../lib/session";
@@ -195,30 +187,23 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="glass flex flex-wrap items-center divide-x divide-white/10 p-4">
-        <StatInline
-          label="Net worth"
-          value={data ? fmtMoney(data.net_worth, data.base_currency) : "…"}
-          icon={<TrendingUp size={15} />}
-          color="text-lime-400"
-        />
-        <StatInline
+      <div className="glass grid grid-cols-1 divide-y divide-[var(--color-line)] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <StatCell label="Net worth" value={data ? fmtMoney(data.net_worth, data.base_currency) : "…"} />
+        <StatCell
           label="Income"
           value={data ? fmtMoney(data.income, data.base_currency) : "…"}
-          icon={<ArrowUpRight size={15} />}
           color="text-emerald-400"
         />
-        <StatInline
+        <StatCell
           label="Spent"
           value={data ? fmtMoney(data.expense, data.base_currency) : "…"}
-          icon={<ArrowDownRight size={15} />}
           color="text-rose-400"
         />
       </div>
 
       <div className="glass p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-300">Income vs spending</h2>
+          <h2 className="font-mono text-xs tracking-wide text-gray-500 uppercase">Income vs spending</h2>
           <div className="flex items-center gap-2">
             {periodHistory.length > 0 && (
               <button className="btn-ghost px-2.5 py-1 text-xs" onClick={drillBack}>
@@ -267,7 +252,7 @@ export default function DashboardPage() {
 
       <div className="glass p-5">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-300">Category</h2>
+          <h2 className="font-mono text-xs tracking-wide text-gray-500 uppercase">Category</h2>
           {categoryId ? (
             <button className="btn-ghost px-2.5 py-1 text-xs" onClick={() => setCategoryId(null)}>
               <RotateCcw size={12} /> Reset
@@ -300,13 +285,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="glass p-5">
-          <Link
-            to="/accounts"
-            className="mb-3 flex items-center justify-between text-sm font-semibold text-gray-300 transition-colors hover:text-lime-300"
-          >
-            Accounts
-            <ChevronRight size={14} className="text-gray-500" />
-          </Link>
+          <PanelHeader to="/accounts" label="Accounts" />
           <div className="flex flex-col gap-2.5">
             {activeAccounts.map((a) => (
               <button
@@ -318,7 +297,7 @@ export default function DashboardPage() {
               >
                 <ColorDot color={a.color} />
                 <span className="flex-1 text-gray-300">{a.name}</span>
-                <span className="tabular-nums">{fmtMoney(a.balance, a.currency)}</span>
+                <span className="font-mono tabular-nums">{fmtMoney(a.balance, a.currency)}</span>
               </button>
             ))}
             {activeAccounts.length === 0 && <p className="text-sm text-gray-500">No accounts yet.</p>}
@@ -326,13 +305,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="glass p-5">
-          <Link
-            to="/budgets"
-            className="mb-3 flex items-center justify-between text-sm font-semibold text-gray-300 transition-colors hover:text-lime-300"
-          >
-            Budgets · {budgetMonth}
-            <ChevronRight size={14} className="text-gray-500" />
-          </Link>
+          <PanelHeader to="/budgets" label={`Budgets · ${budgetMonth}`} />
           <div className="flex flex-col gap-3">
             {budgetStatus.map((b) => {
               const cat = categoryById.get(b.category_id);
@@ -344,7 +317,9 @@ export default function DashboardPage() {
                       {cat && <ColorDot color={cat.color} />}
                       {cat?.name ?? "?"}
                     </span>
-                    <span className={`tabular-nums ${ratio >= 1 ? "text-rose-400" : "text-gray-400"}`}>
+                    <span
+                      className={`font-mono tabular-nums ${ratio >= 1 ? "text-rose-400" : "text-gray-400"}`}
+                    >
                       {fmtMoney(b.spent)} / {fmtMoney(b.amount)}
                       {b.period === "yearly" ? "/yr" : "/mo"}
                     </span>
@@ -358,33 +333,10 @@ export default function DashboardPage() {
         </div>
 
         <div className="glass p-5">
-          <Link
-            to={transactionsLink}
-            className="mb-3 flex items-center justify-between text-sm font-semibold text-gray-300 transition-colors hover:text-lime-300"
-          >
-            Recent transactions
-            <ChevronRight size={14} className="text-gray-500" />
-          </Link>
-          <div className="flex flex-col gap-2">
-            {(data?.recent ?? []).slice(0, 10).map((tx) => (
-              <div key={tx.id} className="flex items-center gap-2 text-sm">
-                <span className="w-12 shrink-0 text-xs text-gray-500">{tx.date.slice(5)}</span>
-                <span className="flex-1 truncate text-gray-300">
-                  {tx.payee || (tx.kind === "transfer" ? "Transfer" : tx.note || "—")}
-                </span>
-                <span
-                  className={`tabular-nums text-xs ${
-                    tx.kind === "income"
-                      ? "text-emerald-300"
-                      : tx.kind === "transfer"
-                        ? "text-sky-300"
-                        : "text-gray-300"
-                  }`}
-                >
-                  {tx.kind === "income" ? "+" : tx.kind === "expense" ? "−" : ""}
-                  {fmtMoney(tx.amount, tx.currency)}
-                </span>
-              </div>
+          <PanelHeader to={transactionsLink} label="Recent transactions" />
+          <div className="flex flex-col">
+            {(data?.recent ?? []).slice(0, 10).map((tx, i) => (
+              <RecentRow key={tx.id} tx={tx} categoryById={categoryById} divider={i > 0} />
             ))}
             {(data?.recent ?? []).length === 0 && (
               <p className="text-sm text-gray-500">Nothing yet — add your first transaction.</p>
@@ -392,6 +344,55 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PanelHeader({ to, label }: { to: string; label: string }) {
+  return (
+    <Link
+      to={to}
+      className="mb-3 flex items-center justify-between font-mono text-xs tracking-wide text-gray-500 uppercase transition-colors hover:text-lime-300"
+    >
+      {label}
+      <ChevronRight size={14} className="text-gray-500" />
+    </Link>
+  );
+}
+
+function RecentRow({
+  tx,
+  categoryById,
+  divider,
+}: {
+  tx: Transaction;
+  categoryById: Map<number, { name: string; kind: string }>;
+  divider: boolean;
+}) {
+  const cat = tx.splits[0]?.category_id ? categoryById.get(tx.splits[0].category_id) : undefined;
+  const isReturn = tx.kind === "income" && cat?.kind === "expense";
+  return (
+    <div
+      className={`flex items-center gap-2 py-1.5 text-sm ${divider ? "border-t border-[var(--color-line)]" : ""}`}
+    >
+      <span className="w-12 shrink-0 font-mono text-xs text-gray-500">{tx.date.slice(5)}</span>
+      <span className="flex-1 truncate text-gray-300">
+        {tx.payee || (tx.kind === "transfer" ? "Transfer" : tx.note || "—")}
+      </span>
+      {cat && <Badge color="gray">{cat.name}</Badge>}
+      <span
+        className={`font-mono text-xs tabular-nums ${
+          tx.kind === "income"
+            ? "text-emerald-300"
+            : tx.kind === "transfer"
+              ? "text-sky-300"
+              : "text-gray-300"
+        }`}
+      >
+        {tx.kind === "income" ? "+" : tx.kind === "expense" ? "−" : ""}
+        {fmtMoney(tx.amount, tx.currency)}
+      </span>
+      {isReturn && <Badge color="amber">Return</Badge>}
     </div>
   );
 }
@@ -418,7 +419,7 @@ function CategoryPie({
 
   return (
     <div>
-      <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">{title}</h3>
+      <h3 className="mb-1 font-mono text-xs tracking-wide text-gray-500 uppercase">{title}</h3>
       {items.length === 0 ? (
         <p className="py-10 text-center text-sm text-gray-500">{emptyText}</p>
       ) : (
@@ -461,7 +462,7 @@ function CategoryPie({
               >
                 <ColorDot color={c.color} />
                 <span className="flex-1 text-gray-300">{c.name}</span>
-                <span className="tabular-nums text-gray-400">{fmtMoney(c.amount)}</span>
+                <span className="font-mono tabular-nums text-gray-400">{fmtMoney(c.amount)}</span>
               </button>
             ))}
           </div>
@@ -471,22 +472,11 @@ function CategoryPie({
   );
 }
 
-function StatInline({
-  label,
-  value,
-  icon,
-  color,
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  color: string;
-}) {
+function StatCell({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div className="flex items-center gap-2 px-4 first:pl-0 last:pr-0">
-      <span className={color}>{icon}</span>
-      <span className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</span>
-      <span className="text-sm font-semibold tabular-nums">{value}</span>
+    <div className="flex flex-col gap-1.5 px-4 py-3">
+      <span className="font-mono text-[11px] tracking-widest text-gray-500 uppercase">{label}</span>
+      <span className={`font-mono text-lg tracking-tight tabular-nums ${color ?? ""}`}>{value}</span>
     </div>
   );
 }
