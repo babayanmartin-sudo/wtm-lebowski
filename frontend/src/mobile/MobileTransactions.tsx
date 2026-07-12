@@ -92,7 +92,7 @@ export default function MobileTransactions() {
         <h1 className="text-xl font-semibold">Activity</h1>
         <button
           onClick={() => setCreating(true)}
-          className="flex items-center gap-1.5 rounded-full bg-[#c6f135] px-3 py-1.5 text-xs font-semibold text-black active:scale-95"
+          className="flex items-center gap-1.5 rounded-full bg-[#ffb545] px-3 py-1.5 text-xs font-semibold text-black active:scale-95"
         >
           <Plus size={14} /> Add
         </button>
@@ -300,7 +300,7 @@ export default function MobileTransactions() {
                   >
                     <div
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-black"
-                      style={{ background: cat?.color ?? "#c6f135" }}
+                      style={{ background: cat?.color ?? "#ffb545" }}
                     >
                       {(tx.payee || tx.note || "?").slice(0, 1).toUpperCase()}
                     </div>

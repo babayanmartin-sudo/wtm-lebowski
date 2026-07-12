@@ -95,9 +95,9 @@ export default function MobileShell({ children }: { children: ReactNode }) {
                     navigate(to);
                     setMenuOpen(false);
                   }}
-                  className="flex flex-col items-center gap-2 rounded-2xl bg-white/5 px-2 py-4 text-center transition-colors active:bg-[#c6f135]/10"
+                  className="flex flex-col items-center gap-2 rounded-2xl bg-white/5 px-2 py-4 text-center transition-colors active:bg-[#ffb545]/10"
                 >
-                  <Icon size={20} className="text-[#c6f135]" />
+                  <Icon size={20} className="text-[#ffb545]" />
                   <span className="line-clamp-2 text-xs leading-tight text-gray-300">{label}</span>
                 </button>
               ))}
@@ -133,7 +133,7 @@ function TabButton({
     <button
       onClick={onClick}
       className={`flex w-16 flex-col items-center gap-1 rounded-xl py-1.5 transition-colors ${
-        active ? "text-[#c6f135]" : "text-gray-500"
+        active ? "text-[#ffb545]" : "text-gray-500"
       }`}
     >
       <Icon size={20} />

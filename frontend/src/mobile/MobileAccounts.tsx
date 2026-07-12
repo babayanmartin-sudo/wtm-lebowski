@@ -33,7 +33,7 @@ const empty: Draft = {
   type: "bank",
   currency: "AED",
   initial_balance: 0,
-  color: "#c6f135",
+  color: "#ffb545",
   icon: "wallet",
   archived: false,
   sort_order: 0,
@@ -99,7 +99,7 @@ export default function MobileAccounts() {
         <h1 className="text-xl font-semibold">Accounts</h1>
         <button
           onClick={() => setDraft({ ...empty })}
-          className="flex items-center gap-1.5 rounded-full bg-[#c6f135] px-3 py-1.5 text-xs font-semibold text-black active:scale-95"
+          className="flex items-center gap-1.5 rounded-full bg-[#ffb545] px-3 py-1.5 text-xs font-semibold text-black active:scale-95"
         >
           <Plus size={14} /> Add
         </button>
@@ -214,7 +214,7 @@ export default function MobileAccounts() {
                       onClick={() => setDraft({ ...draft, icon: key })}
                       className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${
                         draft.icon === key
-                          ? "border-[#c6f135] bg-[#c6f135]/20 text-[#c6f135]"
+                          ? "border-[#ffb545] bg-[#ffb545]/20 text-[#ffb545]"
                           : "border-white/10 bg-white/5 text-gray-400"
                       }`}
                     >
@@ -226,7 +226,7 @@ export default function MobileAccounts() {
               <button
                 onClick={submit}
                 disabled={!draft.name.trim()}
-                className="mt-1 rounded-2xl bg-[#c6f135] py-3 text-sm font-semibold text-black disabled:opacity-40"
+                className="mt-1 rounded-2xl bg-[#ffb545] py-3 text-sm font-semibold text-black disabled:opacity-40"
               >
                 Save
               </button>
