@@ -6,7 +6,15 @@ import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis
 import { useAccounts, useBudgetStatus, useCategories, useDashboard } from "../api/hooks";
 import type { CategoryTotal, Transaction } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import { Badge, CategorySelect, ColorDot, ErrorState, LoadingState, ProgressBar } from "../components/ui";
+import {
+  Badge,
+  CategorySelect,
+  ColorDot,
+  ErrorState,
+  LoadingState,
+  ProgressBar,
+  Select,
+} from "../components/ui";
 import { CHART_COLORS, chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
 import { useSessionState } from "../lib/session";
@@ -134,18 +142,13 @@ export default function DashboardPage() {
             </button>
           )}
 
-          <select
+          <Select
             className="input h-9 w-40"
-            value={accountId ?? ""}
-            onChange={(e) => setAccountId(e.target.value === "" ? null : Number(e.target.value))}
-          >
-            <option value="">Accounts</option>
-            {activeAccounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
+            value={accountId}
+            onChange={setAccountId}
+            emptyLabel="Accounts"
+            options={activeAccounts.map((a) => ({ value: a.id, label: a.name }))}
+          />
 
           <CategorySelect
             categories={categories}

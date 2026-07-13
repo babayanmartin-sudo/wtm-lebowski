@@ -376,6 +376,85 @@ export function CategorySelect({
   );
 }
 
+/** Generic themed dropdown — same trigger/panel/checkmark shell as
+ * CategorySelect (no search box), for plain option lists. Native <select>
+ * uses the browser's own chrome and can't be restyled to match, which was
+ * the actual reason two dropdowns sitting side by side looked unrelated. */
+export function Select<T extends string | number>({
+  value,
+  onChange,
+  options,
+  emptyLabel = "",
+  allowEmpty = true,
+  className = "input",
+  disabled = false,
+}: {
+  value: T | null;
+  onChange: (v: T | null) => void;
+  options: { value: T; label: string }[];
+  emptyLabel?: string;
+  allowEmpty?: boolean;
+  className?: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [align, setAlign] = useState<"left" | "right">("left");
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !rootRef.current) return;
+    const rect = rootRef.current.getBoundingClientRect();
+    setAlign(rect.left + Math.max(rect.width, 224) > window.innerWidth ? "right" : "left");
+  }, [open]);
+
+  const selected = options.find((o) => o.value === value)?.label ?? null;
+
+  function pick(v: T | null) {
+    onChange(v);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={rootRef} className={`relative ${className} ${disabled ? "cursor-not-allowed opacity-50" : ""}`}>
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-1 bg-transparent text-left disabled:cursor-not-allowed"
+        disabled={disabled}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className={`min-w-0 truncate ${selected ? "" : "text-gray-500"}`}>{selected ?? emptyLabel}</span>
+        <ChevronDown size={14} className="shrink-0 text-gray-500" />
+      </button>
+      {open && (
+        <div
+          className={`absolute z-20 mt-1 max-h-72 w-full min-w-[14rem] overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-[var(--color-panel)] py-1 shadow-xl ${
+            align === "right" ? "right-0" : "left-0"
+          }`}
+        >
+          {allowEmpty && <Option label={emptyLabel} selected={value === null} onClick={() => pick(null)} />}
+          {options.map((opt) => (
+            <Option
+              key={opt.value}
+              label={opt.label}
+              selected={value === opt.value}
+              onClick={() => pick(opt.value)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Option({
   label,
   selected,

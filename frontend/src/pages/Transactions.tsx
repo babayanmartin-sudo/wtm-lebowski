@@ -22,6 +22,7 @@ import {
   ErrorState,
   LoadingState,
   PageHeader,
+  Select,
   UNCATEGORIZED_ID,
 } from "../components/ui";
 import { fmtDate, fmtMoney } from "../lib/format";
@@ -339,31 +340,26 @@ export default function TransactionsPage() {
           >
             Set category
           </button>
-          <select
+          <Select
             className="input h-9 w-40"
-            value={bulkAccount}
-            onChange={(e) => setBulkAccount(e.target.value === "" ? "" : Number(e.target.value))}
-          >
-            <option value="">Move to account…</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
+            value={bulkAccount === "" ? null : bulkAccount}
+            onChange={(v) => setBulkAccount(v === null ? "" : v)}
+            emptyLabel="Move to account…"
+            options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+          />
           <button className="btn-ghost h-9 px-3 text-xs" disabled={bulkAccount === ""} onClick={applyBulkAccount}>
             Set account
           </button>
-          <select
+          <Select
             className="input h-9 w-40"
-            value={bulkKind}
-            onChange={(e) => setBulkKind(e.target.value as "" | "expense" | "income")}
-            title="Reclassify expense/income (e.g. after import mis-tagged a refund)"
-          >
-            <option value="">Reclassify as…</option>
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
-          </select>
+            value={bulkKind === "" ? null : bulkKind}
+            onChange={(v) => setBulkKind(v === null ? "" : v)}
+            emptyLabel="Reclassify as…"
+            options={[
+              { value: "expense", label: "Expense" },
+              { value: "income", label: "Income" },
+            ]}
+          />
           <button className="btn-ghost h-9 px-3 text-xs" disabled={bulkKind === ""} onClick={applyBulkKind}>
             Set kind
           </button>
@@ -395,21 +391,16 @@ export default function TransactionsPage() {
               }}
             />
           </div>
-          <select
+          <Select
             className="input h-9 w-40"
-            value={accountId}
-            onChange={(e) => {
-              setAccountId(e.target.value);
+            value={accountId === "" ? null : Number(accountId)}
+            onChange={(v) => {
+              setAccountId(v === null ? "" : String(v));
               setPage(0);
             }}
-          >
-            <option value="">Accounts</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
+            emptyLabel="Accounts"
+            options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+          />
           <CategorySelect
             categories={categories}
             value={categoryId}
@@ -422,33 +413,35 @@ export default function TransactionsPage() {
             className="input h-9 w-48"
             usage={categoryUsage}
           />
-          <select
+          <Select
             className="input h-9 w-32"
-            value={kind}
-            onChange={(e) => {
-              setKind(e.target.value);
+            value={kind === "" ? null : kind}
+            onChange={(v) => {
+              setKind(v === null ? "" : v);
               setPage(0);
             }}
-          >
-            <option value="">Type</option>
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
-            <option value="transfer">Transfer</option>
-          </select>
+            emptyLabel="Type"
+            options={[
+              { value: "expense", label: "Expense" },
+              { value: "income", label: "Income" },
+              { value: "transfer", label: "Transfer" },
+            ]}
+          />
           <div className="flex items-center gap-1">
-            <select
+            <Select
               className="input h-9 w-[5.5rem]"
-              value={amountOp}
-              onChange={(e) => {
-                setAmountOp(e.target.value as "" | "eq" | "gt" | "lt");
+              value={amountOp === "" ? null : amountOp}
+              onChange={(v) => {
+                setAmountOp(v === null ? "" : v);
                 setPage(0);
               }}
-            >
-              <option value="">Amount</option>
-              <option value="eq">=</option>
-              <option value="gt">&gt;</option>
-              <option value="lt">&lt;</option>
-            </select>
+              emptyLabel="Amount"
+              options={[
+                { value: "eq", label: "=" },
+                { value: "gt", label: ">" },
+                { value: "lt", label: "<" },
+              ]}
+            />
             {amountOp && (
               <input
                 type="number"

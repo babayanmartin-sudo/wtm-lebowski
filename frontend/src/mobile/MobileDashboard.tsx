@@ -6,7 +6,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { useAccounts, useCategories, useDashboard } from "../api/hooks";
 import type { CategoryTotal } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import { CategorySelect, ErrorState, LoadingState } from "../components/ui";
+import { CategorySelect, ErrorState, LoadingState, Select } from "../components/ui";
 import { chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
 import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
@@ -88,18 +88,13 @@ export default function MobileDashboard() {
       </div>
 
       <div className="flex items-center gap-2">
-        <select
+        <Select
           className="input h-9 flex-1"
-          value={accountId ?? ""}
-          onChange={(e) => setAccountId(e.target.value === "" ? null : Number(e.target.value))}
-        >
-          <option value="">Accounts</option>
-          {activeAccounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </select>
+          value={accountId}
+          onChange={setAccountId}
+          emptyLabel="Accounts"
+          options={activeAccounts.map((a) => ({ value: a.id, label: a.name }))}
+        />
         <CategorySelect
           categories={categories}
           value={categoryId}

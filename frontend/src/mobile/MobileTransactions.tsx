@@ -5,7 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { useAccounts, useCategories, useLoans, useTransactions } from "../api/hooks";
 import type { Transaction } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import { CategorySelect, ErrorState, LoadingState, UNCATEGORIZED_ID } from "../components/ui";
+import { CategorySelect, ErrorState, LoadingState, Select, UNCATEGORIZED_ID } from "../components/ui";
 import TransactionModal from "../components/TransactionModal";
 import { fmtMoney } from "../lib/format";
 import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
@@ -159,18 +159,13 @@ export default function MobileTransactions() {
 
       {showFilters && (
         <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/5 p-3">
-          <select
+          <Select
             className="input"
-            value={accountId}
-            onChange={(e) => setAccountId(e.target.value)}
-          >
-            <option value="">All accounts</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
+            value={accountId === "" ? null : Number(accountId)}
+            onChange={(v) => setAccountId(v === null ? "" : String(v))}
+            emptyLabel="All accounts"
+            options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+          />
           <CategorySelect
             categories={categories}
             value={categoryId}
@@ -179,27 +174,29 @@ export default function MobileTransactions() {
             uncategorizedOption
             className="input"
           />
-          <select
+          <Select
             className="input"
-            value={kind}
-            onChange={(e) => setKind(e.target.value)}
-          >
-            <option value="">All kinds</option>
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
-            <option value="transfer">Transfer</option>
-          </select>
+            value={kind === "" ? null : kind}
+            onChange={(v) => setKind(v === null ? "" : v)}
+            emptyLabel="All kinds"
+            options={[
+              { value: "expense", label: "Expense" },
+              { value: "income", label: "Income" },
+              { value: "transfer", label: "Transfer" },
+            ]}
+          />
           <div className="flex items-center gap-2">
-            <select
+            <Select
               className="input"
-              value={amountOp}
-              onChange={(e) => setAmountOp(e.target.value as "" | "eq" | "gt" | "lt")}
-            >
-              <option value="">Amount</option>
-              <option value="eq">=</option>
-              <option value="gt">&gt;</option>
-              <option value="lt">&lt;</option>
-            </select>
+              value={amountOp === "" ? null : amountOp}
+              onChange={(v) => setAmountOp(v === null ? "" : v)}
+              emptyLabel="Amount"
+              options={[
+                { value: "eq", label: "=" },
+                { value: "gt", label: ">" },
+                { value: "lt", label: "<" },
+              ]}
+            />
             {amountOp && (
               <input
                 type="number"
