@@ -252,7 +252,7 @@ export function CategorySelect({
         disabled={disabled}
         onClick={() => setOpen((o) => !o)}
       >
-        <span className={selected ? "" : "text-gray-500"}>{selected ?? emptyLabel}</span>
+        <span className={`min-w-0 truncate ${selected ? "" : "text-gray-500"}`}>{selected ?? emptyLabel}</span>
         <ChevronDown size={14} className="shrink-0 text-gray-500" />
       </button>
       {open && (
