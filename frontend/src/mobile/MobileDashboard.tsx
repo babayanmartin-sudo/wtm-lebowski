@@ -259,7 +259,7 @@ function MobileStat({
     <div className="flex items-center gap-2 py-2.5">
       <span className={color}>{icon}</span>
       <span className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</span>
-      <span className="ml-auto truncate text-sm font-semibold tabular-nums">{value}</span>
+      <span className={`ml-auto truncate text-sm font-semibold tabular-nums ${color}`}>{value}</span>
     </div>
   );
 }
