@@ -6,7 +6,7 @@ import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis
 import { useAccounts, useBudgetStatus, useCategories, useDashboard } from "../api/hooks";
 import type { CategoryTotal, Transaction } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import { Badge, CategorySelect, ColorDot, ProgressBar } from "../components/ui";
+import { Badge, CategorySelect, ColorDot, ErrorState, LoadingState, ProgressBar } from "../components/ui";
 import { CHART_COLORS, chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
 import { useSessionState } from "../lib/session";
@@ -31,7 +31,7 @@ export default function DashboardPage() {
 
   const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate), pickerDate), [pickerMode, pickerDate]);
 
-  const { data } = useDashboard({
+  const { data, isLoading, isError, error } = useDashboard({
     date_from: period.from,
     date_to: period.to,
     account_id: accountId ?? undefined,
@@ -188,6 +188,12 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {isLoading ? (
+        <LoadingState />
+      ) : isError ? (
+        <ErrorState error={error} />
+      ) : (
+        <>
       <div className="glass grid grid-cols-1 divide-y divide-[var(--color-line)] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <StatCell label="Net worth" value={data ? fmtMoney(data.net_worth, data.base_currency) : "…"} />
         <StatCell
@@ -345,6 +351,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

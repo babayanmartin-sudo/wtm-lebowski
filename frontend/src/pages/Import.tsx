@@ -10,7 +10,7 @@ import {
   useInvalidating,
 } from "../api/hooks";
 import type { ImportDetail, ImportRow } from "../api/types";
-import { Badge, CategorySelect, Field, PageHeader, SuccessIcon } from "../components/ui";
+import { Badge, CategorySelect, ErrorState, Field, PageHeader, SuccessIcon } from "../components/ui";
 import { fmtMoney } from "../lib/format";
 
 const FIELDS: { key: string; label: string; hint: string }[] = [
@@ -28,7 +28,7 @@ export default function ImportPage() {
   const { data: categories = [] } = useCategories();
   const [accountId, setAccountId] = useState<number | null>(null);
   const [importId, setImportId] = useState<number | null>(null);
-  const { data: imp, refetch } = useImport(importId);
+  const { data: imp, refetch, isError: importIsError, error: importError } = useImport(importId);
   const [mapping, setMapping] = useState<Record<string, number | "">>({});
   const [dayfirst, setDayfirst] = useState(true);
   const [negate, setNegate] = useState(false);
@@ -155,8 +155,10 @@ export default function ImportPage() {
     <div>
       <PageHeader title="Import" subtitle="Upload a bank statement (CSV or XLSX)" />
 
+      {importId !== null && importIsError && <ErrorState error={importError} />}
+
       {/* Step 1: upload */}
-      {!imp && (
+      {!importId && !imp && (
         <div className="glass p-6">
           <div className="mb-4 grid max-w-md gap-4">
             <Field label="Into account">

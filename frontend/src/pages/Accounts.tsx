@@ -20,7 +20,17 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useInvalidating } from "../api/hooks";
 import type { Account, Transaction } from "../api/types";
-import { Badge, ColorPicker, Field, Modal, PageHeader, SegmentedToggle, SuccessIcon } from "../components/ui";
+import {
+  Badge,
+  ColorPicker,
+  ErrorState,
+  Field,
+  LoadingState,
+  Modal,
+  PageHeader,
+  SegmentedToggle,
+  SuccessIcon,
+} from "../components/ui";
 import RateTicker from "../components/RateTicker";
 import { fmtMoney } from "../lib/format";
 import { ACCOUNT_ICON_KEYS, getAccountIcon } from "../lib/icons";
@@ -57,7 +67,12 @@ const empty: Draft = {
 
 export default function AccountsPage() {
   const navigate = useNavigate();
-  const { data: accounts = [] } = useAccounts();
+  const {
+    data: accounts = [],
+    isLoading: accountsLoading,
+    isError: accountsIsError,
+    error: accountsError,
+  } = useAccounts();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
   const [pageError, setPageError] = useState("");
@@ -191,6 +206,11 @@ export default function AccountsPage() {
         <div className="glass mb-4 border-rose-400/30 p-3 text-sm text-rose-300">{pageError}</div>
       )}
       <RateTicker />
+      {accountsLoading ? (
+        <LoadingState />
+      ) : accountsIsError ? (
+        <ErrorState error={accountsError} />
+      ) : (
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext
           items={active.map((a) => a.id)}
@@ -220,7 +240,8 @@ export default function AccountsPage() {
           </div>
         </SortableContext>
       </DndContext>
-      {archived.length > 0 && (
+      )}
+      {!accountsLoading && !accountsIsError && archived.length > 0 && (
         <div
           className={`mt-4 ${
             viewMode === "list" ? "flex flex-col gap-2" : "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"

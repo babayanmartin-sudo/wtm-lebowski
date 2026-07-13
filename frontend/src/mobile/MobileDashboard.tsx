@@ -6,7 +6,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { useAccounts, useCategories, useDashboard } from "../api/hooks";
 import type { CategoryTotal } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import { CategorySelect } from "../components/ui";
+import { CategorySelect, ErrorState, LoadingState } from "../components/ui";
 import { chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
 import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
@@ -21,7 +21,7 @@ export default function MobileDashboard() {
   const [accountId, setAccountId] = useSessionState<number | null>("dashboard.account", null);
   const [categoryId, setCategoryId] = useSessionState<number | null>("dashboard.category", null);
   const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate), pickerDate), [pickerMode, pickerDate]);
-  const { data } = useDashboard({
+  const { data, isLoading, isError, error } = useDashboard({
     date_from: period.from,
     date_to: period.to,
     account_id: accountId ?? undefined,
@@ -140,6 +140,12 @@ export default function MobileDashboard() {
         </div>
       )}
 
+      {isLoading ? (
+        <LoadingState />
+      ) : isError ? (
+        <ErrorState error={error} />
+      ) : (
+        <>
       <div className="flex flex-col rounded-2xl bg-white/5 px-4 py-1">
         <MobileStat
           label="Net worth"
@@ -240,6 +246,8 @@ export default function MobileDashboard() {
           )}
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

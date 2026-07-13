@@ -16,7 +16,7 @@ import { api } from "../api/client";
 import { useCategories, useCategoryUsage, useDashboard, useInvalidating } from "../api/hooks";
 import type { Category } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import { ColorDot, ColorPicker, Field, Modal, PageHeader } from "../components/ui";
+import { ColorDot, ColorPicker, ErrorState, Field, LoadingState, Modal, PageHeader } from "../components/ui";
 import { fmtMoney } from "../lib/format";
 import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
 
@@ -46,7 +46,7 @@ const empty: Draft = {
 };
 
 export default function CategoriesPage() {
-  const { data: categories = [] } = useCategories();
+  const { data: categories = [], isLoading, isError, error: loadError } = useCategories();
   const { data: usage = {} } = useCategoryUsage();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
@@ -215,10 +215,16 @@ export default function CategoriesPage() {
       {pageError && (
         <div className="glass mb-4 border-rose-400/30 p-3 text-sm text-rose-300">{pageError}</div>
       )}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {section("expense")}
-        {section("income")}
-      </div>
+      {isLoading ? (
+        <LoadingState />
+      ) : isError ? (
+        <ErrorState error={loadError} />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {section("expense")}
+          {section("income")}
+        </div>
+      )}
 
       {draft && (
         <Modal title={draft.id ? "Edit category" : "New category"} onClose={() => setDraft(null)}>

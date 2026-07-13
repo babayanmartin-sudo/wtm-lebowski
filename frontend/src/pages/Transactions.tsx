@@ -15,7 +15,15 @@ import {
 import type { Transaction } from "../api/types";
 import TransactionModal from "../components/TransactionModal";
 import PeriodPicker from "../components/PeriodPicker";
-import { CategorySelect, ColorDot, EmptyState, PageHeader, UNCATEGORIZED_ID } from "../components/ui";
+import {
+  CategorySelect,
+  ColorDot,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+  UNCATEGORIZED_ID,
+} from "../components/ui";
 import { fmtDate, fmtMoney } from "../lib/format";
 import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
 import { useSessionState } from "../lib/session";
@@ -77,7 +85,7 @@ export default function TransactionsPage() {
     setPickerDate(toISO(new Date()));
   }
 
-  const { data } = useTransactions({
+  const { data, isLoading, isError, error } = useTransactions({
     account_id: accountId,
     category_id: categoryId && categoryId !== UNCATEGORIZED_ID ? categoryId : undefined,
     uncategorized: categoryId === UNCATEGORIZED_ID ? "true" : undefined,
@@ -536,7 +544,11 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {data && data.items.length === 0 ? (
+      {isLoading ? (
+        <LoadingState />
+      ) : isError ? (
+        <ErrorState error={error} />
+      ) : data && data.items.length === 0 ? (
         <EmptyState text="No transactions match." />
       ) : (
         <div className="glass overflow-hidden">

@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { useGoals, useInvalidating, useLoans } from "../api/hooks";
 import type { Goal, Loan } from "../api/types";
-import { ColorPicker, EmptyState, Field, Modal, PageHeader } from "../components/ui";
+import { ColorPicker, EmptyState, ErrorState, Field, LoadingState, Modal, PageHeader } from "../components/ui";
 import { fmtDate, fmtMoney, today } from "../lib/format";
 
 interface Draft {
@@ -26,7 +26,12 @@ interface LoanDraft {
 }
 
 export default function GoalsPage() {
-  const { data: goals = [] } = useGoals();
+  const {
+    data: goals = [],
+    isLoading: goalsLoading,
+    isError: goalsIsError,
+    error: goalsError,
+  } = useGoals();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [contributing, setContributing] = useState<Goal | null>(null);
   const [amount, setAmount] = useState("");
@@ -54,7 +59,12 @@ export default function GoalsPage() {
     keys,
   );
 
-  const { data: loans = [] } = useLoans();
+  const {
+    data: loans = [],
+    isLoading: loansLoading,
+    isError: loansIsError,
+    error: loansError,
+  } = useLoans();
   const [loanDraft, setLoanDraft] = useState<LoanDraft | null>(null);
   const [loanError, setLoanError] = useState("");
   const loanKeys = [["loans"]];
@@ -121,7 +131,11 @@ export default function GoalsPage() {
         }
       />
 
-      {goals.length === 0 ? (
+      {goalsLoading ? (
+        <LoadingState />
+      ) : goalsIsError ? (
+        <ErrorState error={goalsError} />
+      ) : goals.length === 0 ? (
         <EmptyState text="No goals yet. Create one — vacation, emergency fund, new laptop…" />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -279,7 +293,11 @@ export default function GoalsPage() {
         }
       />
 
-      {loans.length === 0 ? (
+      {loansLoading ? (
+        <LoadingState />
+      ) : loansIsError ? (
+        <ErrorState error={loansError} />
+      ) : loans.length === 0 ? (
         <EmptyState text="No loans yet. Add a mortgage you're paying down, or money someone owes you." />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

@@ -19,7 +19,9 @@ import {
   CategorySelect,
   ColorDot,
   EmptyState,
+  ErrorState,
   Field,
+  LoadingState,
   Modal,
   PageHeader,
   ProgressBar,
@@ -40,7 +42,7 @@ interface Draft {
 export default function BudgetsPage() {
   const [periodDate, setPeriodDate] = useSessionState("budgets.date", toISO(new Date()));
   const month = periodDate.slice(0, 7);
-  const { data: budgets = [] } = useBudgets();
+  const { data: budgets = [], isLoading, isError, error: loadError } = useBudgets();
   const { data: status = [] } = useBudgetStatus(month);
   const { data: categories = [] } = useCategories();
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -195,7 +197,11 @@ export default function BudgetsPage() {
         </ResponsiveContainer>
       </div>
 
-      {budgets.length === 0 ? (
+      {isLoading ? (
+        <LoadingState />
+      ) : isError ? (
+        <ErrorState error={loadError} />
+      ) : budgets.length === 0 ? (
         <EmptyState text="No budgets yet. Set a monthly or yearly limit for a category to start tracking." />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

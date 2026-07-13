@@ -5,7 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { useAccounts, useCategories, useLoans, useTransactions } from "../api/hooks";
 import type { Transaction } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import { CategorySelect, UNCATEGORIZED_ID } from "../components/ui";
+import { CategorySelect, ErrorState, LoadingState, UNCATEGORIZED_ID } from "../components/ui";
 import TransactionModal from "../components/TransactionModal";
 import { fmtMoney } from "../lib/format";
 import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
@@ -51,7 +51,7 @@ export default function MobileTransactions() {
   const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate), pickerDate), [pickerMode, pickerDate]);
   const isCurrentMonth = pickerMode === "month" && pickerDate.slice(0, 7) === toISO(new Date()).slice(0, 7);
 
-  const { data } = useTransactions({
+  const { data, isLoading, isError, error } = useTransactions({
     q,
     account_id: accountId,
     category_id: categoryId && categoryId !== UNCATEGORIZED_ID ? categoryId : undefined,
@@ -282,7 +282,11 @@ export default function MobileTransactions() {
         </div>
       )}
 
-      {items.length === 0 ? (
+      {isLoading ? (
+        <LoadingState />
+      ) : isError ? (
+        <ErrorState error={error} />
+      ) : items.length === 0 ? (
         <p className="py-10 text-center text-sm text-gray-500">No transactions match.</p>
       ) : (
         [...groups.entries()].map(([date, txs]) => (

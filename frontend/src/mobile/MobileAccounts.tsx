@@ -8,7 +8,7 @@ import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useInvalidating } from "../api/hooks";
 import type { Account } from "../api/types";
 import RateTicker from "../components/RateTicker";
-import { PALETTE } from "../components/ui";
+import { ErrorState, LoadingState, PALETTE } from "../components/ui";
 import { fmtMoney } from "../lib/format";
 import { ACCOUNT_ICON_KEYS, getAccountIcon } from "../lib/icons";
 
@@ -43,7 +43,7 @@ const empty: Draft = {
 };
 
 export default function MobileAccounts() {
-  const { data: accounts = [] } = useAccounts();
+  const { data: accounts = [], isLoading, isError, error: loadError } = useAccounts();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
 
@@ -108,6 +108,12 @@ export default function MobileAccounts() {
 
       {error && <p className="rounded-xl bg-rose-500/10 p-3 text-xs text-rose-300">{error}</p>}
 
+      {isLoading ? (
+        <LoadingState />
+      ) : isError ? (
+        <ErrorState error={loadError} />
+      ) : (
+        <>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={active.map((a) => a.id)} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col gap-3">
@@ -141,6 +147,8 @@ export default function MobileAccounts() {
         </div>
       )}
       {accounts.length === 0 && <p className="py-10 text-center text-sm text-gray-500">No accounts yet.</p>}
+        </>
+      )}
 
       <RateTicker />
 

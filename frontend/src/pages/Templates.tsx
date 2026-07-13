@@ -11,7 +11,15 @@ import {
   useTemplates,
 } from "../api/hooks";
 import type { Template } from "../api/types";
-import { CategorySelect, EmptyState, Field, Modal, PageHeader } from "../components/ui";
+import {
+  CategorySelect,
+  EmptyState,
+  ErrorState,
+  Field,
+  LoadingState,
+  Modal,
+  PageHeader,
+} from "../components/ui";
 import { fmtDate, fmtMoney, today } from "../lib/format";
 
 interface Draft {
@@ -35,7 +43,7 @@ interface Draft {
 }
 
 export default function TemplatesPage() {
-  const { data: templates = [] } = useTemplates();
+  const { data: templates = [], isLoading, isError, error: loadError } = useTemplates();
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
   const { data: loans = [] } = useLoans();
@@ -119,7 +127,11 @@ export default function TemplatesPage() {
         }
       />
 
-      {templates.length === 0 ? (
+      {isLoading ? (
+        <LoadingState />
+      ) : isError ? (
+        <ErrorState error={loadError} />
+      ) : templates.length === 0 ? (
         <EmptyState text="No recurring templates. Rent, salary, subscriptions — set them once." />
       ) : (
         <div className="glass overflow-hidden">

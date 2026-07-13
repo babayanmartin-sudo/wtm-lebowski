@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Search, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Loader2, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
@@ -56,6 +56,42 @@ export function Modal({
 export function EmptyState({ text }: { text: string }) {
   return (
     <div className="glass flex items-center justify-center p-12 text-sm text-gray-500">{text}</div>
+  );
+}
+
+/** Small inline spinner — was reimplemented ad hoc in one place (Profile's
+ * refresh-rates button) and nowhere else, so every other loading query just
+ * rendered blank/empty instead. */
+export function Spinner({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <Loader2
+      size={size}
+      className={`animate-spin text-gray-500 ${className}`}
+      aria-label="Loading"
+    />
+  );
+}
+
+/** Full-width loading placeholder for a page/section's primary query. */
+export function LoadingState({ text = "Loading…" }: { text?: string }) {
+  return (
+    <div className="glass flex items-center justify-center gap-2 p-12 text-sm text-gray-500">
+      <Spinner />
+      {text}
+    </div>
+  );
+}
+
+/** Full-width error placeholder for a failed page/section query — a failed
+ * fetch used to silently render as an empty list, indistinguishable from
+ * "you have no data yet." */
+export function ErrorState({ error }: { error: unknown }) {
+  const message = error instanceof Error ? error.message : "Something went wrong.";
+  return (
+    <div className="glass flex flex-col items-center gap-2 p-12 text-center text-sm text-rose-300">
+      <AlertTriangle size={20} />
+      <span>Couldn't load this — {message}</span>
+    </div>
   );
 }
 

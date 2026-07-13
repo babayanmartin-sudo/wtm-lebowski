@@ -3,7 +3,17 @@ import { useState } from "react";
 
 import { api } from "../api/client";
 import { useCategories, useIgnoreRules, useInvalidating, useRules } from "../api/hooks";
-import { Badge, CategorySelect, ColorDot, EmptyState, Field, Modal, PageHeader } from "../components/ui";
+import {
+  Badge,
+  CategorySelect,
+  ColorDot,
+  EmptyState,
+  ErrorState,
+  Field,
+  LoadingState,
+  Modal,
+  PageHeader,
+} from "../components/ui";
 import { useSessionState } from "../lib/session";
 
 interface Draft {
@@ -24,7 +34,7 @@ interface IgnoreDraft {
 
 export default function RulesPage() {
   const [q, setQ] = useSessionState("rules.q", "");
-  const { data: rules = [] } = useRules(q);
+  const { data: rules = [], isLoading: rulesLoading, isError: rulesIsError, error: rulesError } = useRules(q);
   const { data: categories = [] } = useCategories();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
@@ -38,7 +48,12 @@ export default function RulesPage() {
   const remove = useInvalidating((id: number) => api.del(`/api/rules/${id}`), keys);
 
   const [iq, setIq] = useSessionState("rules.ignoreQ", "");
-  const { data: ignoreRules = [] } = useIgnoreRules(iq);
+  const {
+    data: ignoreRules = [],
+    isLoading: ignoreLoading,
+    isError: ignoreIsError,
+    error: ignoreError,
+  } = useIgnoreRules(iq);
   const [idraft, setIdraft] = useState<IgnoreDraft | null>(null);
   const [ierror, setIerror] = useState("");
   const ikeys = [["ignore-rules"]];
@@ -103,7 +118,11 @@ export default function RulesPage() {
         <span className="text-xs text-gray-500">{rules.length} rules</span>
       </div>
 
-      {rules.length === 0 ? (
+      {rulesLoading ? (
+        <LoadingState />
+      ) : rulesIsError ? (
+        <ErrorState error={rulesError} />
+      ) : rules.length === 0 ? (
         <EmptyState text="No rules yet. They appear automatically when you categorize imports, or add one manually." />
       ) : (
         <div className="glass overflow-hidden">
@@ -245,7 +264,11 @@ export default function RulesPage() {
         <span className="text-xs text-gray-500">{ignoreRules.length} rules</span>
       </div>
 
-      {ignoreRules.length === 0 ? (
+      {ignoreLoading ? (
+        <LoadingState />
+      ) : ignoreIsError ? (
+        <ErrorState error={ignoreError} />
+      ) : ignoreRules.length === 0 ? (
         <EmptyState text="No ignore rules yet. Click the eye-off icon on a row during import to add one." />
       ) : (
         <div className="glass overflow-hidden">
