@@ -129,7 +129,7 @@ export default function DashboardPage() {
           </div>
 
           {(zoomed || hasFilter) && (
-            <button className="btn-ghost h-9 px-3 text-xs" title="Back to current month, clear filters" onClick={resetView}>
+            <button className="btn-ghost h-9 px-3 text-sm" title="Back to current month, clear filters" onClick={resetView}>
               <RotateCcw size={13} /> Reset
             </button>
           )}
@@ -139,7 +139,7 @@ export default function DashboardPage() {
             value={accountId ?? ""}
             onChange={(e) => setAccountId(e.target.value === "" ? null : Number(e.target.value))}
           >
-            <option value="">All accounts</option>
+            <option value="">Accounts</option>
             {activeAccounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -151,7 +151,7 @@ export default function DashboardPage() {
             categories={categories}
             value={categoryId}
             onChange={setCategoryId}
-            emptyLabel="All categories"
+            emptyLabel="Categories"
             className="input h-9 w-40"
           />
         </div>

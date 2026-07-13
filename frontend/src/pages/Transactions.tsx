@@ -283,7 +283,7 @@ export default function TransactionsPage() {
             </div>
             {!isCurrentMonth && (
               <button
-                className="btn-ghost h-9 px-3 text-xs"
+                className="btn-ghost h-9 px-3 text-sm"
                 title="Back to current month"
                 onClick={() => {
                   resetPeriod();
@@ -395,7 +395,7 @@ export default function TransactionsPage() {
               setPage(0);
             }}
           >
-            <option value="">All accounts</option>
+            <option value="">Accounts</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -409,7 +409,7 @@ export default function TransactionsPage() {
               setCategoryId(id);
               setPage(0);
             }}
-            emptyLabel="All categories"
+            emptyLabel="Categories"
             uncategorizedOption
             className="input h-9 w-48"
             usage={categoryUsage}
@@ -422,7 +422,7 @@ export default function TransactionsPage() {
               setPage(0);
             }}
           >
-            <option value="">All kinds</option>
+            <option value="">Type</option>
             <option value="expense">Expense</option>
             <option value="income">Income</option>
             <option value="transfer">Transfer</option>
