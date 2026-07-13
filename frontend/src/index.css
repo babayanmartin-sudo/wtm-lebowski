@@ -9,7 +9,11 @@
   --color-line: #22302c;
   --color-accent: #ffb545;
   --color-accent-2: #ffcb7a;
-  --font-sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* One typeface for the whole app — the console read shouldn't stop at
+     numbers. --font-sans and --font-mono are intentionally identical so
+     every element (default body text, .font-mono call sites, Tailwind's
+     font-sans utility) resolves to the same face. */
+  --font-sans: ui-monospace, "SF Mono", "Cascadia Mono", "Menlo", "Consolas", monospace;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Menlo", "Consolas", monospace;
 
   /* Every existing lime-* utility (bg/text/border/ring) across the app —
