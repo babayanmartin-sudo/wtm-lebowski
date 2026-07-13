@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.4.1 — 2026-07-13
+
+### Bug fixes
+
+- **Fixed #39: `excluded_from_reports` not applied to Income vs spending
+  totals/series.** The flag was only wired into the category-breakdown
+  query (`_by_category`) — the top-line Income/Spent stats and the
+  Dashboard bar chart summed every transaction with no exclusion
+  check at all. Now filtered consistently (cascading parent→child)
+  everywhere the flag applies.
+
 ## v1.4.0 — 2026-07-13
 
 ### Signal Room — new theme (#38)
