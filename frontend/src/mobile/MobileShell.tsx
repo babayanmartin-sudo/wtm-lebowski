@@ -24,7 +24,7 @@ const MENU_ITEMS = [
   { to: "/categories", label: "Categories", icon: Tags },
   { to: "/budgets", label: "Budgets", icon: PiggyBank },
   { to: "/goals", label: "Goals & Loans", icon: Target },
-  { to: "/templates", label: "Recurring/Planned", icon: Repeat },
+  { to: "/templates", label: "Planned", icon: Repeat },
   { to: "/import", label: "Import", icon: Upload },
   { to: "/rules", label: "Rules", icon: BookOpen },
   { to: "/profile", label: "Profile", icon: UserRound },
@@ -44,7 +44,7 @@ export default function MobileShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-full flex-col bg-[var(--color-bg)] text-white">
-      <main className="min-h-0 flex-1 overflow-y-auto px-[5px] pb-24">
+      <main className="min-h-0 flex-1 overflow-y-auto px-4 pt-6 pb-24">
         <div key={location.pathname} className="m-page-transition">
           {children}
         </div>

@@ -110,7 +110,7 @@ export default function TemplatesPage() {
   return (
     <div>
       <PageHeader
-        title="Recurring/Planned"
+        title="Planned"
         subtitle="Templates that post automatically or ask for confirmation"
         actions={
           <button className="btn-primary" onClick={() => setDraft(fresh())}>
@@ -126,65 +126,69 @@ export default function TemplatesPage() {
           {templates.map((t) => (
             <div
               key={t.id}
-              className={`flex items-center gap-4 border-b border-white/5 px-4 py-3 last:border-0 ${
+              className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-white/5 px-4 py-3 last:border-0 ${
                 t.active ? "" : "opacity-40"
               }`}
             >
-              <div
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                  t.kind === "income"
-                    ? "bg-emerald-500/20 text-emerald-300"
-                    : t.kind === "transfer"
-                      ? "bg-sky-500/20 text-sky-300"
-                      : "bg-rose-500/20 text-rose-300"
-                }`}
-              >
-                <Repeat size={16} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{t.name}</p>
-                <p className="text-xs text-gray-500">
-                  every {t.interval > 1 ? `${t.interval} ` : ""}
-                  {t.frequency.replace("ly", t.interval > 1 ? "s" : "")} · {accountById.get(t.account_id)?.name}
-                  {t.auto_post ? " · auto" : ""}
-                  {t.end_date ? ` · until ${fmtDate(t.end_date)}` : ""}
-                </p>
-              </div>
-              <span className={`text-xs ${due(t) ? "font-medium text-amber-300" : "text-gray-500"}`}>
-                {due(t) ? "due " : "next "}
-                {fmtDate(t.next_due)}
-              </span>
-              <span className="w-28 text-right text-sm font-medium tabular-nums">
-                {fmtMoney(t.amount, accountById.get(t.account_id)?.currency)}
-              </span>
-              <div className="flex gap-1">
-                {due(t) && !t.auto_post && (
-                  <>
-                    <button
-                      title="Post now"
-                      className="rounded-lg p-1.5 text-emerald-300 hover:bg-emerald-500/20"
-                      onClick={() => postNow.mutate(t.id)}
-                    >
-                      <Check size={15} />
-                    </button>
-                    <button
-                      title="Skip occurrence"
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
-                      onClick={() => skip.mutate(t.id)}
-                    >
-                      <SkipForward size={15} />
-                    </button>
-                  </>
-                )}
-                <button className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10" onClick={() => edit(t)}>
-                  <Pencil size={14} />
-                </button>
-                <button
-                  className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
-                  onClick={() => remove.mutate(t.id)}
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <div
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                    t.kind === "income"
+                      ? "bg-emerald-500/20 text-emerald-300"
+                      : t.kind === "transfer"
+                        ? "bg-sky-500/20 text-sky-300"
+                        : "bg-rose-500/20 text-rose-300"
+                  }`}
                 >
-                  <Trash2 size={14} />
-                </button>
+                  <Repeat size={16} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{t.name}</p>
+                  <p className="truncate text-xs text-gray-500">
+                    every {t.interval > 1 ? `${t.interval} ` : ""}
+                    {t.frequency.replace("ly", t.interval > 1 ? "s" : "")} · {accountById.get(t.account_id)?.name}
+                    {t.auto_post ? " · auto" : ""}
+                    {t.end_date ? ` · until ${fmtDate(t.end_date)}` : ""}
+                  </p>
+                </div>
+              </div>
+              <div className="flex w-full items-center justify-between gap-3 pl-12 sm:w-auto sm:pl-0">
+                <span className={`text-xs ${due(t) ? "font-medium text-amber-300" : "text-gray-500"}`}>
+                  {due(t) ? "due " : "next "}
+                  {fmtDate(t.next_due)}
+                </span>
+                <span className="w-28 text-right text-sm font-medium tabular-nums">
+                  {fmtMoney(t.amount, accountById.get(t.account_id)?.currency)}
+                </span>
+                <div className="flex gap-1">
+                  {due(t) && !t.auto_post && (
+                    <>
+                      <button
+                        title="Post now"
+                        className="rounded-lg p-1.5 text-emerald-300 hover:bg-emerald-500/20"
+                        onClick={() => postNow.mutate(t.id)}
+                      >
+                        <Check size={15} />
+                      </button>
+                      <button
+                        title="Skip occurrence"
+                        className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+                        onClick={() => skip.mutate(t.id)}
+                      >
+                        <SkipForward size={15} />
+                      </button>
+                    </>
+                  )}
+                  <button className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10" onClick={() => edit(t)}>
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
+                    onClick={() => remove.mutate(t.id)}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}

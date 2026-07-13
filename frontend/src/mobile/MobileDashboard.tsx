@@ -55,7 +55,7 @@ export default function MobileDashboard() {
   }, [pickerMode, pickerDate, categoryId]);
 
   return (
-    <div className="flex flex-col gap-5 px-4 pt-6">
+    <div className="flex flex-col gap-5">
       <h1 className="text-xl font-semibold">Overview</h1>
 
       <div className="flex items-center gap-1">

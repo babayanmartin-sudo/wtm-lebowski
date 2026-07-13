@@ -87,7 +87,7 @@ export default function MobileTransactions() {
   }
 
   return (
-    <div className="flex flex-col gap-4 px-4 pt-6">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Activity</h1>
         <button

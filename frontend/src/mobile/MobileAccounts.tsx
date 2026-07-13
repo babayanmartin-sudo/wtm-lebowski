@@ -95,7 +95,7 @@ export default function MobileAccounts() {
   }
 
   return (
-    <div className="flex flex-col gap-4 px-4 pt-6">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Accounts</h1>
         <button
@@ -105,8 +105,6 @@ export default function MobileAccounts() {
           <Plus size={14} /> Add
         </button>
       </div>
-
-      <RateTicker />
 
       {error && <p className="rounded-xl bg-rose-500/10 p-3 text-xs text-rose-300">{error}</p>}
 
@@ -143,6 +141,8 @@ export default function MobileAccounts() {
         </div>
       )}
       {accounts.length === 0 && <p className="py-10 text-center text-sm text-gray-500">No accounts yet.</p>}
+
+      <RateTicker />
 
       {draft && (
         <div
