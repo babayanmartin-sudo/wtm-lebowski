@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.4.2 — 2026-07-14
+
+### UI consistency, wrap-up of #37
+
+- **Loading/error states everywhere.** Failed or slow queries used to
+  render silently as an empty list. New shared `Spinner`/`LoadingState`/
+  `ErrorState`, wired into every page's primary query (desktop + mobile).
+- **Themed `Select` component**, replacing native `<select>` in filter
+  rows (Dashboard, Transactions, mobile equivalents) — native selects
+  render with the browser's own chrome and couldn't be restyled to
+  match `CategorySelect`'s panel, so dropdowns sitting side by side
+  looked like two unrelated UI systems.
+- Fixed `CategorySelect`/`PeriodPicker` panels overflowing the
+  viewport near the right edge (was making the browser auto-scroll
+  the whole page left to chase the autofocused search input).
+- Fixed the "Exclude from reports" toggle flashing old-then-new state
+  — now updates optimistically.
+- Fixed height mismatches across filter/header controls: `SegmentedToggle`,
+  `.btn-primary`, and several `PeriodPicker` instances never had a
+  pinned height and drifted a few px from their neighbors.
+- Widened the Amount filter select (text was clipped).
+- Documented the icon-size and border-radius scales; normalized the
+  flagged outliers (sidebar nav, Modal close, mobile menu close).
+- New toast system for save/delete confirmations (Categories, Accounts,
+  Budgets, Goals, Templates, Rules) — previously most of these closed
+  silently with no feedback.
+
 ## v1.4.1 — 2026-07-13
 
 ### Bug fixes
