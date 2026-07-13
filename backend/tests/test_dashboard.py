@@ -266,3 +266,42 @@ def test_recent_respects_period_filter(seeded):
     assert d["expense"] == 7.0
     assert len(d["recent"]) == 1
     assert d["recent"][0]["date"] == "2026-07-15"
+
+
+def test_excluded_category_omitted_from_totals_and_series(seeded):
+    """A category flagged excluded_from_reports should disappear from the
+    top-line income/expense totals and the series bars, not just the
+    by_category breakdown — this regressed after #30 shipped (the flag was
+    only wired into _by_category, not _totals/_series)."""
+    c = seeded["client"]
+    c.post(
+        "/api/transactions",
+        json={
+            "date": "2026-07-05",
+            "kind": "expense",
+            "account_id": seeded["aed"]["id"],
+            "amount": 100.0,
+            "splits": [{"category_id": seeded["food"]["id"], "amount": 100.0, "note": ""}],
+        },
+    )
+    c.post(
+        "/api/transactions",
+        json={
+            "date": "2026-07-06",
+            "kind": "expense",
+            "account_id": seeded["aed"]["id"],
+            "amount": 40.0,
+            "splits": [{"category_id": seeded["grocery"]["id"], "amount": 40.0, "note": ""}],
+        },
+    )
+
+    before = c.get("/api/dashboard/summary?date_from=2026-07-01&date_to=2026-07-31").json()
+    assert before["expense"] == 140.0
+
+    food = seeded["food"]
+    c.put(f"/api/categories/{food['id']}", json={**food, "excluded_from_reports": True})
+
+    after = c.get("/api/dashboard/summary?date_from=2026-07-01&date_to=2026-07-31").json()
+    # Food excluded cascades to its child Groceries too -> both transactions drop out
+    assert after["expense"] == 0.0
+    assert all(s["expense"] == 0.0 for s in after["series"])

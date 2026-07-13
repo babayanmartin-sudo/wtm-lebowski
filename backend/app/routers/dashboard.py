@@ -43,11 +43,12 @@ def summary(
     )
 
     cat_ids = _category_ids_with_children(db, category_id)
+    excluded_ids = _excluded_category_ids({c.id: c for c in db.scalars(select(Category))})
     transfer_flows = (
         _transfer_flows(db, start, end, account_id) if account_id and not cat_ids else []
     )
-    totals = _totals(db, start, end, account_id, cat_ids, transfer_flows)
-    granularity, series = _series(db, start, end, account_id, cat_ids, transfer_flows)
+    totals = _totals(db, start, end, account_id, cat_ids, excluded_ids, transfer_flows)
+    granularity, series = _series(db, start, end, account_id, cat_ids, excluded_ids, transfer_flows)
 
     return {
         "base_currency": BASE_CURRENCY,
@@ -103,12 +104,20 @@ def _category_ids_with_children(db: Session, category_id: int | None) -> list[in
     return ids
 
 
-def _apply_filters(stmt, account_id: int | None, cat_ids: list[int] | None):
+def _apply_filters(
+    stmt, account_id: int | None, cat_ids: list[int] | None, excluded_ids: set[int] | None = None
+):
     if account_id:
         stmt = stmt.where(Transaction.account_id == account_id)
     if cat_ids:
         stmt = stmt.where(
             Transaction.id.in_(select(Split.transaction_id).where(Split.category_id.in_(cat_ids)))
+        )
+    if excluded_ids:
+        stmt = stmt.where(
+            Transaction.id.not_in(
+                select(Split.transaction_id).where(Split.category_id.in_(excluded_ids))
+            )
         )
     return stmt
 
@@ -150,12 +159,13 @@ def _totals(
     end: date,
     account_id: int | None,
     cat_ids: list[int] | None,
+    excluded_ids: set[int] | None = None,
     transfer_flows: list[tuple[date, str, float]] | None = None,
 ) -> dict[str, float]:
     stmt = select(Transaction.kind, func.sum(Transaction.amount_base)).where(
         Transaction.date >= start, Transaction.date <= end, Transaction.kind.in_(["expense", "income"])
     )
-    stmt = _apply_filters(stmt, account_id, cat_ids).group_by(Transaction.kind)
+    stmt = _apply_filters(stmt, account_id, cat_ids, excluded_ids).group_by(Transaction.kind)
     totals = dict(db.execute(stmt).all())
     if account_id and not cat_ids:
         flows = transfer_flows if transfer_flows is not None else _transfer_flows(db, start, end, account_id)
@@ -274,6 +284,7 @@ def _series(
     end: date,
     account_id: int | None,
     cat_ids: list[int] | None,
+    excluded_ids: set[int] | None = None,
     transfer_flows: list[tuple[date, str, float]] | None = None,
 ) -> tuple[str, list[dict]]:
     granularity = _granularity(start, end)
@@ -298,7 +309,7 @@ def _series(
     stmt = select(Transaction.date, Transaction.kind, Transaction.amount_base).where(
         Transaction.date >= start, Transaction.date <= end, Transaction.kind.in_(["expense", "income"])
     )
-    stmt = _apply_filters(stmt, account_id, cat_ids)
+    stmt = _apply_filters(stmt, account_id, cat_ids, excluded_ids)
     for d, kind, amount in db.execute(stmt).all():
         key = _bucket_start(d, granularity).isoformat()
         bucket = buckets.setdefault(key, {"label": key, "income": 0.0, "expense": 0.0})
