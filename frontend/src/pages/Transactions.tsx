@@ -429,7 +429,7 @@ export default function TransactionsPage() {
           />
           <div className="flex items-center gap-1">
             <Select
-              className="input h-9 w-[5.5rem]"
+              className="input h-9 w-28"
               value={amountOp === "" ? null : amountOp}
               onChange={(v) => {
                 setAmountOp(v === null ? "" : v);
