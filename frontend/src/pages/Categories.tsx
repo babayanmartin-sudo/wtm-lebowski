@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 import { api } from "../api/client";
 import { useCategories, useCategoryUsage, useDashboard, useInvalidating } from "../api/hooks";
 import type { Category } from "../api/types";
@@ -53,6 +55,7 @@ export default function CategoriesPage() {
   const [pageError, setPageError] = useState("");
   const [drillCat, setDrillCat] = useState<Category | null>(null);
   const [sortBy, setSortBy] = useState<"order" | "alpha" | "usage">("order");
+  const qc = useQueryClient();
 
   const keys = [["categories"], ["dashboard"], ["budgets"]];
   const save = useInvalidating(async (d: Draft) => {
@@ -60,6 +63,17 @@ export default function CategoriesPage() {
     return d.id ? api.put(`/api/categories/${d.id}`, body) : api.post("/api/categories", body);
   }, keys);
   const remove = useInvalidating((id: number) => api.del(`/api/categories/${id}`), keys);
+
+  /** Flip excluded_from_reports in the cache immediately instead of waiting
+   * on the round-trip — the plain save.mutate() left a visible flash between
+   * click and refetch as the list briefly held the old value. */
+  function toggleExcluded(cat: Category) {
+    const next = !cat.excluded_from_reports;
+    qc.setQueryData<Category[]>(["categories"], (old) =>
+      old?.map((c) => (c.id === cat.id ? { ...c, excluded_from_reports: next } : c)),
+    );
+    save.mutate({ ...cat, excluded_from_reports: next });
+  }
 
   async function submit() {
     setError("");
@@ -134,7 +148,7 @@ export default function CategoriesPage() {
           <button
             title="Excluded from reports — click to include again"
             className="rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-300"
-            onClick={() => save.mutate({ ...cat, excluded_from_reports: false })}
+            onClick={() => toggleExcluded(cat)}
           >
             <EyeOff size={14} />
           </button>
@@ -164,7 +178,7 @@ export default function CategoriesPage() {
           <button
             title={cat.excluded_from_reports ? "Include in reports" : "Exclude from reports"}
             className="rounded p-1 text-gray-400 hover:bg-white/10"
-            onClick={() => save.mutate({ ...cat, excluded_from_reports: !cat.excluded_from_reports })}
+            onClick={() => toggleExcluded(cat)}
           >
             {cat.excluded_from_reports ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>

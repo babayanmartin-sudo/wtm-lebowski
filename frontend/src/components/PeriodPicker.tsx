@@ -43,7 +43,15 @@ export default function PeriodPicker({
   const [viewMonth, setViewMonth] = useState(() => anchorFor(mode, date).getMonth());
   const [customFrom, setCustomFrom] = useState(() => decodeCustomRange(date).from);
   const [customTo, setCustomTo] = useState(() => decodeCustomRange(date).to);
+  const [align, setAlign] = useState<"left" | "right">("left");
   const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open || !rootRef.current) return;
+    const rect = rootRef.current.getBoundingClientRect();
+    const PANEL_WIDTH = 288;
+    setAlign(rect.left + PANEL_WIDTH > window.innerWidth ? "right" : "left");
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -116,7 +124,11 @@ export default function PeriodPicker({
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-white/10 bg-[var(--color-panel)] p-3 shadow-xl">
+        <div
+          className={`absolute top-full z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-white/10 bg-[var(--color-panel)] p-3 shadow-xl ${
+            align === "right" ? "right-0" : "left-0"
+          }`}
+        >
           {modes.length > 1 && (
             <div className="mb-3 flex rounded-lg bg-white/5 p-1 text-xs">
               {modes.map((m) => (
