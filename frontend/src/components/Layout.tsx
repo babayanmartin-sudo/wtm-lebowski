@@ -87,7 +87,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 }`
               }
             >
-              <Icon size={17} className="shrink-0" />
+              <Icon size={16} className="shrink-0" />
               {!collapsed && <span className="truncate">{label}</span>}
             </NavLink>
           ))}

@@ -4,6 +4,16 @@ import type { ReactNode } from "react";
 
 import type { Category } from "../api/types";
 
+/** Icon size scale — pick the smallest that fits the role, don't invent a
+ * new number:
+ *   12  inline chip/tag close (X), decorative connector icons
+ *   14  row-action icons (edit/delete/archive/…), inline button icons
+ *   16  nav icons (desktop sidebar), Modal close, section-header chevrons
+ *   20  mobile-only nav/menu icons (bigger on purpose — touch target, not
+ *       drift; keep desktop equivalents at 16)
+ *   24+ hero/empty-state icons (e.g. Import's upload dropzone) — contextual,
+ *       no fixed value */
+
 export function PageHeader({
   title,
   subtitle,
@@ -44,7 +54,7 @@ export function Modal({
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold">{title}</h2>
           <button onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-white/10">
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
         {children}

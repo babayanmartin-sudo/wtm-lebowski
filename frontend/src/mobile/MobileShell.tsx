@@ -84,7 +84,7 @@ export default function MobileShell({ children }: { children: ReactNode }) {
                 onClick={() => setMenuOpen(false)}
                 className="rounded-md p-1.5 text-gray-400 hover:bg-white/10"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
             <div className="grid grid-cols-3 gap-3">

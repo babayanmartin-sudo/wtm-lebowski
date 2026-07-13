@@ -33,6 +33,7 @@ import {
 } from "../components/ui";
 import RateTicker from "../components/RateTicker";
 import { fmtMoney } from "../lib/format";
+import { toast } from "../lib/toast";
 import { ACCOUNT_ICON_KEYS, getAccountIcon } from "../lib/icons";
 
 const TYPES = ["cash", "bank", "card", "savings"];
@@ -132,6 +133,7 @@ export default function AccountsPage() {
       const body = { ...draft! };
       await save.mutateAsync(body);
       setDraft(null);
+      toast(body.id ? "Account updated" : "Account created");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
     }
@@ -155,6 +157,7 @@ export default function AccountsPage() {
     if (!confirm(`Delete account “${acc.name}”?`)) return;
     try {
       await remove.mutateAsync(acc.id);
+      toast("Account deleted");
     } catch (e) {
       setPageError(e instanceof Error ? e.message : "Delete failed");
     }

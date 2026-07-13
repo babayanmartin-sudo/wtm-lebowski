@@ -29,6 +29,7 @@ import {
 } from "../components/ui";
 import { CHART_COLORS, chartTooltipProps } from "../lib/charts";
 import { fmtMoney, fmtMonth } from "../lib/format";
+import { toast } from "../lib/toast";
 import { toISO } from "../lib/period";
 import { useSessionState } from "../lib/session";
 
@@ -89,6 +90,7 @@ export default function BudgetsPage() {
     try {
       await save.mutateAsync(draft!);
       setDraft(null);
+      toast(draft!.id ? "Budget updated" : "Budget created");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
     }
@@ -243,7 +245,7 @@ export default function BudgetsPage() {
                     </button>
                     <button
                       className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
-                      onClick={() => remove.mutate(b.id)}
+                      onClick={() => remove.mutate(b.id, { onSuccess: () => toast("Budget deleted") })}
                     >
                       <Trash2 size={14} />
                     </button>

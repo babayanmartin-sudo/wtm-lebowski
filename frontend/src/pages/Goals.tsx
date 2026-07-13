@@ -7,6 +7,7 @@ import { useGoals, useInvalidating, useLoans } from "../api/hooks";
 import type { Goal, Loan } from "../api/types";
 import { ColorPicker, EmptyState, ErrorState, Field, LoadingState, Modal, PageHeader } from "../components/ui";
 import { fmtDate, fmtMoney, today } from "../lib/format";
+import { toast } from "../lib/toast";
 
 interface Draft {
   id?: number;
@@ -90,6 +91,7 @@ export default function GoalsPage() {
     try {
       await saveLoan.mutateAsync(loanDraft!);
       setLoanDraft(null);
+      toast(loanDraft!.id ? "Loan updated" : "Loan created");
     } catch (e) {
       setLoanError(e instanceof Error ? e.message : "Failed");
     }
@@ -100,6 +102,7 @@ export default function GoalsPage() {
     try {
       await save.mutateAsync(draft!);
       setDraft(null);
+      toast(draft!.id ? "Goal updated" : "Goal created");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
     }
@@ -180,7 +183,7 @@ export default function GoalsPage() {
                     </button>
                     <button
                       className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
-                      onClick={() => remove.mutate(g.id)}
+                      onClick={() => remove.mutate(g.id, { onSuccess: () => toast("Goal deleted") })}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -343,7 +346,7 @@ export default function GoalsPage() {
                     </button>
                     <button
                       className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
-                      onClick={() => removeLoan.mutate(l.id)}
+                      onClick={() => removeLoan.mutate(l.id, { onSuccess: () => toast("Loan deleted") })}
                     >
                       <Trash2 size={14} />
                     </button>

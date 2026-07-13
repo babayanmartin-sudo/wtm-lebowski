@@ -20,6 +20,7 @@ import type { Category } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
 import { ColorDot, ColorPicker, ErrorState, Field, LoadingState, Modal, PageHeader } from "../components/ui";
 import { fmtMoney } from "../lib/format";
+import { toast } from "../lib/toast";
 import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
 
 const DRILL_MODES: PickerMode[] = ["month", "year", "custom"];
@@ -80,6 +81,7 @@ export default function CategoriesPage() {
     try {
       await save.mutateAsync(draft!);
       setDraft(null);
+      toast(draft!.id ? "Category updated" : "Category created");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
     }
@@ -90,6 +92,7 @@ export default function CategoriesPage() {
     if (!confirm(`Delete category “${cat.name}”?`)) return;
     try {
       await remove.mutateAsync(cat.id);
+      toast("Category deleted");
     } catch (e) {
       setPageError(e instanceof Error ? e.message : "Delete failed");
     }

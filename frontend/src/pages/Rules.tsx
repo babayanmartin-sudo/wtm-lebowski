@@ -15,6 +15,7 @@ import {
   PageHeader,
 } from "../components/ui";
 import { useSessionState } from "../lib/session";
+import { toast } from "../lib/toast";
 
 interface Draft {
   id?: number;
@@ -73,6 +74,7 @@ export default function RulesPage() {
     try {
       await save.mutateAsync(draft!);
       setDraft(null);
+      toast(draft!.id ? "Rule updated" : "Rule created");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
     }
@@ -83,6 +85,7 @@ export default function RulesPage() {
     try {
       await isave.mutateAsync(idraft!);
       setIdraft(null);
+      toast(idraft!.id ? "Ignore rule updated" : "Ignore rule created");
     } catch (e) {
       setIerror(e instanceof Error ? e.message : "Failed");
     }
@@ -164,7 +167,7 @@ export default function RulesPage() {
                         </button>
                         <button
                           className="rounded p-1 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
-                          onClick={() => remove.mutate(r.id)}
+                          onClick={() => remove.mutate(r.id, { onSuccess: () => toast("Rule deleted") })}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -304,7 +307,7 @@ export default function RulesPage() {
                       </button>
                       <button
                         className="rounded p-1 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
-                        onClick={() => iremove.mutate(r.id)}
+                        onClick={() => iremove.mutate(r.id, { onSuccess: () => toast("Ignore rule deleted") })}
                       >
                         <Trash2 size={14} />
                       </button>

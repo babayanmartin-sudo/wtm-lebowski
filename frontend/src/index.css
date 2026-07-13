@@ -39,6 +39,17 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Border-radius scale — pick by component tier, don't invent a new value:
+     rounded-md (0.375rem)   controls: buttons, inputs, dropdown triggers/panels, badges
+     rounded-lg (0.5rem)     icon badges/avatars, small nested cards
+     rounded-xl (0.75rem)    modals, larger avatars (Accounts card view)
+     rounded-2xl/3xl         mobile-only touch-scale cards/sheets (bigger on
+                              purpose, same reasoning as the 20px mobile icon
+                              tier — not drift)
+     rounded-full            pills/badges, circular avatars, icon buttons
+   .glass itself is pinned to 0.5rem (== rounded-lg) directly in the rule
+   below rather than via the Tailwind class, since it's a plain CSS rule,
+   not a @apply. */
 @layer components {
   .glass {
     background: var(--color-panel);

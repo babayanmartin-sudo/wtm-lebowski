@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { useAuthStatus } from "./api/hooks";
 import Layout from "./components/Layout";
+import Toaster from "./components/Toaster";
 import { useIsMobile } from "./hooks/useIsMobile";
 import MobileAccounts from "./mobile/MobileAccounts";
 import MobileDashboard from "./mobile/MobileDashboard";
@@ -44,11 +45,34 @@ export default function App() {
 
   if (isMobile) {
     return (
-      <MobileShell>
+      <>
+        <MobileShell>
+          <Routes>
+            <Route path="/" element={<MobileDashboard />} />
+            <Route path="/transactions" element={<MobileTransactions />} />
+            <Route path="/accounts" element={<MobileAccounts />} />
+            <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/budgets" element={<BudgetsPage />} />
+            <Route path="/goals" element={<GoalsPage />} />
+            <Route path="/templates" element={<TemplatesPage />} />
+            <Route path="/import" element={<ImportPage />} />
+            <Route path="/rules" element={<RulesPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </MobileShell>
+        <Toaster />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Layout>
         <Routes>
-          <Route path="/" element={<MobileDashboard />} />
-          <Route path="/transactions" element={<MobileTransactions />} />
-          <Route path="/accounts" element={<MobileAccounts />} />
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/transactions" element={<TransactionsPage />} />
+          <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/budgets" element={<BudgetsPage />} />
           <Route path="/goals" element={<GoalsPage />} />
@@ -58,25 +82,8 @@ export default function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </MobileShell>
-    );
-  }
-
-  return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/transactions" element={<TransactionsPage />} />
-        <Route path="/accounts" element={<AccountsPage />} />
-        <Route path="/categories" element={<CategoriesPage />} />
-        <Route path="/budgets" element={<BudgetsPage />} />
-        <Route path="/goals" element={<GoalsPage />} />
-        <Route path="/templates" element={<TemplatesPage />} />
-        <Route path="/import" element={<ImportPage />} />
-        <Route path="/rules" element={<RulesPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Layout>
+      </Layout>
+      <Toaster />
+    </>
   );
 }

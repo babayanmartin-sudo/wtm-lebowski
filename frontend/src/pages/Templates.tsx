@@ -21,6 +21,7 @@ import {
   PageHeader,
 } from "../components/ui";
 import { fmtDate, fmtMoney, today } from "../lib/format";
+import { toast } from "../lib/toast";
 
 interface Draft {
   id?: number;
@@ -104,6 +105,7 @@ export default function TemplatesPage() {
     try {
       await save.mutateAsync(draft!);
       setDraft(null);
+      toast(draft!.id ? "Template updated" : "Template created");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
     }
@@ -196,7 +198,7 @@ export default function TemplatesPage() {
                   </button>
                   <button
                     className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
-                    onClick={() => remove.mutate(t.id)}
+                    onClick={() => remove.mutate(t.id, { onSuccess: () => toast("Template deleted") })}
                   >
                     <Trash2 size={14} />
                   </button>
