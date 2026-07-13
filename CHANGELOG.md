@@ -1,5 +1,45 @@
 # Changelog
 
+## v1.4.0 — 2026-07-13
+
+### Signal Room — new theme (#38)
+
+Retheme from the dark-glass/lime look to "Signal Room": an ops-console
+aesthetic — graphite ground, amber accent reserved for flags/primary
+actions/emphasis, one monospace typeface app-wide, hairline borders
+instead of glass blur.
+
+- New color tokens: graphite bg/panel, amber accent, `--color-line`
+  hairline border color. The full `lime-*` Tailwind ramp is overridden
+  to the amber scale, so existing `lime-400`/`text-lime-300` usage
+  recolors from 5 lines instead of a file-by-file sweep.
+- `--font-sans` now equals `--font-mono` — the whole app (not just
+  numbers) renders in one monospace face.
+- `.glass`: hairline border + solid panel instead of backdrop blur.
+  `.btn-*`/`.input`: sharper `rounded-md` corners.
+- New shared components: `Badge` (hairline tag, replacing filled
+  pills), `SegmentedToggle` (hairline "pick one of N" control),
+  `SuccessIcon` (dedup'd two different sizes).
+- Charts (Dashboard, Budgets, mobile dashboard): tooltip/bar/line/axis
+  colors moved off the old gray-700/lime-green palette onto
+  graphite/amber.
+- Dashboard rebuilt to actually match the theme's composition: hairline-
+  divided stat grid (icons dropped), mono uppercase captions
+  throughout, recent-transaction rows show a category tag + amber
+  "Return" flag, mono tabular numbers everywhere.
+- Consistency fixes bundled in: uniform filter-control heights
+  (Dashboard/Transactions), fixed text overflowing its box in
+  `CategorySelect`/`PeriodPicker` triggers, shortened filter
+  placeholder labels ("All accounts" → "Accounts", etc.), "Recurring/
+  Planned" renamed to "Planned", removed the redundant "Exchange
+  rates" card from Profile (already on Accounts).
+- Mobile: added account filter to Home (was date-only), fixed Net
+  worth/Income/Spent colors and the Income/Spent amount not matching
+  its arrow color, added the exchange-rate ticker to Accounts, fixed
+  inconsistent edge padding across pages, fixed the mobile menu's
+  "Planned" label and the Templates row both overflowing/overlapping
+  under the new (wider) monospace font.
+
 ## v1.3.2 — 2026-07-13
 
 ### UI consistency (#37)
