@@ -101,7 +101,13 @@ export default function BudgetsPage() {
         subtitle="Monthly or yearly spending limits per category (AED)"
         actions={
           <>
-            <PeriodPicker mode="month" date={periodDate} modes={["month"]} onChange={(_m, d) => setPeriodDate(d)} />
+            <PeriodPicker
+              mode="month"
+              date={periodDate}
+              modes={["month"]}
+              triggerClassName="h-9 w-56"
+              onChange={(_m, d) => setPeriodDate(d)}
+            />
             <button
               className="btn-primary"
               onClick={() => {

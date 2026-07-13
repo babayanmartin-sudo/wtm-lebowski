@@ -71,7 +71,7 @@ export default function MobileDashboard() {
             mode={pickerMode}
             date={pickerDate}
             modes={ALL_MODES}
-            triggerClassName="w-full"
+            triggerClassName="h-9 w-full"
             onChange={(m, d) => {
               setPickerMode(m);
               setPickerDate(d);

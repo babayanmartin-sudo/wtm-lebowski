@@ -64,7 +64,10 @@ body {
     @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply bg-lime-400 text-black hover:bg-lime-300;
+    /* Always the full-size "Add X" / submit button — no compact call
+       sites like .btn-ghost has (pagination, drill-back), so it's safe
+       to pin the height here instead of per-instance. */
+    @apply h-9 bg-lime-400 text-black hover:bg-lime-300;
   }
   .btn-ghost {
     @apply border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10;
