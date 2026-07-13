@@ -44,7 +44,7 @@ export default function MobileShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-full flex-col bg-[var(--color-bg)] text-white">
-      <main className="min-h-0 flex-1 overflow-y-auto pb-24">
+      <main className="min-h-0 flex-1 overflow-y-auto px-[5px] pb-24">
         <div key={location.pathname} className="m-page-transition">
           {children}
         </div>
@@ -98,7 +98,7 @@ export default function MobileShell({ children }: { children: ReactNode }) {
                   className="flex flex-col items-center gap-2 rounded-md border border-white/10 bg-white/5 px-2 py-4 text-center transition-colors active:bg-[#ffb545]/10"
                 >
                   <Icon size={20} className="text-[#ffb545]" />
-                  <span className="line-clamp-2 text-xs leading-tight text-gray-300">{label}</span>
+                  <span className="text-xs leading-tight text-gray-300">{label}</span>
                 </button>
               ))}
             </div>

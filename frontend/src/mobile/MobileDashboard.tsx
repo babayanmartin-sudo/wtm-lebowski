@@ -6,6 +6,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { useAccounts, useCategories, useDashboard } from "../api/hooks";
 import type { CategoryTotal } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
+import { CategorySelect } from "../components/ui";
 import { chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
 import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
@@ -17,9 +18,15 @@ export default function MobileDashboard() {
   const navigate = useNavigate();
   const [pickerMode, setPickerMode] = useSessionState<PickerMode>("dashboard.mode", "month");
   const [pickerDate, setPickerDate] = useSessionState("dashboard.date", toISO(new Date()));
+  const [accountId, setAccountId] = useSessionState<number | null>("dashboard.account", null);
   const [categoryId, setCategoryId] = useSessionState<number | null>("dashboard.category", null);
   const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate), pickerDate), [pickerMode, pickerDate]);
-  const { data } = useDashboard({ date_from: period.from, date_to: period.to, category_id: categoryId ?? undefined });
+  const { data } = useDashboard({
+    date_from: period.from,
+    date_to: period.to,
+    account_id: accountId ?? undefined,
+    category_id: categoryId ?? undefined,
+  });
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
 
@@ -28,6 +35,7 @@ export default function MobileDashboard() {
   const donutIncome = (data?.by_category_income ?? []).slice(0, 6);
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const zoomed = pickerMode !== "month";
+  const filterAccount = accountId ? accounts.find((a) => a.id === accountId) : null;
   const filterCategory = categoryId ? categoryById.get(categoryId) : null;
 
   function toggleCategory(id: number | null) {
@@ -79,13 +87,43 @@ export default function MobileDashboard() {
         </button>
       </div>
 
-      {(zoomed || filterCategory) && (
+      <div className="flex items-center gap-2">
+        <select
+          className="input h-9 flex-1"
+          value={accountId ?? ""}
+          onChange={(e) => setAccountId(e.target.value === "" ? null : Number(e.target.value))}
+        >
+          <option value="">Accounts</option>
+          {activeAccounts.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </select>
+        <CategorySelect
+          categories={categories}
+          value={categoryId}
+          onChange={setCategoryId}
+          emptyLabel="Categories"
+          className="input h-9 flex-1"
+        />
+      </div>
+
+      {(zoomed || filterAccount || filterCategory) && (
         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
           Filtering by
           {zoomed && (
             <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
               {periodLabel(pickerMode, pickerMode === "custom" ? pickerDate : period.from)}
               <button onClick={goToMonth}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {filterAccount && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              {filterAccount.name}
+              <button onClick={() => setAccountId(null)}>
                 <X size={12} />
               </button>
             </span>
@@ -107,7 +145,7 @@ export default function MobileDashboard() {
           label="Net worth"
           value={data ? fmtMoney(data.net_worth, data.base_currency) : "…"}
           icon={<TrendingUp size={14} />}
-          color="text-lime-400"
+          color="text-gray-100"
         />
         <MobileStat
           label="Income"

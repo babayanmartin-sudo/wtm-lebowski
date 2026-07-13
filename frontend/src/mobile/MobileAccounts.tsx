@@ -7,6 +7,7 @@ import { type CSSProperties, type ReactNode, useState } from "react";
 import { api } from "../api/client";
 import { MONEY_KEYS, useAccounts, useInvalidating } from "../api/hooks";
 import type { Account } from "../api/types";
+import RateTicker from "../components/RateTicker";
 import { PALETTE } from "../components/ui";
 import { fmtMoney } from "../lib/format";
 import { ACCOUNT_ICON_KEYS, getAccountIcon } from "../lib/icons";
@@ -104,6 +105,8 @@ export default function MobileAccounts() {
           <Plus size={14} /> Add
         </button>
       </div>
+
+      <RateTicker />
 
       {error && <p className="rounded-xl bg-rose-500/10 p-3 text-xs text-rose-300">{error}</p>}
 
