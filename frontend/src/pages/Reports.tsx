@@ -67,6 +67,24 @@ export default function ReportsPage() {
     setActiveReportId(null);
   }
 
+  function applyPreset(preset: "month" | "year" | "last30" | "last90") {
+    const today = new Date();
+    if (preset === "month") {
+      setPickerMode("month");
+      setPickerDate(toISO(today));
+    } else if (preset === "year") {
+      setPickerMode("year");
+      setPickerDate(toISO(today));
+    } else {
+      const days = preset === "last30" ? 29 : 89;
+      const from = new Date(today);
+      from.setDate(from.getDate() - days);
+      setPickerMode("custom");
+      setPickerDate(encodeCustomRange(toISO(from), toISO(today)));
+    }
+    setActiveReportId(null);
+  }
+
   function loadReport(id: number, f: ReportFilters) {
     setActiveReportId(id);
     setPickerMode("custom");
@@ -87,6 +105,21 @@ export default function ReportsPage() {
           </button>
         }
       />
+
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button className="btn-ghost px-2.5 py-1 text-xs" onClick={() => applyPreset("month")}>
+          This month
+        </button>
+        <button className="btn-ghost px-2.5 py-1 text-xs" onClick={() => applyPreset("year")}>
+          This year
+        </button>
+        <button className="btn-ghost px-2.5 py-1 text-xs" onClick={() => applyPreset("last30")}>
+          Last 30 days
+        </button>
+        <button className="btn-ghost px-2.5 py-1 text-xs" onClick={() => applyPreset("last90")}>
+          Last 90 days
+        </button>
+      </div>
 
       <div className="glass flex flex-wrap items-center gap-2 p-3">
         <PeriodPicker

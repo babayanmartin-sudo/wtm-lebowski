@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.5.1 — 2026-07-14
+
+### Reports
+
+- Quick date presets (This month / This year / Last 30 days / Last 90 days)
+  on the Reports page — closes out the remaining wanted scope of #32.
+  Transaction-level ID filters, PDF/JSON export, drag-drop filter reorder,
+  and auto-save drafts were explicitly descoped.
+
 ## v1.5.0 — 2026-07-14
 
 ### Reports (#32 MVP)
