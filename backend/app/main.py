@@ -41,6 +41,7 @@ from .routers import (  # noqa: E402
     rates,
     reports,
     rules,
+    settings,
     templates,
     transactions,
 )
@@ -59,6 +60,7 @@ app.include_router(rates.router)
 app.include_router(imports.router)
 app.include_router(dashboard.router)
 app.include_router(reports.router)
+app.include_router(settings.router)
 
 
 @app.get("/api/health")

@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.6.0 — 2026-07-14
+
+### Budgets (#41, #42)
+
+- **Configurable budget warning threshold** (#41): the amber-warning cutoff
+  on budget progress bars was hardcoded at 80%. Now a global default,
+  editable in Profile ("Budget warning threshold"), applied everywhere a
+  budget's `ProgressBar` renders. Saving a transaction that pushes a
+  touched category's budget to or past the threshold now fires a toast.
+  No per-budget override (descoped).
+- **Overall monthly budget cap** (#42): a single top-level spending limit,
+  independent of the sum of category budgets, tracked against total
+  expense across all categories for the month. Inline-editable on the
+  Budgets page; shown as a stat on both desktop and mobile Dashboard when
+  set.
+- New `GET/PUT /api/settings` (backing both features) and
+  `GET /api/budgets/overall-status`.
+
 ## v1.5.1 — 2026-07-14
 
 ### Reports

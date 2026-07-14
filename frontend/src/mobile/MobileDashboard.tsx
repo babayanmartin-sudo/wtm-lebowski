@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
-import { useAccounts, useCategories, useDashboard } from "../api/hooks";
+import { useAccounts, useCategories, useDashboard, useOverallBudgetStatus } from "../api/hooks";
 import type { CategoryTotal } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ErrorState, LoadingState, Select } from "../components/ui";
@@ -29,6 +29,7 @@ export default function MobileDashboard() {
   });
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
+  const { data: overallBudget } = useOverallBudgetStatus(period.from.slice(0, 7));
 
   const activeAccounts = accounts.filter((a) => !a.archived);
   const donut = (data?.by_category ?? []).slice(0, 6);
@@ -160,6 +161,14 @@ export default function MobileDashboard() {
           icon={<ArrowDownRight size={14} />}
           color="text-rose-400"
         />
+        {overallBudget?.cap != null && (
+          <MobileStat
+            label="Overall budget"
+            value={`${fmtMoney(overallBudget.spent)} / ${fmtMoney(overallBudget.cap)}`}
+            icon={<TrendingUp size={14} />}
+            color={overallBudget.spent > overallBudget.cap ? "text-rose-400" : "text-gray-100"}
+          />
+        )}
       </div>
 
       <div>

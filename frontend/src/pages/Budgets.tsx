@@ -1,5 +1,5 @@
-import { Pencil, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -11,7 +11,16 @@ import {
 } from "recharts";
 
 import { api } from "../api/client";
-import { useBudgets, useBudgetStatus, useCategories, useInvalidating, useProjection } from "../api/hooks";
+import {
+  useBudgets,
+  useBudgetStatus,
+  useCategories,
+  useInvalidating,
+  useOverallBudgetStatus,
+  useProjection,
+  useSettings,
+  useUpdateSettings,
+} from "../api/hooks";
 import type { BudgetPeriod } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
 import {
@@ -50,6 +59,24 @@ export default function BudgetsPage() {
   const [error, setError] = useState("");
   const [forecastMonths, setForecastMonths] = useSessionState("budgets.forecastMonths", 12);
   const { data: forecast } = useProjection(forecastMonths);
+  const { data: settings } = useSettings();
+  const threshold = settings?.budget_threshold ?? 80;
+  const { data: overall } = useOverallBudgetStatus(month);
+  const updateSettings = useUpdateSettings();
+  const [capEditing, setCapEditing] = useState(false);
+  const [capDraft, setCapDraft] = useState("");
+
+  useEffect(() => {
+    if (overall) setCapDraft(overall.cap !== null ? String(overall.cap) : "");
+  }, [overall]);
+
+  async function saveCap() {
+    const value = capDraft.trim() === "" ? null : parseFloat(capDraft);
+    if (value !== null && !(value > 0)) return;
+    await updateSettings.mutateAsync({ overall_monthly_cap: value });
+    setCapEditing(false);
+    toast("Overall budget updated");
+  }
 
   const keys = [["budgets"], ["dashboard"], ["projection"]];
   const save = useInvalidating(
@@ -123,6 +150,45 @@ export default function BudgetsPage() {
         }
       />
 
+      <div className="glass mb-4 p-5">
+        <div className="mb-2 flex items-center justify-between text-sm">
+          <span className="font-medium text-gray-300">Overall budget · {fmtMonth(month)}</span>
+          {capEditing ? (
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                autoFocus
+                className="input h-7 w-28 text-right"
+                value={capDraft}
+                onChange={(e) => setCapDraft(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && saveCap()}
+              />
+              <button className="rounded p-1 text-gray-400 hover:bg-white/10" onClick={saveCap}>
+                <Check size={14} />
+              </button>
+              <button className="rounded p-1 text-gray-400 hover:bg-white/10" onClick={() => setCapEditing(false)}>
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              className={`tabular-nums hover:underline ${
+                overall && overall.cap !== null && overall.spent > overall.cap ? "text-rose-400" : "text-gray-400"
+              }`}
+              onClick={() => setCapEditing(true)}
+            >
+              {overall ? fmtMoney(overall.spent) : "…"} / {overall?.cap !== null && overall?.cap !== undefined ? fmtMoney(overall.cap) : "not set"} AED
+            </button>
+          )}
+        </div>
+        <ProgressBar
+          value={overall?.cap ? overall.spent / overall.cap : 0}
+          threshold={threshold}
+        />
+      </div>
+
       {budgets.length > 0 && (
         <div className="glass mb-4 p-5">
           <div className="mb-2 flex items-center justify-between text-sm">
@@ -133,7 +199,7 @@ export default function BudgetsPage() {
               {fmtMoney(totalSpent)} / {fmtMoney(totalLimit)} AED
             </span>
           </div>
-          <ProgressBar value={totalLimit > 0 ? totalSpent / totalLimit : 0} />
+          <ProgressBar value={totalLimit > 0 ? totalSpent / totalLimit : 0} threshold={threshold} />
         </div>
       )}
 
@@ -251,7 +317,7 @@ export default function BudgetsPage() {
                     </button>
                   </div>
                 </div>
-                <ProgressBar value={ratio} />
+                <ProgressBar value={ratio} threshold={threshold} />
                 <div className="mt-2 flex items-center justify-between text-sm">
                   <span className="tabular-nums text-gray-400">
                     {fmtMoney(spent)} of {fmtMoney(b.amount)}

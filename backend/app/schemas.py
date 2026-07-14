@@ -192,6 +192,24 @@ class BudgetStatus(BaseModel):
     month: str
 
 
+class OverallBudgetStatus(BaseModel):
+    cap: float | None
+    spent: float
+    month: str
+
+
+class BudgetAlert(BaseModel):
+    category_id: int
+    category_name: str
+    spent: float
+    amount: float
+    ratio: float
+
+
+class TransactionSaveOut(TransactionOut):
+    budget_alerts: list[BudgetAlert] = []
+
+
 # ---- goals ----
 class ContributionIn(BaseModel):
     date: date
@@ -341,3 +359,14 @@ class SavedReportOut(ORMModel):
 
 class SavedReportDetail(SavedReportOut):
     filters: dict
+
+
+# ---- settings ----
+class SettingsIn(BaseModel):
+    budget_threshold: float | None = None
+    overall_monthly_cap: float | None = None
+
+
+class SettingsOut(BaseModel):
+    budget_threshold: float
+    overall_monthly_cap: float | None

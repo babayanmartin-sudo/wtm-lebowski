@@ -114,10 +114,19 @@ export function Field({ label, children }: { label: string; children: ReactNode 
   );
 }
 
-export function ProgressBar({ value, color }: { value: number; color?: string }) {
+export function ProgressBar({
+  value,
+  color,
+  threshold = 80,
+}: {
+  value: number;
+  color?: string;
+  /** % at which the bar turns amber (below 100%, which is always "over budget" rose). */
+  threshold?: number;
+}) {
   const pct = Math.min(100, Math.max(0, value * 100));
   const barColor =
-    color ?? (pct >= 100 ? "#f43f5e" : pct >= 80 ? "#f59e0b" : "#34d399");
+    color ?? (pct >= 100 ? "#f43f5e" : pct >= threshold ? "#f59e0b" : "#34d399");
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
       <div

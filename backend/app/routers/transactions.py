@@ -5,9 +5,19 @@ from sqlalchemy.orm import Session, selectinload
 from ..auth import require_auth
 from ..db import get_db
 from ..models import Account, Category, Loan, Split, Transaction
-from ..schemas import BulkTransactionIn, BulkTransactionResult, TransactionIn, TransactionOut, TransactionPage
+from ..schemas import (
+    BudgetAlert,
+    BulkTransactionIn,
+    BulkTransactionResult,
+    TransactionIn,
+    TransactionOut,
+    TransactionPage,
+    TransactionSaveOut,
+)
 from ..services.matcher import learn
 from ..services.rates import to_base
+from ..services.settings import BUDGET_THRESHOLD_KEY, DEFAULT_BUDGET_THRESHOLD, get_float_setting
+from .budgets import compute_budget_status
 
 router = APIRouter(
     prefix="/api/transactions", tags=["transactions"], dependencies=[Depends(require_auth)]
@@ -87,16 +97,17 @@ def list_transactions(
     return TransactionPage(items=items, total=total, sum_base=round(sum_base, 2))
 
 
-@router.post("", response_model=TransactionOut, status_code=201)
+@router.post("", response_model=TransactionSaveOut, status_code=201)
 def create_transaction(body: TransactionIn, db: Session = Depends(get_db)):
     tx = _build(db, body, Transaction())
     db.add(tx)
     _learn_from(db, tx)
     db.commit()
-    return tx
+    alerts = _budget_alerts_for(db, tx)
+    return TransactionSaveOut(**TransactionOut.model_validate(tx).model_dump(), budget_alerts=alerts)
 
 
-@router.put("/{tx_id}", response_model=TransactionOut)
+@router.put("/{tx_id}", response_model=TransactionSaveOut)
 def update_transaction(tx_id: int, body: TransactionIn, db: Session = Depends(get_db)):
     tx = db.get(Transaction, tx_id)
     if not tx:
@@ -105,7 +116,8 @@ def update_transaction(tx_id: int, body: TransactionIn, db: Session = Depends(ge
     _build(db, body, tx)
     _learn_from(db, tx)
     db.commit()
-    return tx
+    alerts = _budget_alerts_for(db, tx)
+    return TransactionSaveOut(**TransactionOut.model_validate(tx).model_dump(), budget_alerts=alerts)
 
 
 @router.delete("/{tx_id}", status_code=204)
@@ -242,6 +254,48 @@ def _build(db: Session, body: TransactionIn, tx: Transaction) -> Transaction:
             )
         )
     return tx
+
+
+def _budget_alerts_for(db: Session, tx: Transaction) -> list[BudgetAlert]:
+    """If saving this transaction leaves any of its touched categories'
+    budgets at/over the configured warning threshold, surface it so the
+    frontend can toast — checked post-save only (no pre/post-save diff), so
+    a budget already over threshold will alert again on the next save that
+    touches it too, which matches "toast on save" rather than "toast once
+    on first crossing"."""
+    if tx.kind != "expense":
+        return []
+    touched_ids = {s.category_id for s in tx.splits if s.category_id is not None}
+    if not touched_ids:
+        return []
+
+    categories = {c.id: c for c in db.scalars(select(Category))}
+    # a budget may sit on the parent while the split is categorized on the
+    # child — spend rolls up to the parent, so the parent's budget needs
+    # checking too, not just an exact category_id match
+    cat_ids = touched_ids | {
+        categories[cid].parent_id for cid in touched_ids if categories.get(cid) and categories[cid].parent_id
+    }
+
+    threshold = get_float_setting(db, BUDGET_THRESHOLD_KEY, DEFAULT_BUDGET_THRESHOLD) or DEFAULT_BUDGET_THRESHOLD
+    month = tx.date.strftime("%Y-%m")
+    alerts = []
+    for status in compute_budget_status(db, month):
+        if status.category_id not in cat_ids or status.amount <= 0:
+            continue
+        ratio = round(status.spent / status.amount * 100, 1)
+        if ratio >= threshold:
+            cat = categories.get(status.category_id)
+            alerts.append(
+                BudgetAlert(
+                    category_id=status.category_id,
+                    category_name=cat.name if cat else "?",
+                    spent=status.spent,
+                    amount=status.amount,
+                    ratio=ratio,
+                )
+            )
+    return alerts
 
 
 def _learn_from(db: Session, tx: Transaction) -> None:

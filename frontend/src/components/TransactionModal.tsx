@@ -3,8 +3,9 @@ import { useState } from "react";
 
 import { api } from "../api/client";
 import { MONEY_KEYS, useCategoryUsage, useInvalidating } from "../api/hooks";
-import type { Account, Category, Loan, Transaction } from "../api/types";
+import type { Account, Category, Loan, Transaction, TransactionSaveResult } from "../api/types";
 import { today } from "../lib/format";
+import { toast } from "../lib/toast";
 import { CategorySelect, Field, Modal } from "./ui";
 
 type Kind = "expense" | "income" | "transfer";
@@ -53,8 +54,8 @@ export default function TransactionModal({
   const save = useInvalidating(
     (body: object) =>
       existing
-        ? api.put(`/api/transactions/${existing.id}`, body)
-        : api.post("/api/transactions", body),
+        ? api.put<TransactionSaveResult>(`/api/transactions/${existing.id}`, body)
+        : api.post<TransactionSaveResult>("/api/transactions", body),
     MONEY_KEYS,
   );
   const remove = useInvalidating(
@@ -104,7 +105,10 @@ export default function TransactionModal({
             })),
     };
     try {
-      await save.mutateAsync(body);
+      const result = await save.mutateAsync(body);
+      for (const alert of result.budget_alerts) {
+        toast(`${alert.category_name} is at ${alert.ratio}% of its budget`);
+      }
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");

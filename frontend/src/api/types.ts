@@ -57,6 +57,18 @@ export interface Transaction {
   splits: Split[];
 }
 
+export interface BudgetAlert {
+  category_id: number;
+  category_name: string;
+  spent: number;
+  amount: number;
+  ratio: number;
+}
+
+export interface TransactionSaveResult extends Transaction {
+  budget_alerts: BudgetAlert[];
+}
+
 export interface TransactionPage {
   items: Transaction[];
   total: number;
@@ -99,6 +111,17 @@ export interface BudgetStatus {
   period: BudgetPeriod;
   spent: number;
   month: string;
+}
+
+export interface OverallBudgetStatus {
+  cap: number | null;
+  spent: number;
+  month: string;
+}
+
+export interface Settings {
+  budget_threshold: number;
+  overall_monthly_cap: number | null;
 }
 
 export interface Contribution {

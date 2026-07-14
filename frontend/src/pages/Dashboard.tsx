@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-import { useAccounts, useBudgetStatus, useCategories, useDashboard } from "../api/hooks";
+import { useAccounts, useBudgetStatus, useCategories, useDashboard, useOverallBudgetStatus } from "../api/hooks";
 import type { CategoryTotal, Transaction } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
 import {
@@ -49,6 +49,7 @@ export default function DashboardPage() {
   const { data: categories = [] } = useCategories();
   const budgetMonth = period.from.slice(0, 7);
   const { data: budgetStatus = [] } = useBudgetStatus(budgetMonth);
+  const { data: overallBudget } = useOverallBudgetStatus(budgetMonth);
 
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const activeAccounts = useMemo(() => accounts.filter((a) => !a.archived), [accounts]);
@@ -197,7 +198,11 @@ export default function DashboardPage() {
         <ErrorState error={error} />
       ) : (
         <>
-      <div className="glass grid grid-cols-1 divide-y divide-[var(--color-line)] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+      <div
+        className={`glass grid grid-cols-1 divide-y divide-[var(--color-line)] ${
+          overallBudget?.cap != null ? "sm:grid-cols-4" : "sm:grid-cols-3"
+        } sm:divide-x sm:divide-y-0`}
+      >
         <StatCell label="Net worth" value={data ? fmtMoney(data.net_worth, data.base_currency) : "…"} />
         <StatCell
           label="Income"
@@ -209,6 +214,13 @@ export default function DashboardPage() {
           value={data ? fmtMoney(data.expense, data.base_currency) : "…"}
           color="text-rose-400"
         />
+        {overallBudget?.cap != null && (
+          <StatCell
+            label="Overall budget"
+            value={`${fmtMoney(overallBudget.spent)} / ${fmtMoney(overallBudget.cap)}`}
+            color={overallBudget.spent > overallBudget.cap ? "text-rose-400" : "text-gray-100"}
+          />
+        )}
       </div>
 
       <div className="glass p-5">

@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 from ..auth import require_auth
 from ..db import get_db
 from ..models import Budget, Category, Split, Transaction
-from ..schemas import BudgetIn, BudgetOut, BudgetStatus
+from ..schemas import BudgetIn, BudgetOut, BudgetStatus, OverallBudgetStatus
+from ..services.settings import OVERALL_MONTHLY_CAP_KEY, get_float_setting
 
 router = APIRouter(prefix="/api/budgets", tags=["budgets"], dependencies=[Depends(require_auth)])
 
@@ -68,6 +69,18 @@ def delete_budget(budget_id: int, db: Session = Depends(get_db)):
 @router.get("/status", response_model=list[BudgetStatus])
 def budget_status(month: str | None = Query(default=None), db: Session = Depends(get_db)):
     return compute_budget_status(db, month or date.today().strftime("%Y-%m"))
+
+
+@router.get("/overall-status", response_model=OverallBudgetStatus)
+def overall_budget_status(month: str | None = Query(default=None), db: Session = Depends(get_db)):
+    m = month or date.today().strftime("%Y-%m")
+    spent = db.scalar(
+        select(func.sum(Transaction.amount_base)).where(
+            Transaction.kind == "expense", func.strftime("%Y-%m", Transaction.date) == m
+        )
+    ) or 0.0
+    cap = get_float_setting(db, OVERALL_MONTHLY_CAP_KEY, None)
+    return OverallBudgetStatus(cap=cap, spent=round(spent, 2), month=m)
 
 
 def compute_budget_status(db: Session, month: str) -> list[BudgetStatus]:

@@ -1,9 +1,10 @@
 import { Check, KeyRound } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 
 import { api, ApiError } from "../api/client";
-import { useVersion } from "../api/hooks";
+import { useSettings, useUpdateSettings, useVersion } from "../api/hooks";
 import { Field, PageHeader } from "../components/ui";
+import { toast } from "../lib/toast";
 
 export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -14,6 +15,20 @@ export default function ProfilePage() {
   const [busy, setBusy] = useState(false);
 
   const { data: version } = useVersion();
+  const { data: settings } = useSettings();
+  const updateSettings = useUpdateSettings();
+  const [threshold, setThreshold] = useState("80");
+
+  useEffect(() => {
+    if (settings) setThreshold(String(settings.budget_threshold));
+  }, [settings]);
+
+  async function saveThreshold() {
+    const value = parseFloat(threshold);
+    if (!(value > 0 && value <= 100)) return;
+    await updateSettings.mutateAsync({ budget_threshold: value });
+    toast("Preferences updated");
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -86,6 +101,25 @@ export default function ProfilePage() {
           <KeyRound size={15} /> Update password
         </button>
       </form>
+
+      <div className="glass mt-4 flex max-w-sm flex-col gap-4 p-6">
+        <h2 className="text-sm font-semibold text-gray-300">Preferences</h2>
+        <Field label="Budget warning threshold (%)">
+          <input
+            type="number"
+            min="1"
+            max="100"
+            className="input"
+            value={threshold}
+            onChange={(e) => setThreshold(e.target.value)}
+            onBlur={saveThreshold}
+          />
+        </Field>
+        <p className="text-xs text-gray-500">
+          Budget bars turn amber at this percentage of the limit, and a toast fires when a
+          transaction pushes a budget to or past it.
+        </p>
+      </div>
     </div>
   );
 }

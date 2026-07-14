@@ -14,12 +14,14 @@ import type {
   IgnoreRule,
   ImportDetail,
   Loan,
+  OverallBudgetStatus,
   Projection,
   ReportFilters,
   ReportPreview,
   Rule,
   SavedReport,
   SavedReportDetail,
+  Settings,
   Template,
   TransactionPage,
 } from "./types";
@@ -75,6 +77,25 @@ export function useBudgetStatus(month?: string) {
     queryKey: ["budgets", "status", month ?? "now"],
     queryFn: () => api.get<BudgetStatus[]>(`/api/budgets/status${qs}`),
   });
+}
+
+export function useOverallBudgetStatus(month?: string) {
+  const qs = month ? `?month=${month}` : "";
+  return useQuery({
+    queryKey: ["budgets", "overall-status", month ?? "now"],
+    queryFn: () => api.get<OverallBudgetStatus>(`/api/budgets/overall-status${qs}`),
+  });
+}
+
+export function useSettings() {
+  return useQuery({ queryKey: ["settings"], queryFn: () => api.get<Settings>("/api/settings") });
+}
+
+export function useUpdateSettings() {
+  return useInvalidating(
+    (d: Partial<Settings>) => api.put<Settings>("/api/settings", d),
+    [["settings"], ["budgets"]],
+  );
 }
 
 export function useGoals() {
