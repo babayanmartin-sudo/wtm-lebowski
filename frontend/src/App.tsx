@@ -18,6 +18,7 @@ import GoalsPage from "./pages/Goals";
 import ImportPage from "./pages/Import";
 import LoginPage from "./pages/Login";
 import ProfilePage from "./pages/Profile";
+import ReportsPage from "./pages/Reports";
 import RulesPage from "./pages/Rules";
 import TemplatesPage from "./pages/Templates";
 import TransactionsPage from "./pages/Transactions";
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/templates" element={<TemplatesPage />} />
             <Route path="/import" element={<ImportPage />} />
             <Route path="/rules" element={<RulesPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -79,6 +81,7 @@ export default function App() {
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/import" element={<ImportPage />} />
           <Route path="/rules" element={<RulesPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

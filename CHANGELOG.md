@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.5.0 — 2026-07-14
+
+### Reports (#32 MVP)
+
+- New **Reports** page: build a filtered view of transactions (date range,
+  account, include/exclude categories) with live totals (income, expense,
+  count, average), an income-vs-spending chart, and expense/income category
+  breakdowns — same charting components as Dashboard.
+- **Save/load named reports.** Saves the filter definition (not a result
+  snapshot) so a loaded report always recomputes against current data.
+- **CSV export** for a saved report (date/payee/category/amount rows) — new
+  `StreamingResponse`-based export pattern, first in the backend.
+- **Reset + removable filter chips**, matching the Dashboard's "Filtering
+  by" row — one-click clear-all or drop a single filter.
+- Backend: `_apply_filters()` in `dashboard.py` gained category-exclude
+  support (`exclude_cat_ids`), reused by both Dashboard and Reports.
+- Deferred to a follow-up (per #32's full spec): transaction-level
+  include/exclude, PDF/JSON export, drag-drop filter reorder, auto-save
+  drafts, quick presets.
+
 ## v1.4.2 — 2026-07-14
 
 ### UI consistency, wrap-up of #37

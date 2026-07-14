@@ -6,6 +6,7 @@ import {
   Menu as MenuIcon,
   PiggyBank,
   Repeat,
+  ScrollText,
   Tags,
   Target,
   Upload,
@@ -27,6 +28,7 @@ const MENU_ITEMS = [
   { to: "/templates", label: "Planned", icon: Repeat },
   { to: "/import", label: "Import", icon: Upload },
   { to: "/rules", label: "Rules", icon: BookOpen },
+  { to: "/reports", label: "Reports", icon: ScrollText },
   { to: "/profile", label: "Profile", icon: UserRound },
 ];
 

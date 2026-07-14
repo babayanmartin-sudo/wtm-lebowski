@@ -39,6 +39,7 @@ from .routers import (  # noqa: E402
     imports,
     loans,
     rates,
+    reports,
     rules,
     templates,
     transactions,
@@ -57,6 +58,7 @@ app.include_router(ignore_rules.router)
 app.include_router(rates.router)
 app.include_router(imports.router)
 app.include_router(dashboard.router)
+app.include_router(reports.router)
 
 
 @app.get("/api/health")

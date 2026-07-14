@@ -15,7 +15,11 @@ import type {
   ImportDetail,
   Loan,
   Projection,
+  ReportFilters,
+  ReportPreview,
   Rule,
+  SavedReport,
+  SavedReportDetail,
   Template,
   TransactionPage,
 } from "./types";
@@ -141,6 +145,36 @@ export function useDashboard(params: DashboardParams) {
     queryKey: ["dashboard", qs.toString()],
     queryFn: () => api.get<DashboardSummary>(`/api/dashboard/summary?${qs}`),
   });
+}
+
+export function useReportPreview(filters: ReportFilters) {
+  return useQuery({
+    queryKey: ["report-preview", filters],
+    queryFn: () => api.post<ReportPreview>("/api/reports/preview", filters),
+  });
+}
+
+export function useSavedReports() {
+  return useQuery({ queryKey: ["reports"], queryFn: () => api.get<SavedReport[]>("/api/reports") });
+}
+
+export function useSavedReport(id: number | null) {
+  return useQuery({
+    queryKey: ["reports", id],
+    queryFn: () => api.get<SavedReportDetail>(`/api/reports/${id}`),
+    enabled: id !== null,
+  });
+}
+
+export function useSaveReport() {
+  return useInvalidating(
+    (d: { name: string; description: string; filters: ReportFilters }) => api.post("/api/reports", d),
+    [["reports"]],
+  );
+}
+
+export function useDeleteReport() {
+  return useInvalidating((id: number) => api.del(`/api/reports/${id}`), [["reports"]]);
 }
 
 /** Mutation that invalidates the given query key prefixes on success. */

@@ -47,3 +47,13 @@ Tags use semver: `v1.0.0`, `v1.0.1`, etc.
 - **Features**: increment minor (1.1.0)
 - Create tag: `git tag v1.0.2 && git push origin v1.0.2`
 - GitHub Actions may auto-release (check Actions tab if configured)
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as GitHub issues in `babayanmartin-sudo/wtm-lebowski`, managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context — `CONTEXT.md` + `docs/adr/` at the repo root, created lazily when terms/decisions are resolved. See `docs/agents/domain.md`.

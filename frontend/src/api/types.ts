@@ -218,6 +218,40 @@ export interface DashboardParams {
   category_id?: number;
 }
 
+export interface ReportFilters {
+  date_from: string;
+  date_to: string;
+  account_id?: number | null;
+  include_category_ids?: number[];
+  exclude_category_ids?: number[];
+}
+
+export interface ReportPreview {
+  base_currency: string;
+  date_from: string;
+  date_to: string;
+  total: number;
+  income: number;
+  expense: number;
+  count: number;
+  average: number;
+  by_category: CategoryTotal[];
+  by_category_income: CategoryTotal[];
+  series: SeriesBucket[];
+  series_granularity: "day" | "week" | "month";
+}
+
+export interface SavedReport {
+  id: number;
+  name: string;
+  description: string;
+  created_at: string;
+}
+
+export interface SavedReportDetail extends SavedReport {
+  filters: ReportFilters;
+}
+
 export interface Projection {
   base_currency: string;
   current_net_worth: number;

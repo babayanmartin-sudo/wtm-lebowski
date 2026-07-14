@@ -8,6 +8,7 @@ import {
   LogOut,
   PiggyBank,
   Repeat,
+  ScrollText,
   Target,
   Tags,
   Upload,
@@ -31,6 +32,7 @@ const NAV = [
   { to: "/templates", label: "Planned", icon: Repeat },
   { to: "/import", label: "Import", icon: Upload },
   { to: "/rules", label: "Rules", icon: BookOpen },
+  { to: "/reports", label: "Reports", icon: ScrollText },
   { to: "/profile", label: "Profile", icon: UserRound },
 ];
 

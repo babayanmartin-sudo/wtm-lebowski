@@ -315,3 +315,29 @@ class RowPatch(BaseModel):
     skip: bool | None = None
     is_duplicate: bool | None = None
     kind: str | None = None
+
+
+# ---- reports ----
+class ReportFiltersIn(BaseModel):
+    date_from: str | None = None
+    date_to: str | None = None
+    account_id: int | None = None
+    include_category_ids: list[int] = []
+    exclude_category_ids: list[int] = []
+
+
+class SavedReportIn(BaseModel):
+    name: str
+    description: str = ""
+    filters: dict
+
+
+class SavedReportOut(ORMModel):
+    id: int
+    name: str
+    description: str
+    created_at: datetime
+
+
+class SavedReportDetail(SavedReportOut):
+    filters: dict
