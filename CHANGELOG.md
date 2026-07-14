@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.6.1 — 2026-07-14
+
+### Bug fix
+
+- **Overall monthly budget cap now respects `excluded_from_reports`.**
+  `GET /api/budgets/overall-status` summed every expense transaction
+  regardless of category exclusion flags (cascading parent→child), unlike
+  the Dashboard totals and category breakdown, which already filtered them
+  out. Now consistent everywhere.
+
 ## v1.6.0 — 2026-07-14
 
 ### Budgets (#41, #42)

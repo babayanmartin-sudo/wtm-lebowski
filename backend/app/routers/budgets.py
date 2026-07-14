@@ -9,6 +9,7 @@ from ..db import get_db
 from ..models import Budget, Category, Split, Transaction
 from ..schemas import BudgetIn, BudgetOut, BudgetStatus, OverallBudgetStatus
 from ..services.settings import OVERALL_MONTHLY_CAP_KEY, get_float_setting
+from .dashboard import _excluded_category_ids
 
 router = APIRouter(prefix="/api/budgets", tags=["budgets"], dependencies=[Depends(require_auth)])
 
@@ -74,11 +75,18 @@ def budget_status(month: str | None = Query(default=None), db: Session = Depends
 @router.get("/overall-status", response_model=OverallBudgetStatus)
 def overall_budget_status(month: str | None = Query(default=None), db: Session = Depends(get_db)):
     m = month or date.today().strftime("%Y-%m")
-    spent = db.scalar(
-        select(func.sum(Transaction.amount_base)).where(
-            Transaction.kind == "expense", func.strftime("%Y-%m", Transaction.date) == m
+    excluded_ids = _excluded_category_ids({c.id: c for c in db.scalars(select(Category))})
+
+    stmt = select(func.sum(Transaction.amount_base)).where(
+        Transaction.kind == "expense", func.strftime("%Y-%m", Transaction.date) == m
+    )
+    if excluded_ids:
+        stmt = stmt.where(
+            Transaction.id.not_in(
+                select(Split.transaction_id).where(Split.category_id.in_(excluded_ids))
+            )
         )
-    ) or 0.0
+    spent = db.scalar(stmt) or 0.0
     cap = get_float_setting(db, OVERALL_MONTHLY_CAP_KEY, None)
     return OverallBudgetStatus(cap=cap, spent=round(spent, 2), month=m)
 
