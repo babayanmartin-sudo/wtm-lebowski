@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.services.amazon_email import SUBJECT, parse_order_items
+from app.services.amazon_email import SUBJECT, SUBJECT_REFUND, parse_order_items, parse_refund_items
 
 SUBJECT_LINE = 'Ordered: "SLEEPHEAD®Toddler Travel..." and 3 more items'
 
@@ -149,3 +149,58 @@ def test_parse_single_item_template_falls_back_to_total():
     assert items[0].name == "Aptamil Comfort 3 Growing Form..."
     assert items[0].price == 100.20
     assert items[0].quantity == 1
+
+
+REFUND_SUBJECT_LINE = "Refund on order 403-8966210-6057160"
+REFUND_BODY = """
+Hello,
+
+Greetings from Amazon.ae.
+
+We are writing to confirm that we have processed a refund of AED113.88 for
+your Amazon.ae Order 403-8966210-6057160. This amount has been credited to
+your original payment method and will appear in your account in 5-7
+business days.
+This refund is for the following item(s):
+
+    Item: JC Toys - Lots to Love Babies 14" All Vinyl Doll | 4 Piece Bath
+Time Gift Set | Posable & Waterproof | Ages 2+ Pink
+    Quantity: 1
+    ASIN: B07TT7LRR6
+    Reason for refund: Item not satisfactory
+
+    The following is the breakdown of your refund for this item:
+        Item Refund: AED108.46
+        Import Fee Deposit Refund: AED5.42
+
+Total Refund: AED113.88
+Your refund is being credited as follows:
+
+Visa Credit Card [expiring on 11/2027]: AED113.88
+"""
+
+
+def test_parse_refund_items_happy_path():
+    items = parse_refund_items(REFUND_SUBJECT_LINE, REFUND_BODY, date(2026, 2, 9))
+    assert len(items) == 1
+    item = items[0]
+    assert item.is_refund is True
+    assert item.price == 113.88
+    assert item.quantity == 1
+    assert item.name.startswith("JC Toys")
+    assert "Bath Time Gift Set" in item.name
+
+
+def test_parse_refund_items_wrong_subject_returns_empty():
+    assert parse_refund_items("Ordered: something", REFUND_BODY, date(2026, 2, 9)) == []
+    # "Refund" emails must never be picked up by the order parser either
+    assert parse_order_items(REFUND_SUBJECT_LINE, REFUND_BODY, date(2026, 2, 9)) == []
+
+
+def test_parse_refund_items_forwarded_subject_still_matches():
+    items = parse_refund_items(f"Fwd: {REFUND_SUBJECT_LINE}", REFUND_BODY, date(2026, 2, 9))
+    assert len(items) == 1
+
+
+def test_refund_subject_constant_used_in_sample():
+    assert SUBJECT_REFUND in REFUND_SUBJECT_LINE

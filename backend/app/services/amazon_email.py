@@ -24,12 +24,16 @@ from datetime import date
 from . import email_utils
 
 SUBJECT = "Ordered:"
+SUBJECT_REFUND = "Refund on order"
 
 _ORDER_SPLIT_RE = re.compile(r"Order #")
 _QUANTITY_RE = re.compile(r"Quantity:\s*(?P<qty>\d+)")
 _PRICE_BEFORE_AED_RE = re.compile(r"([\d,]+\.\d+)\s*AED")
 _PRICE_AFTER_AED_RE = re.compile(r"AED\s*([\d,]+\.\d+)")
 _TOTAL_RE = re.compile(r"Total\s*AED\s*([\d,]+\.\d+)")
+
+_REFUND_TOTAL_RE = re.compile(r"Total Refund:\s*AED\s*([\d,]+\.\d+)")
+_REFUND_ITEM_RE = re.compile(r"Item:\s*(?P<name>.+?)\n\s*Quantity:\s*(?P<qty>\d+)", re.DOTALL)
 
 
 @dataclass
@@ -38,6 +42,7 @@ class ParsedItem:
     quantity: int
     price: float
     date: date
+    is_refund: bool = False
 
 
 def _item_name_before(chunk: str, pos: int) -> str:
@@ -97,6 +102,28 @@ def parse_order_items(subject: str, body: str, received: date) -> list[ParsedIte
     return items
 
 
+def parse_refund_items(subject: str, body: str, received: date) -> list[ParsedItem]:
+    """"Refund on order ..." emails — a different subject/template
+    entirely. Amazon states a single `Total Refund: AED...` per email (even
+    when it covers more than one item's breakdown), so this always returns
+    at most one row, using the first `Item:` line for the payee."""
+    if SUBJECT_REFUND not in subject:
+        return []
+    total_match = _REFUND_TOTAL_RE.search(body)
+    if not total_match:
+        return []
+    amount = float(total_match.group(1).replace(",", ""))
+    item_match = _REFUND_ITEM_RE.search(body)
+    name = " ".join(item_match.group("name").split()) if item_match else "Amazon refund"
+    qty = int(item_match.group("qty")) if item_match else 1
+    return [ParsedItem(name=name, quantity=qty, price=amount, date=received, is_refund=True)]
+
+
 def fetch_unseen_orders(host: str, port: str, user: str, password: str, folder: str) -> list[tuple[str, str, date]]:
     """(subject, plaintext body, message date) for unseen Amazon order emails."""
     return email_utils.fetch_unseen_by_subject(host, port, user, password, folder, SUBJECT)
+
+
+def fetch_unseen_refunds(host: str, port: str, user: str, password: str, folder: str) -> list[tuple[str, str, date]]:
+    """(subject, plaintext body, message date) for unseen Amazon refund emails."""
+    return email_utils.fetch_unseen_by_subject(host, port, user, password, folder, SUBJECT_REFUND)

@@ -19,7 +19,7 @@ from ..schemas import (
     RowPatch,
 )
 from ..services import importer
-from ..services.amazon_email import fetch_unseen_orders, parse_order_items
+from ..services.amazon_email import fetch_unseen_orders, fetch_unseen_refunds, parse_order_items, parse_refund_items
 from ..services.mashreq_email import fetch_unseen_alerts, parse_alert
 from ..services.mashreq_email import test_connection as mashreq_test_connection
 from ..services.matcher import is_ignored, learn, learn_ignore, normalize, suggest
@@ -172,7 +172,8 @@ def amazon_sync(db: Session = Depends(get_db)):
     account_id = int(account_id_float)
 
     try:
-        emails = fetch_unseen_orders(host, port, user, password, folder)
+        order_emails = fetch_unseen_orders(host, port, user, password, folder)
+        refund_emails = fetch_unseen_refunds(host, port, user, password, folder)
     except OSError as e:
         raise HTTPException(502, f"Couldn't reach the mailbox: {e}")
     except imaplib.IMAP4.error as e:
@@ -180,8 +181,14 @@ def amazon_sync(db: Session = Depends(get_db)):
 
     items = []
     unparsed_count = 0
-    for subject, body, received in emails:
+    for subject, body, received in order_emails:
         parsed = parse_order_items(subject, body, received)
+        if not parsed:
+            unparsed_count += 1
+            continue
+        items.extend(parsed)
+    for subject, body, received in refund_emails:
+        parsed = parse_refund_items(subject, body, received)
         if not parsed:
             unparsed_count += 1
             continue
@@ -202,8 +209,9 @@ def amazon_sync(db: Session = Depends(get_db)):
                 row_index=i,
                 raw=[item.name],
                 parsed_date=item.date,
-                parsed_amount=-item.price,
+                parsed_amount=item.price if item.is_refund else -item.price,
                 parsed_payee=item.name,
+                kind="expense_return" if item.is_refund else None,
             )
         )
     db.add(imp)
