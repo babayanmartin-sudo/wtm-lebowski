@@ -1,15 +1,25 @@
-import { Check, ChevronDown, Download, RotateCcw, Save, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Download, RotateCcw, Save, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { useAccounts, useCategories, useDeleteReport, useReportPreview, useSaveReport, useSavedReports } from "../api/hooks";
 import { api } from "../api/client";
-import type { Category, ReportFilters } from "../api/types";
+import type { Category, ReportFilters, Transaction } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import { ColorDot, ErrorState, Field, LoadingState, Modal, PageHeader, Select } from "../components/ui";
+import { Badge, ColorDot, ErrorState, Field, LoadingState, Modal, PageHeader, Select } from "../components/ui";
 import { CHART_COLORS, chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
-import { bucketLabel, encodeCustomRange, type PickerMode, parseISO, periodFor, periodLabel, toISO } from "../lib/period";
+import {
+  bucketLabel,
+  encodeCustomRange,
+  granularityToMode,
+  type PickerMode,
+  parseISO,
+  periodFor,
+  periodLabel,
+  toISO,
+} from "../lib/period";
 import { useSessionState } from "../lib/session";
 import { toast } from "../lib/toast";
 
@@ -21,6 +31,7 @@ export default function ReportsPage() {
   const [excludeIds, setExcludeIds] = useSessionState<number[]>("reports.exclude", []);
   const [saveOpen, setSaveOpen] = useState(false);
   const [activeReportId, setActiveReportId] = useState<number | null>(null);
+  const [periodHistory, setPeriodHistory] = useState<{ mode: PickerMode; date: string }[]>([]);
 
   const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate), pickerDate), [pickerMode, pickerDate]);
 
@@ -47,6 +58,12 @@ export default function ReportsPage() {
   const zoomed = pickerMode !== "month";
   const hasFilter = accountId !== null || includeIds.length > 0 || excludeIds.length > 0;
   const filterAccount = accounts.find((a) => a.id === accountId);
+  const recentLink = useMemo(() => {
+    const params = new URLSearchParams({ mode: pickerMode, date: pickerDate });
+    if (accountId) params.set("account", String(accountId));
+    if (includeIds.length === 1) params.set("category", String(includeIds[0]));
+    return `/transactions?${params.toString()}`;
+  }, [pickerMode, pickerDate, accountId, includeIds]);
 
   function resetView() {
     setPickerMode("month");
@@ -55,6 +72,7 @@ export default function ReportsPage() {
     setIncludeIds([]);
     setExcludeIds([]);
     setActiveReportId(null);
+    setPeriodHistory([]);
   }
 
   function removeInclude(id: number) {
@@ -65,6 +83,29 @@ export default function ReportsPage() {
   function removeExclude(id: number) {
     setExcludeIds((v) => v.filter((i) => i !== id));
     setActiveReportId(null);
+  }
+
+  function toggleIncludeCategory(id: number | null) {
+    if (id === null) return;
+    setIncludeIds((prev) => (prev.length === 1 && prev[0] === id ? [] : [id]));
+    setActiveReportId(null);
+  }
+
+  function drillInto(label: string) {
+    setPeriodHistory((h) => [...h, { mode: pickerMode, date: pickerDate }]);
+    setPickerMode(granularityToMode(data?.series_granularity ?? "day"));
+    setPickerDate(label);
+    setActiveReportId(null);
+  }
+
+  function drillBack() {
+    setPeriodHistory((h) => {
+      if (h.length === 0) return h;
+      const prev = h[h.length - 1];
+      setPickerMode(prev.mode);
+      setPickerDate(prev.date);
+      return h.slice(0, -1);
+    });
   }
 
   function applyPreset(preset: "month" | "year" | "last30" | "last90") {
@@ -83,6 +124,7 @@ export default function ReportsPage() {
       setPickerDate(encodeCustomRange(toISO(from), toISO(today)));
     }
     setActiveReportId(null);
+    setPeriodHistory([]);
   }
 
   function loadReport(id: number, f: ReportFilters) {
@@ -92,6 +134,7 @@ export default function ReportsPage() {
     setAccountId(f.account_id ?? null);
     setIncludeIds(f.include_category_ids ?? []);
     setExcludeIds(f.exclude_category_ids ?? []);
+    setPeriodHistory([]);
   }
 
   return (
@@ -131,6 +174,7 @@ export default function ReportsPage() {
             setPickerMode(m);
             setPickerDate(d);
             setActiveReportId(null);
+            setPeriodHistory([]);
           }}
         />
         <Select
@@ -241,9 +285,27 @@ export default function ReportsPage() {
           </div>
 
           <div className="glass p-5">
-            <h2 className="mb-4 font-mono text-xs tracking-wide text-gray-500 uppercase">Income vs spending</h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-mono text-xs tracking-wide text-gray-500 uppercase">Income vs spending</h2>
+              <div className="flex items-center gap-2">
+                {periodHistory.length > 0 && (
+                  <button className="btn-ghost px-2.5 py-1 text-xs" onClick={drillBack}>
+                    <ChevronLeft size={12} /> Back
+                  </button>
+                )}
+                <span className="text-xs text-gray-500">Click a bar to zoom in</span>
+              </div>
+            </div>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={data?.series ?? []} barGap={4}>
+              <BarChart
+                data={data?.series ?? []}
+                barGap={4}
+                onClick={(state) => {
+                  const label = state?.activeLabel;
+                  if (typeof label === "string") drillInto(label);
+                }}
+                className="cursor-pointer"
+              >
                 <XAxis
                   dataKey="label"
                   tickFormatter={(v) => bucketLabel(v, data?.series_granularity ?? "day")}
@@ -254,6 +316,7 @@ export default function ReportsPage() {
                 />
                 <YAxis stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} width={50} />
                 <Tooltip
+                  cursor={{ fill: "rgba(255,255,255,0.04)" }}
                   {...chartTooltipProps}
                   formatter={(v, name) => [v, name]}
                   labelFormatter={(v) => bucketLabel(String(v), data?.series_granularity ?? "day")}
@@ -265,10 +328,47 @@ export default function ReportsPage() {
           </div>
 
           <div className="glass p-5">
-            <h2 className="mb-2 font-mono text-xs tracking-wide text-gray-500 uppercase">By category</h2>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="font-mono text-xs tracking-wide text-gray-500 uppercase">By category</h2>
+              {includeIds.length === 1 ? (
+                <button className="btn-ghost px-2.5 py-1 text-xs" onClick={() => setIncludeIds([])}>
+                  <RotateCcw size={12} /> Reset
+                </button>
+              ) : (
+                ((data?.by_category?.length ?? 0) > 0 || (data?.by_category_income?.length ?? 0) > 0) && (
+                  <span className="text-xs text-gray-500">Click a slice to filter</span>
+                )
+              )}
+            </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <ReportPie title="Expense" items={data?.by_category ?? []} emptyText="No expenses matched." baseCurrency={data?.base_currency} />
-              <ReportPie title="Income" items={data?.by_category_income ?? []} emptyText="No income matched." baseCurrency={data?.base_currency} />
+              <ReportPie
+                title="Expense"
+                items={data?.by_category ?? []}
+                emptyText="No expenses matched."
+                baseCurrency={data?.base_currency}
+                activeCategoryId={includeIds.length === 1 ? includeIds[0] : null}
+                onToggle={toggleIncludeCategory}
+              />
+              <ReportPie
+                title="Income"
+                items={data?.by_category_income ?? []}
+                emptyText="No income matched."
+                baseCurrency={data?.base_currency}
+                activeCategoryId={includeIds.length === 1 ? includeIds[0] : null}
+                onToggle={toggleIncludeCategory}
+              />
+            </div>
+          </div>
+
+          <div className="glass p-5">
+            <PanelHeader to={recentLink} label="Recent transactions" />
+            <div className="flex flex-col">
+              {(data?.recent ?? []).slice(0, 10).map((tx, i) => (
+                <RecentRow key={tx.id} tx={tx} categoryById={categoryById} divider={i > 0} />
+              ))}
+              {(data?.recent ?? []).length === 0 && (
+                <p className="text-sm text-gray-500">No transactions matched.</p>
+              )}
             </div>
           </div>
 
@@ -388,12 +488,21 @@ function ReportPie({
   items,
   emptyText,
   baseCurrency,
+  activeCategoryId,
+  onToggle,
 }: {
   title: string;
   items: { category_id: number | null; name: string; color: string; amount: number }[];
   emptyText: string;
   baseCurrency: string | undefined;
+  activeCategoryId: number | null;
+  onToggle: (id: number | null) => void;
 }) {
+  // a categoryId belonging to the other pie's kind shouldn't dim this one
+  const activeId = activeCategoryId != null && items.some((i) => i.category_id === activeCategoryId)
+    ? activeCategoryId
+    : null;
+
   return (
     <div>
       <h3 className="mb-1 font-mono text-xs tracking-wide text-gray-500 uppercase">{title}</h3>
@@ -403,9 +512,23 @@ function ReportPie({
         <>
           <ResponsiveContainer width="100%" height={160}>
             <PieChart>
-              <Pie data={items} dataKey="amount" nameKey="name" innerRadius={45} outerRadius={70} paddingAngle={3} strokeWidth={0}>
+              <Pie
+                data={items}
+                dataKey="amount"
+                nameKey="name"
+                innerRadius={45}
+                outerRadius={70}
+                paddingAngle={3}
+                strokeWidth={0}
+                onClick={(entry) => onToggle(entry.category_id)}
+                className="cursor-pointer"
+              >
                 {items.map((entry) => (
-                  <Cell key={entry.name} fill={entry.color} />
+                  <Cell
+                    key={entry.name}
+                    fill={entry.color}
+                    opacity={activeId && entry.category_id !== activeId ? 0.35 : 1}
+                  />
                 ))}
               </Pie>
               <Tooltip {...chartTooltipProps} formatter={(v, name) => [fmtMoney(Number(v), baseCurrency), name]} />
@@ -413,15 +536,70 @@ function ReportPie({
           </ResponsiveContainer>
           <div className="mt-2 flex flex-col gap-1.5">
             {items.map((c) => (
-              <div key={c.name} className="flex items-center gap-2 px-1 py-0.5 text-xs">
+              <button
+                key={c.name}
+                onClick={() => onToggle(c.category_id)}
+                className={`flex items-center gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-white/5 ${
+                  activeId && c.category_id !== activeId ? "opacity-40" : ""
+                }`}
+              >
                 <ColorDot color={c.color} />
                 <span className="flex-1 text-gray-300">{c.name}</span>
                 <span className="font-mono tabular-nums text-gray-400">{fmtMoney(c.amount)}</span>
-              </div>
+              </button>
             ))}
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function PanelHeader({ to, label }: { to: string; label: string }) {
+  return (
+    <Link
+      to={to}
+      className="mb-3 flex items-center justify-between font-mono text-xs tracking-wide text-gray-500 uppercase transition-colors hover:text-lime-300"
+    >
+      {label}
+      <ChevronRight size={14} className="text-gray-500" />
+    </Link>
+  );
+}
+
+function RecentRow({
+  tx,
+  categoryById,
+  divider,
+}: {
+  tx: Transaction;
+  categoryById: Map<number, { name: string; kind: string }>;
+  divider: boolean;
+}) {
+  const cat = tx.splits[0]?.category_id ? categoryById.get(tx.splits[0].category_id) : undefined;
+  const isReturn = tx.kind === "income" && cat?.kind === "expense";
+  return (
+    <div
+      className={`flex items-center gap-2 py-1.5 text-sm ${divider ? "border-t border-[var(--color-line)]" : ""}`}
+    >
+      <span className="w-12 shrink-0 font-mono text-xs text-gray-500">{tx.date.slice(5)}</span>
+      <span className="flex-1 truncate text-gray-300">
+        {tx.payee || (tx.kind === "transfer" ? "Transfer" : tx.note || "—")}
+      </span>
+      {cat && <Badge color="gray">{cat.name}</Badge>}
+      <span
+        className={`font-mono text-xs tabular-nums ${
+          tx.kind === "income"
+            ? "text-emerald-300"
+            : tx.kind === "transfer"
+              ? "text-sky-300"
+              : "text-gray-300"
+        }`}
+      >
+        {tx.kind === "income" ? "+" : tx.kind === "expense" ? "−" : ""}
+        {fmtMoney(tx.amount, tx.currency)}
+      </span>
+      {isReturn && <Badge color="amber">Return</Badge>}
     </div>
   );
 }

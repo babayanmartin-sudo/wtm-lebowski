@@ -11,7 +11,7 @@ from ..config import BASE_CURRENCY
 from ..db import get_db
 from ..models import Category, SavedReport, Split, Transaction
 from ..schemas import ReportFiltersIn, SavedReportDetail, SavedReportIn, SavedReportOut
-from .dashboard import _apply_filters, _by_category, _period, _series, _totals
+from .dashboard import _apply_filters, _by_category, _period, _recent, _series, _totals
 
 router = APIRouter(prefix="/api/reports", tags=["reports"], dependencies=[Depends(require_auth)])
 
@@ -62,6 +62,7 @@ def _preview_for(db: Session, filters: ReportFiltersIn) -> dict:
         "by_category_income": by_category_income,
         "series": series,
         "series_granularity": granularity,
+        "recent": _recent(db, start, end, filters.account_id, cat_ids, exclude_cat_ids=exclude_cat_ids),
     }
 
 

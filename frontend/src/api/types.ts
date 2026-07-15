@@ -294,6 +294,7 @@ export interface ReportPreview {
   by_category_income: CategoryTotal[];
   series: SeriesBucket[];
   series_granularity: "day" | "week" | "month";
+  recent: Transaction[];
 }
 
 export interface SavedReport {

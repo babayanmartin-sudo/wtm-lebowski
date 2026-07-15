@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.8.0 — 2026-07-16
+
+### Reports: clickable charts + recent transactions (#45)
+
+- **Clickable bar chart**: click a bar to zoom the report into that period
+  (day/week/month, matching the series granularity), with a "Back" step to
+  undo one zoom level at a time — same drill pattern as the Dashboard.
+- **Clickable category pies**: click a slice (or its legend row) to filter
+  the report down to that one category; click again to clear.
+- **Recent transactions panel**: shows the 10 most recent transactions
+  matching the report's active filters, with a clickable "Recent
+  transactions" title linking through to the Transactions page with the
+  same date range / account / category carried over.
+- Backend: `POST /api/reports/preview` now returns a `recent` list
+  (reuses `dashboard.py:_recent`, extended with exclude-category support).
+
 ## v1.7.1 — 2026-07-16
 
 ### Make Mashreq/Amazon sync opt-in

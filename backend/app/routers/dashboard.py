@@ -339,7 +339,13 @@ def _series(
 
 
 def _recent(
-    db: Session, start: date, end: date, account_id: int | None, cat_ids: list[int] | None, limit: int = 10
+    db: Session,
+    start: date,
+    end: date,
+    account_id: int | None,
+    cat_ids: list[int] | None,
+    limit: int = 10,
+    exclude_cat_ids: list[int] | None = None,
 ) -> list[dict]:
     stmt = select(Transaction).options(selectinload(Transaction.splits)).where(
         Transaction.date >= start, Transaction.date <= end
@@ -351,6 +357,12 @@ def _recent(
     if cat_ids:
         stmt = stmt.where(
             Transaction.id.in_(select(Split.transaction_id).where(Split.category_id.in_(cat_ids)))
+        )
+    if exclude_cat_ids:
+        stmt = stmt.where(
+            Transaction.id.not_in(
+                select(Split.transaction_id).where(Split.category_id.in_(exclude_cat_ids))
+            )
         )
     txs = db.scalars(stmt.order_by(Transaction.date.desc(), Transaction.id.desc()).limit(limit)).all()
     return [TransactionOut.model_validate(t).model_dump(mode="json") for t in txs]
