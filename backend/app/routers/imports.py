@@ -26,6 +26,7 @@ from ..services.matcher import is_ignored, learn, learn_ignore, normalize, sugge
 from ..services.rates import to_base
 from ..services.settings import (
     AMAZON_DEFAULT_ACCOUNT_ID_KEY,
+    AMAZON_SYNC_ENABLED_KEY,
     DEFAULT_MASHREQ_IMAP_FOLDER,
     DEFAULT_MASHREQ_IMAP_PORT,
     MASHREQ_CARD_ACCOUNTS_KEY,
@@ -34,6 +35,8 @@ from ..services.settings import (
     MASHREQ_IMAP_PASSWORD_KEY,
     MASHREQ_IMAP_PORT_KEY,
     MASHREQ_IMAP_USER_KEY,
+    MASHREQ_SYNC_ENABLED_KEY,
+    get_bool_setting,
     get_float_setting,
     get_str_setting,
 )
@@ -94,6 +97,8 @@ def mashreq_test(body: MashreqTestIn, db: Session = Depends(get_db)):
 
 @router.post("/mashreq-sync", response_model=MashreqSyncResult)
 def mashreq_sync(db: Session = Depends(get_db)):
+    if not get_bool_setting(db, MASHREQ_SYNC_ENABLED_KEY, False):
+        raise HTTPException(400, "Enable Mashreq sync in Profile first")
     host = get_str_setting(db, MASHREQ_IMAP_HOST_KEY, "")
     user = get_str_setting(db, MASHREQ_IMAP_USER_KEY, "")
     password = get_str_setting(db, MASHREQ_IMAP_PASSWORD_KEY, "")
@@ -158,6 +163,8 @@ def mashreq_sync(db: Session = Depends(get_db)):
 
 @router.post("/amazon-sync", response_model=AmazonSyncResult)
 def amazon_sync(db: Session = Depends(get_db)):
+    if not get_bool_setting(db, AMAZON_SYNC_ENABLED_KEY, False):
+        raise HTTPException(400, "Enable Amazon sync in Profile first")
     host = get_str_setting(db, MASHREQ_IMAP_HOST_KEY, "")
     user = get_str_setting(db, MASHREQ_IMAP_USER_KEY, "")
     password = get_str_setting(db, MASHREQ_IMAP_PASSWORD_KEY, "")

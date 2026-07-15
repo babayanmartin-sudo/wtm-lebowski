@@ -204,6 +204,8 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
     Object.entries(settings.mashreq_card_accounts).map(([suffix, accountId]) => ({ suffix, accountId })),
   );
   const [amazonAccountId, setAmazonAccountId] = useState<number | null>(settings.amazon_default_account_id);
+  const [mashreqEnabled, setMashreqEnabled] = useState(settings.mashreq_sync_enabled);
+  const [amazonEnabled, setAmazonEnabled] = useState(settings.amazon_sync_enabled);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [saveError, setSaveError] = useState("");
 
@@ -222,6 +224,8 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
         mashreq_imap_folder: imapFolder,
         mashreq_card_accounts,
         amazon_default_account_id: amazonAccountId,
+        mashreq_sync_enabled: mashreqEnabled,
+        amazon_sync_enabled: amazonEnabled,
       });
       toast("Email connection settings saved");
     } catch (e) {
@@ -250,8 +254,27 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
       <p className="text-xs text-gray-500">
         Forward Mashreq's "Transaction Confirmation on Mashreq Card" alerts and Amazon "Ordered:"
         confirmations to a dedicated mailbox, then point this at it — the Import page can then
-        pull new alerts/orders on demand instead of waiting for a manual CSV export.
+        pull new alerts/orders on demand instead of waiting for a manual CSV export. Both sources
+        are off by default — enable only the ones you actually use.
       </p>
+      <div className="flex flex-col gap-2">
+        <label className="flex items-center gap-2 text-sm text-gray-300">
+          <input
+            type="checkbox"
+            checked={mashreqEnabled}
+            onChange={(e) => setMashreqEnabled(e.target.checked)}
+          />
+          Enable Mashreq sync
+        </label>
+        <label className="flex items-center gap-2 text-sm text-gray-300">
+          <input
+            type="checkbox"
+            checked={amazonEnabled}
+            onChange={(e) => setAmazonEnabled(e.target.checked)}
+          />
+          Enable Amazon sync
+        </label>
+      </div>
       <Field label="IMAP host">
         <input
           className="input"

@@ -12,6 +12,7 @@ def _configure(client, card_accounts):
     client.put(
         "/api/settings",
         json={
+            "mashreq_sync_enabled": True,
             "mashreq_imap_host": "imap.example.com",
             "mashreq_imap_user": "alerts@example.com",
             "mashreq_imap_password": "secret",
@@ -20,8 +21,15 @@ def _configure(client, card_accounts):
     )
 
 
-def test_sync_requires_configuration(seeded):
+def test_sync_disabled_by_default(seeded):
     c = seeded["client"]
+    r = c.post("/api/imports/mashreq-sync")
+    assert r.status_code == 400
+
+
+def test_sync_requires_configuration_even_when_enabled(seeded):
+    c = seeded["client"]
+    c.put("/api/settings", json={"mashreq_sync_enabled": True})
     r = c.post("/api/imports/mashreq-sync")
     assert r.status_code == 400
 

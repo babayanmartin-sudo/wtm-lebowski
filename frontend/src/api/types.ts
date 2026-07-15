@@ -129,6 +129,8 @@ export interface Settings {
   mashreq_imap_folder: string;
   mashreq_card_accounts: Record<string, number>;
   amazon_default_account_id: number | null;
+  mashreq_sync_enabled: boolean;
+  amazon_sync_enabled: boolean;
 }
 
 export interface MashreqSyncImportSummary {

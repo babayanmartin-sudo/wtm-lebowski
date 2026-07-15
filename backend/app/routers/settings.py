@@ -8,6 +8,7 @@ from ..db import get_db
 from ..schemas import SettingsIn, SettingsOut
 from ..services.settings import (
     AMAZON_DEFAULT_ACCOUNT_ID_KEY,
+    AMAZON_SYNC_ENABLED_KEY,
     BUDGET_THRESHOLD_KEY,
     DEFAULT_BUDGET_THRESHOLD,
     DEFAULT_MASHREQ_IMAP_FOLDER,
@@ -18,9 +19,12 @@ from ..services.settings import (
     MASHREQ_IMAP_PASSWORD_KEY,
     MASHREQ_IMAP_PORT_KEY,
     MASHREQ_IMAP_USER_KEY,
+    MASHREQ_SYNC_ENABLED_KEY,
     OVERALL_MONTHLY_CAP_KEY,
+    get_bool_setting,
     get_float_setting,
     get_str_setting,
+    set_bool_setting,
     set_float_setting,
     set_str_setting,
 )
@@ -47,6 +51,8 @@ def get_settings(db: Session = Depends(get_db)):
         amazon_default_account_id=(
             int(v) if (v := get_float_setting(db, AMAZON_DEFAULT_ACCOUNT_ID_KEY, None)) is not None else None
         ),
+        mashreq_sync_enabled=get_bool_setting(db, MASHREQ_SYNC_ENABLED_KEY, False),
+        amazon_sync_enabled=get_bool_setting(db, AMAZON_SYNC_ENABLED_KEY, False),
     )
 
 
@@ -73,5 +79,9 @@ def update_settings(body: SettingsIn, db: Session = Depends(get_db)):
     if "amazon_default_account_id" in fields:
         value = fields["amazon_default_account_id"]
         set_float_setting(db, AMAZON_DEFAULT_ACCOUNT_ID_KEY, float(value) if value is not None else None)
+    if "mashreq_sync_enabled" in fields:
+        set_bool_setting(db, MASHREQ_SYNC_ENABLED_KEY, bool(fields["mashreq_sync_enabled"]))
+    if "amazon_sync_enabled" in fields:
+        set_bool_setting(db, AMAZON_SYNC_ENABLED_KEY, bool(fields["amazon_sync_enabled"]))
     db.commit()
     return get_settings(db)

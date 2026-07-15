@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.7.1 — 2026-07-16
+
+### Make Mashreq/Amazon sync opt-in
+
+- Both syncs are personal-use features, not general product surface —
+  each now has its own Profile toggle (**Enable Mashreq sync** / **Enable
+  Amazon sync**), off by default. `POST /api/imports/mashreq-sync` and
+  `/amazon-sync` reject with 400 while disabled, and the "Sync Mashreq"/
+  "Sync Amazon" buttons on Import only render once enabled.
+
 ## v1.7.0 — 2026-07-16
 
 ### Email-based bank/retail sync (#40)

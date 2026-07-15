@@ -10,6 +10,7 @@ import {
   useImport,
   useInvalidating,
   useMashreqSync,
+  useSettings,
 } from "../api/hooks";
 import type { ImportDetail, ImportRow } from "../api/types";
 import { Badge, CategorySelect, ErrorState, Field, PageHeader, SuccessIcon } from "../components/ui";
@@ -29,6 +30,7 @@ const FIELDS: { key: string; label: string; hint: string }[] = [
 export default function ImportPage() {
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
+  const { data: settings } = useSettings();
   const [accountId, setAccountId] = useState<number | null>(null);
   const [importId, setImportId] = useState<number | null>(null);
   const { data: imp, refetch, isError: importIsError, error: importError } = useImport(importId);
@@ -234,15 +236,21 @@ export default function ImportPage() {
           {active.length === 0 && (
             <p className="mt-3 text-sm text-amber-400">Create an account first.</p>
           )}
-          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
-            <button className="btn-ghost text-sm" onClick={syncMashreq} disabled={mashreqSync.isPending}>
-              <Mail size={14} /> {mashreqSync.isPending ? "Syncing…" : "Sync Mashreq"}
-            </button>
-            <button className="btn-ghost text-sm" onClick={syncAmazon} disabled={amazonSync.isPending}>
-              <Package size={14} /> {amazonSync.isPending ? "Syncing…" : "Sync Amazon"}
-            </button>
-            <span className="text-xs text-gray-500">Pulls new alert/order emails — configure in Profile.</span>
-          </div>
+          {(settings?.mashreq_sync_enabled || settings?.amazon_sync_enabled) && (
+            <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
+              {settings?.mashreq_sync_enabled && (
+                <button className="btn-ghost text-sm" onClick={syncMashreq} disabled={mashreqSync.isPending}>
+                  <Mail size={14} /> {mashreqSync.isPending ? "Syncing…" : "Sync Mashreq"}
+                </button>
+              )}
+              {settings?.amazon_sync_enabled && (
+                <button className="btn-ghost text-sm" onClick={syncAmazon} disabled={amazonSync.isPending}>
+                  <Package size={14} /> {amazonSync.isPending ? "Syncing…" : "Sync Amazon"}
+                </button>
+              )}
+              <span className="text-xs text-gray-500">Pulls new alert/order emails — configure in Profile.</span>
+            </div>
+          )}
           {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
         </div>
       )}

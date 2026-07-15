@@ -17,6 +17,9 @@ DEFAULT_MASHREQ_IMAP_FOLDER = "INBOX"
 
 AMAZON_DEFAULT_ACCOUNT_ID_KEY = "amazon_default_account_id"
 
+MASHREQ_SYNC_ENABLED_KEY = "mashreq_sync_enabled"
+AMAZON_SYNC_ENABLED_KEY = "amazon_sync_enabled"
+
 
 def get_float_setting(db: Session, key: str, default: float | None) -> float | None:
     row = db.get(Setting, key)
@@ -48,3 +51,14 @@ def set_str_setting(db: Session, key: str, value: str | None) -> None:
         db.add(Setting(key=key, value=stored))
     else:
         row.value = stored
+
+
+def get_bool_setting(db: Session, key: str, default: bool) -> bool:
+    row = db.get(Setting, key)
+    if row is None or row.value == "":
+        return default
+    return row.value == "1"
+
+
+def set_bool_setting(db: Session, key: str, value: bool) -> None:
+    set_str_setting(db, key, "1" if value else "0")

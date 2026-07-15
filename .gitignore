@@ -8,3 +8,8 @@ data/
 .pytest_cache/
 .DS_Store
 *.log
+
+# personal sample emails used to develop/test Mashreq/Amazon sync — contain
+# a real personal address, never commit
+*.eml
+*.rtf

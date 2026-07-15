@@ -27,6 +27,7 @@ def _configure_mailbox(client):
     client.put(
         "/api/settings",
         json={
+            "amazon_sync_enabled": True,
             "mashreq_imap_host": "imap.example.com",
             "mashreq_imap_user": "alerts@example.com",
             "mashreq_imap_password": "secret",
@@ -42,8 +43,15 @@ def _no_orders(monkeypatch):
     monkeypatch.setattr(imports_router, "fetch_unseen_orders", lambda *a, **k: [])
 
 
-def test_amazon_sync_requires_mailbox_configuration(seeded):
+def test_amazon_sync_disabled_by_default(seeded):
     c = seeded["client"]
+    r = c.post("/api/imports/amazon-sync")
+    assert r.status_code == 400
+
+
+def test_amazon_sync_requires_mailbox_configuration_even_when_enabled(seeded):
+    c = seeded["client"]
+    c.put("/api/settings", json={"amazon_sync_enabled": True})
     r = c.post("/api/imports/amazon-sync")
     assert r.status_code == 400
 
