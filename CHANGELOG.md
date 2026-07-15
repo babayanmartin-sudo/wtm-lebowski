@@ -1,5 +1,44 @@
 # Changelog
 
+## v1.7.0 — 2026-07-16
+
+### Email-based bank/retail sync (#40)
+
+- **Mashreq alert sync.** Forward Mashreq's "Transaction Confirmation on
+  Mashreq Card" emails to a dedicated mailbox; a "Sync Mashreq" button on
+  Import pulls unseen alerts over IMAP, parses card/amount/merchant/
+  timestamp, maps card suffix → account, and feeds them into the existing
+  CSV-import review queue (dedupe, ignore-rules, category suggestion all
+  reused as-is).
+- **Amazon order sync.** Same mailbox, "Ordered: ..." emails. Handles two
+  different Amazon plain-text templates — a multi-order digest, and a
+  "single big item" template whose per-item price loses its decimal point
+  in plain-text conversion (falls back to the order's own Total for
+  single-item orders). One row per line item; posts to a single default
+  Amazon account (no card info in these emails).
+- **Amazon refund sync.** New "Refund on order ..." template — parses the
+  total refund amount and item name into an income-signed row flagged
+  `expense_return`, the same mechanism already used for manual
+  expense-return reclassification, so it nets correctly against the
+  original purchase's category.
+- **Original date, not forward date.** A forwarded email's own `Date`
+  header is when it was forwarded, not sent — the real date is extracted
+  from the forwarded quote text instead (RFC2822 parse, then a
+  Russian-locale month map for Gmail's localized "Forward" format, then a
+  fuzzy fallback).
+- Profile page gained a "Mailbox sync" section (IMAP host/port/user/
+  password/folder, Mashreq card→account mapping, default Amazon account,
+  "Test connection" button) and now keeps the password/threshold/mailbox
+  sections collapsed by default instead of showing every field at once.
+- Fixed an unbounded IMAP socket (no timeout previously — a stalled mail
+  server could hang the "Sync" button forever) and a settings-save race
+  where a background refetch could silently clobber an in-progress,
+  unsaved Profile edit.
+- Fixed `CategorySelect`'s dropdown being clipped inside Import's
+  horizontally-scrolling table (an `overflow-x-auto` ancestor forces
+  `overflow-y` to clip too, per the CSS spec) — now positions via fixed
+  viewport coordinates instead of relative-to-trigger.
+
 ## v1.6.1 — 2026-07-14
 
 ### Bug fix
