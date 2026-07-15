@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./client";
 import type {
   Account,
+  AmazonSyncResult,
   AuthStatus,
   Budget,
   BudgetStatus,
@@ -109,6 +110,10 @@ export function useMashreqTest() {
     (d: Partial<Settings>) => api.post<MashreqTestResult>("/api/imports/mashreq-test", d),
     [],
   );
+}
+
+export function useAmazonSync() {
+  return useInvalidating(() => api.post<AmazonSyncResult>("/api/imports/amazon-sync"), []);
 }
 
 export function useGoals() {

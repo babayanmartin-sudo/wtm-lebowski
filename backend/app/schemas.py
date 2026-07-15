@@ -371,6 +371,7 @@ class SettingsIn(BaseModel):
     mashreq_imap_password: str | None = None
     mashreq_imap_folder: str | None = None
     mashreq_card_accounts: dict[str, int] | None = None
+    amazon_default_account_id: int | None = None
 
 
 class SettingsOut(BaseModel):
@@ -382,6 +383,7 @@ class SettingsOut(BaseModel):
     mashreq_imap_password: str
     mashreq_imap_folder: str
     mashreq_card_accounts: dict[str, int]
+    amazon_default_account_id: int | None
 
 
 class MashreqSyncImportSummary(BaseModel):
@@ -407,3 +409,9 @@ class MashreqTestIn(BaseModel):
 class MashreqTestResult(BaseModel):
     ok: bool
     message: str
+
+
+class AmazonSyncResult(BaseModel):
+    imported_count: int
+    unparsed_count: int
+    import_id: int | None

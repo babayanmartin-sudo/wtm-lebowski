@@ -7,6 +7,7 @@ from ..auth import require_auth
 from ..db import get_db
 from ..schemas import SettingsIn, SettingsOut
 from ..services.settings import (
+    AMAZON_DEFAULT_ACCOUNT_ID_KEY,
     BUDGET_THRESHOLD_KEY,
     DEFAULT_BUDGET_THRESHOLD,
     DEFAULT_MASHREQ_IMAP_FOLDER,
@@ -43,6 +44,9 @@ def get_settings(db: Session = Depends(get_db)):
         mashreq_imap_password=get_str_setting(db, MASHREQ_IMAP_PASSWORD_KEY, "") or "",
         mashreq_imap_folder=get_str_setting(db, MASHREQ_IMAP_FOLDER_KEY, DEFAULT_MASHREQ_IMAP_FOLDER) or "",
         mashreq_card_accounts=card_accounts,
+        amazon_default_account_id=(
+            int(v) if (v := get_float_setting(db, AMAZON_DEFAULT_ACCOUNT_ID_KEY, None)) is not None else None
+        ),
     )
 
 
@@ -66,5 +70,8 @@ def update_settings(body: SettingsIn, db: Session = Depends(get_db)):
     if "mashreq_card_accounts" in fields:
         value = fields["mashreq_card_accounts"]
         set_str_setting(db, MASHREQ_CARD_ACCOUNTS_KEY, json.dumps(value) if value is not None else None)
+    if "amazon_default_account_id" in fields:
+        value = fields["amazon_default_account_id"]
+        set_float_setting(db, AMAZON_DEFAULT_ACCOUNT_ID_KEY, float(value) if value is not None else None)
     db.commit()
     return get_settings(db)

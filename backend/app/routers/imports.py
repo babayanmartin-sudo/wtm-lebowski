@@ -9,6 +9,7 @@ from ..auth import require_auth
 from ..db import get_db
 from ..models import Account, ColumnPreset, Import, ImportRow, Split, Transaction
 from ..schemas import (
+    AmazonSyncResult,
     ImportDetail,
     ImportOut,
     MappingIn,
@@ -18,11 +19,13 @@ from ..schemas import (
     RowPatch,
 )
 from ..services import importer
+from ..services.amazon_email import fetch_unseen_orders, parse_order_items
 from ..services.mashreq_email import fetch_unseen_alerts, parse_alert
 from ..services.mashreq_email import test_connection as mashreq_test_connection
 from ..services.matcher import is_ignored, learn, learn_ignore, normalize, suggest
 from ..services.rates import to_base
 from ..services.settings import (
+    AMAZON_DEFAULT_ACCOUNT_ID_KEY,
     DEFAULT_MASHREQ_IMAP_FOLDER,
     DEFAULT_MASHREQ_IMAP_PORT,
     MASHREQ_CARD_ACCOUNTS_KEY,
@@ -31,6 +34,7 @@ from ..services.settings import (
     MASHREQ_IMAP_PASSWORD_KEY,
     MASHREQ_IMAP_PORT_KEY,
     MASHREQ_IMAP_USER_KEY,
+    get_float_setting,
     get_str_setting,
 )
 
@@ -150,6 +154,63 @@ def mashreq_sync(db: Session = Depends(get_db)):
         summaries.append({"id": imp.id, "account_id": account_id, "count": len(parsed_alerts)})
 
     return MashreqSyncResult(imports=summaries, unmapped_count=unmapped_count, unparsed_count=unparsed_count)
+
+
+@router.post("/amazon-sync", response_model=AmazonSyncResult)
+def amazon_sync(db: Session = Depends(get_db)):
+    host = get_str_setting(db, MASHREQ_IMAP_HOST_KEY, "")
+    user = get_str_setting(db, MASHREQ_IMAP_USER_KEY, "")
+    password = get_str_setting(db, MASHREQ_IMAP_PASSWORD_KEY, "")
+    port = get_str_setting(db, MASHREQ_IMAP_PORT_KEY, DEFAULT_MASHREQ_IMAP_PORT)
+    folder = get_str_setting(db, MASHREQ_IMAP_FOLDER_KEY, DEFAULT_MASHREQ_IMAP_FOLDER)
+    if not host or not user or not password:
+        raise HTTPException(400, "Configure the sync mailbox in Profile first")
+
+    account_id_float = get_float_setting(db, AMAZON_DEFAULT_ACCOUNT_ID_KEY, None)
+    if account_id_float is None:
+        raise HTTPException(400, "Set a default Amazon account in Profile first")
+    account_id = int(account_id_float)
+
+    try:
+        emails = fetch_unseen_orders(host, port, user, password, folder)
+    except OSError as e:
+        raise HTTPException(502, f"Couldn't reach the mailbox: {e}")
+    except imaplib.IMAP4.error as e:
+        raise HTTPException(502, f"IMAP error: {e}")
+
+    items = []
+    unparsed_count = 0
+    for subject, body, received in emails:
+        parsed = parse_order_items(subject, body, received)
+        if not parsed:
+            unparsed_count += 1
+            continue
+        items.extend(parsed)
+
+    if not items:
+        return AmazonSyncResult(imported_count=0, unparsed_count=unparsed_count, import_id=None)
+
+    imp = Import(
+        filename=f"Amazon sync {items[0].date.isoformat()}",
+        account_id=account_id,
+        status="preview",
+        mapping={},
+    )
+    for i, item in enumerate(items):
+        imp.rows.append(
+            ImportRow(
+                row_index=i,
+                raw=[item.name],
+                parsed_date=item.date,
+                parsed_amount=-item.price,
+                parsed_payee=item.name,
+            )
+        )
+    db.add(imp)
+    db.commit()
+    importer.finalize_rows(db, imp)
+
+    return AmazonSyncResult(imported_count=len(items), unparsed_count=unparsed_count, import_id=imp.id)
 
 
 @router.get("/{import_id}", response_model=ImportDetail)

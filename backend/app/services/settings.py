@@ -15,6 +15,8 @@ MASHREQ_CARD_ACCOUNTS_KEY = "mashreq_card_accounts"
 DEFAULT_MASHREQ_IMAP_PORT = "993"
 DEFAULT_MASHREQ_IMAP_FOLDER = "INBOX"
 
+AMAZON_DEFAULT_ACCOUNT_ID_KEY = "amazon_default_account_id"
+
 
 def get_float_setting(db: Session, key: str, default: float | None) -> float | None:
     row = db.get(Setting, key)

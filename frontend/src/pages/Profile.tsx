@@ -1,5 +1,5 @@
-import { Check, KeyRound, Plug, Plus, Trash2 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { Check, ChevronDown, KeyRound, Plug, Plus, Trash2 } from "lucide-react";
+import { type FormEvent, type ReactNode, useState } from "react";
 
 import { api, ApiError } from "../api/client";
 import { useAccounts, useMashreqTest, useSettings, useUpdateSettings, useVersion } from "../api/hooks";
@@ -13,16 +13,77 @@ interface CardMapping {
 }
 
 export default function ProfilePage() {
+  const { data: version } = useVersion();
+  const { data: settings } = useSettings();
+  const { data: accounts = [] } = useAccounts();
+
+  return (
+    <div>
+      <PageHeader
+        title="Profile"
+        subtitle={`Account settings${version?.version ? ` · ${version.version}` : ""}`}
+      />
+
+      <CollapsibleCard title="Change your password" icon={<KeyRound size={15} />}>
+        <ChangePasswordForm />
+      </CollapsibleCard>
+
+      {settings ? (
+        <>
+          <CollapsibleCard title="Budget thresholds">
+            <PreferencesForm settings={settings} />
+          </CollapsibleCard>
+          <CollapsibleCard title="Email connection settings">
+            <MailboxSyncForm settings={settings} accounts={accounts} />
+          </CollapsibleCard>
+        </>
+      ) : (
+        <div className="glass mt-4 max-w-sm p-6">
+          <LoadingState />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Header button + collapsible body, all closed by default — keeps the
+ * page scannable instead of dumping every field (password, threshold,
+ * mailbox creds) on screen at once. */
+function CollapsibleCard({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon?: ReactNode;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="glass mt-4 max-w-sm overflow-hidden">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-2 p-6 text-left"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold text-gray-300">
+          {icon}
+          {title}
+        </span>
+        <ChevronDown size={16} className={`text-gray-500 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && <div className="flex flex-col gap-4 px-6 pb-6">{children}</div>}
+    </div>
+  );
+}
+
+function ChangePasswordForm() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
-
-  const { data: version } = useVersion();
-  const { data: settings } = useSettings();
-  const { data: accounts = [] } = useAccounts();
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -50,71 +111,49 @@ export default function ProfilePage() {
   }
 
   return (
-    <div>
-      <PageHeader
-        title="Profile"
-        subtitle={`Manage your account password${version?.version ? ` · ${version.version}` : ""}`}
-      />
-
-      <form onSubmit={submit} className="glass flex max-w-sm flex-col gap-4 p-6">
-        <Field label="Current password">
-          <input
-            type="password"
-            className="input"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            autoFocus
-          />
-        </Field>
-        <Field label="New password">
-          <input
-            type="password"
-            className="input"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
-        </Field>
-        <Field label="Confirm new password">
-          <input
-            type="password"
-            className="input"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-          />
-        </Field>
-        {error && <p className="text-xs text-rose-400">{error}</p>}
-        {done && (
-          <p className="flex items-center gap-1.5 text-xs text-emerald-300">
-            <Check size={13} /> Password updated.
-          </p>
-        )}
-        <button
-          className="btn-primary"
-          disabled={busy || !currentPassword || newPassword.length < 4}
-        >
-          <KeyRound size={15} /> Update password
-        </button>
-      </form>
-
-      {settings ? (
-        <>
-          <PreferencesCard settings={settings} />
-          <MashreqSyncCard settings={settings} accounts={accounts} />
-        </>
-      ) : (
-        <div className="glass mt-4 max-w-sm p-6">
-          <LoadingState />
-        </div>
+    <form onSubmit={submit} className="flex flex-col gap-4">
+      <Field label="Current password">
+        <input
+          type="password"
+          className="input"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          autoFocus
+        />
+      </Field>
+      <Field label="New password">
+        <input
+          type="password"
+          className="input"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+        />
+      </Field>
+      <Field label="Confirm new password">
+        <input
+          type="password"
+          className="input"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+        />
+      </Field>
+      {error && <p className="text-xs text-rose-400">{error}</p>}
+      {done && (
+        <p className="flex items-center gap-1.5 text-xs text-emerald-300">
+          <Check size={13} /> Password updated.
+        </p>
       )}
-    </div>
+      <button className="btn-primary" disabled={busy || !currentPassword || newPassword.length < 4}>
+        <KeyRound size={15} /> Update password
+      </button>
+    </form>
   );
 }
 
-/** Mounted only once `settings` has loaded, with local state initialized
- * straight from it — avoids the effect-driven resync race where a
- * background refetch (or one that resolves after the user already started
- * typing) silently overwrites an in-progress, unsaved edit. */
-function PreferencesCard({ settings }: { settings: Settings }) {
+/** Local state initialized straight from `settings` (mounted only once it
+ * has loaded) — avoids the effect-driven resync race where a background
+ * refetch could overwrite an in-progress, unsaved edit. */
+function PreferencesForm({ settings }: { settings: Settings }) {
   const updateSettings = useUpdateSettings();
   const [threshold, setThreshold] = useState(String(settings.budget_threshold));
   const [error, setError] = useState("");
@@ -132,8 +171,7 @@ function PreferencesCard({ settings }: { settings: Settings }) {
   }
 
   return (
-    <div className="glass mt-4 flex max-w-sm flex-col gap-4 p-6">
-      <h2 className="text-sm font-semibold text-gray-300">Preferences</h2>
+    <>
       <Field label="Budget warning threshold (%)">
         <input
           type="number"
@@ -150,11 +188,11 @@ function PreferencesCard({ settings }: { settings: Settings }) {
         Budget bars turn amber at this percentage of the limit, and a toast fires when a
         transaction pushes a budget to or past it.
       </p>
-    </div>
+    </>
   );
 }
 
-function MashreqSyncCard({ settings, accounts }: { settings: Settings; accounts: Account[] }) {
+function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts: Account[] }) {
   const updateSettings = useUpdateSettings();
   const mashreqTest = useMashreqTest();
   const [imapHost, setImapHost] = useState(settings.mashreq_imap_host);
@@ -165,10 +203,11 @@ function MashreqSyncCard({ settings, accounts }: { settings: Settings; accounts:
   const [cardMappings, setCardMappings] = useState<CardMapping[]>(
     Object.entries(settings.mashreq_card_accounts).map(([suffix, accountId]) => ({ suffix, accountId })),
   );
+  const [amazonAccountId, setAmazonAccountId] = useState<number | null>(settings.amazon_default_account_id);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [saveError, setSaveError] = useState("");
 
-  async function saveMashreqSettings() {
+  async function saveMailboxSettings() {
     setSaveError("");
     const mashreq_card_accounts: Record<string, number> = {};
     for (const m of cardMappings) {
@@ -182,8 +221,9 @@ function MashreqSyncCard({ settings, accounts }: { settings: Settings; accounts:
         mashreq_imap_password: imapPassword,
         mashreq_imap_folder: imapFolder,
         mashreq_card_accounts,
+        amazon_default_account_id: amazonAccountId,
       });
-      toast("Mashreq sync settings saved");
+      toast("Email connection settings saved");
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Failed to save");
     }
@@ -206,12 +246,11 @@ function MashreqSyncCard({ settings, accounts }: { settings: Settings; accounts:
   }
 
   return (
-    <div className="glass mt-4 flex max-w-sm flex-col gap-4 p-6">
-      <h2 className="text-sm font-semibold text-gray-300">Mashreq sync</h2>
+    <>
       <p className="text-xs text-gray-500">
-        Forward Mashreq's "Transaction Confirmation on Mashreq Card" alert emails to a
-        dedicated mailbox, then point this at it — the Import page can then pull new alerts
-        on demand instead of waiting for a manual CSV export.
+        Forward Mashreq's "Transaction Confirmation on Mashreq Card" alerts and Amazon "Ordered:"
+        confirmations to a dedicated mailbox, then point this at it — the Import page can then
+        pull new alerts/orders on demand instead of waiting for a manual CSV export.
       </p>
       <Field label="IMAP host">
         <input
@@ -241,7 +280,7 @@ function MashreqSyncCard({ settings, accounts }: { settings: Settings; accounts:
         />
       </Field>
 
-      <Field label="Card → account mapping">
+      <Field label="Mashreq card → account mapping">
         <div className="flex flex-col gap-2">
           {cardMappings.map((m, i) => (
             <div key={i} className="flex items-center gap-2">
@@ -286,6 +325,16 @@ function MashreqSyncCard({ settings, accounts }: { settings: Settings; accounts:
         </div>
       </Field>
 
+      <Field label="Default Amazon account">
+        <Select
+          className="input"
+          value={amazonAccountId}
+          onChange={setAmazonAccountId}
+          emptyLabel="Not set"
+          options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+        />
+      </Field>
+
       {testResult && (
         <p className={`text-xs ${testResult.ok ? "text-emerald-300" : "text-rose-400"}`}>
           {testResult.message}
@@ -301,10 +350,10 @@ function MashreqSyncCard({ settings, accounts }: { settings: Settings; accounts:
         >
           <Plug size={14} /> {mashreqTest.isPending ? "Testing…" : "Test connection"}
         </button>
-        <button className="btn-primary h-9 text-sm whitespace-nowrap" onClick={saveMashreqSettings}>
-          Save Mashreq sync settings
+        <button className="btn-primary h-9 text-sm whitespace-nowrap" onClick={saveMailboxSettings}>
+          Save email connection settings
         </button>
       </div>
-    </div>
+    </>
   );
 }

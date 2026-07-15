@@ -1,10 +1,11 @@
-import { AlertTriangle, Check, CopyX, EyeOff, FileUp, Mail, Pencil, RotateCcw, Sparkles, Undo2, Wand2 } from "lucide-react";
+import { AlertTriangle, Check, CopyX, EyeOff, FileUp, Mail, Package, Pencil, RotateCcw, Sparkles, Undo2, Wand2 } from "lucide-react";
 import { useState } from "react";
 
 import { api } from "../api/client";
 import {
   MONEY_KEYS,
   useAccounts,
+  useAmazonSync,
   useCategories,
   useImport,
   useInvalidating,
@@ -62,6 +63,25 @@ export default function ImportPage() {
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Mashreq sync failed");
+    }
+  }
+
+  const amazonSync = useAmazonSync();
+
+  async function syncAmazon() {
+    setError("");
+    try {
+      const result = await amazonSync.mutateAsync(undefined);
+      if (result.import_id !== null) {
+        setImportId(result.import_id);
+      } else {
+        toast("No new Amazon orders found");
+      }
+      if (result.unparsed_count > 0) {
+        toast(`${result.unparsed_count} email(s) couldn't be parsed`);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Amazon sync failed");
     }
   }
 
@@ -214,11 +234,14 @@ export default function ImportPage() {
           {active.length === 0 && (
             <p className="mt-3 text-sm text-amber-400">Create an account first.</p>
           )}
-          <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-4">
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
             <button className="btn-ghost text-sm" onClick={syncMashreq} disabled={mashreqSync.isPending}>
               <Mail size={14} /> {mashreqSync.isPending ? "Syncing…" : "Sync Mashreq"}
             </button>
-            <span className="text-xs text-gray-500">Pulls new alert emails — configure in Profile.</span>
+            <button className="btn-ghost text-sm" onClick={syncAmazon} disabled={amazonSync.isPending}>
+              <Package size={14} /> {amazonSync.isPending ? "Syncing…" : "Sync Amazon"}
+            </button>
+            <span className="text-xs text-gray-500">Pulls new alert/order emails — configure in Profile.</span>
           </div>
           {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
         </div>

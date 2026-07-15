@@ -128,6 +128,7 @@ export interface Settings {
   mashreq_imap_password: string;
   mashreq_imap_folder: string;
   mashreq_card_accounts: Record<string, number>;
+  amazon_default_account_id: number | null;
 }
 
 export interface MashreqSyncImportSummary {
@@ -145,6 +146,12 @@ export interface MashreqSyncResult {
 export interface MashreqTestResult {
   ok: boolean;
   message: string;
+}
+
+export interface AmazonSyncResult {
+  imported_count: number;
+  unparsed_count: number;
+  import_id: number | null;
 }
 
 export interface Contribution {
