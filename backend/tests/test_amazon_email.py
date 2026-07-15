@@ -105,3 +105,47 @@ def test_parse_order_items_forwarded_subject_still_matches():
 
 def test_subject_constant_used_in_sample():
     assert SUBJECT in SUBJECT_LINE
+
+
+# Amazon's "single big item" template: item price prints as broken
+# concatenated digits with no decimal point (superscript cents collapsed
+# in plain text), but the order's own Total is always well-formed — used
+# as a fallback when there's exactly one item in the order.
+SINGLE_ITEM_SUBJECT = 'Ordered: "Aptamil Comfort 3 Growing..."'
+SINGLE_ITEM_BODY = """
+Thanks for your order!
+
+Arriving today by 11:59 PM
+
+Daria - Dubai
+Order # ‫403-1033834-1576342
+
+View or edit order
+<https://amazon.ae/your-orders/order-details?orderID=403-1033834-1576342>
+
+[image: Aptamil Comfort 3 Growing up Formula Milk From 1-3 Years,
+Specifically Designed for the Dietary Support of Constipation and Abdominal
+Discomfort, 800g]
+<https://amazon.ae/dp/B0F2MWST31?ref_=i_fed_asin_title>
+Aptamil Comfort 3 Growing Form...
+<https://amazon.ae/dp/B0F2MWST31?ref_=t_fed_asin_title>
+
+Quantity: 1
+
+AED10020
+
+
+
+Total AED100.20
+
+
+Keep shopping for
+"""
+
+
+def test_parse_single_item_template_falls_back_to_total():
+    items = parse_order_items(SINGLE_ITEM_SUBJECT, SINGLE_ITEM_BODY, date(2026, 6, 22))
+    assert len(items) == 1
+    assert items[0].name == "Aptamil Comfort 3 Growing Form..."
+    assert items[0].price == 100.20
+    assert items[0].quantity == 1
