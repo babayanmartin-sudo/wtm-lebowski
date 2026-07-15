@@ -1,3 +1,6 @@
+import imaplib
+import json
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -5,10 +8,31 @@ from sqlalchemy.orm import Session
 from ..auth import require_auth
 from ..db import get_db
 from ..models import Account, ColumnPreset, Import, ImportRow, Split, Transaction
-from ..schemas import ImportDetail, ImportOut, MappingIn, RowPatch
+from ..schemas import (
+    ImportDetail,
+    ImportOut,
+    MappingIn,
+    MashreqSyncResult,
+    MashreqTestIn,
+    MashreqTestResult,
+    RowPatch,
+)
 from ..services import importer
+from ..services.mashreq_email import fetch_unseen_alerts, parse_alert
+from ..services.mashreq_email import test_connection as mashreq_test_connection
 from ..services.matcher import is_ignored, learn, learn_ignore, normalize, suggest
 from ..services.rates import to_base
+from ..services.settings import (
+    DEFAULT_MASHREQ_IMAP_FOLDER,
+    DEFAULT_MASHREQ_IMAP_PORT,
+    MASHREQ_CARD_ACCOUNTS_KEY,
+    MASHREQ_IMAP_FOLDER_KEY,
+    MASHREQ_IMAP_HOST_KEY,
+    MASHREQ_IMAP_PASSWORD_KEY,
+    MASHREQ_IMAP_PORT_KEY,
+    MASHREQ_IMAP_USER_KEY,
+    get_str_setting,
+)
 
 router = APIRouter(prefix="/api/imports", tags=["imports"], dependencies=[Depends(require_auth)])
 
@@ -45,6 +69,87 @@ async def upload(
     if preset:
         importer.apply_mapping(db, imp)
     return imp
+
+
+@router.post("/mashreq-test", response_model=MashreqTestResult)
+def mashreq_test(body: MashreqTestIn, db: Session = Depends(get_db)):
+    """Test the IMAP connection with the given (possibly unsaved) form
+    values, falling back to whatever's already saved for any field left
+    blank — lets the Profile page's 'Test connection' button check
+    in-progress edits without requiring a save first."""
+    host = body.mashreq_imap_host or get_str_setting(db, MASHREQ_IMAP_HOST_KEY, "")
+    user = body.mashreq_imap_user or get_str_setting(db, MASHREQ_IMAP_USER_KEY, "")
+    password = body.mashreq_imap_password or get_str_setting(db, MASHREQ_IMAP_PASSWORD_KEY, "")
+    port = body.mashreq_imap_port or get_str_setting(db, MASHREQ_IMAP_PORT_KEY, DEFAULT_MASHREQ_IMAP_PORT)
+    folder = body.mashreq_imap_folder or get_str_setting(db, MASHREQ_IMAP_FOLDER_KEY, DEFAULT_MASHREQ_IMAP_FOLDER)
+    if not host or not user or not password:
+        return MashreqTestResult(ok=False, message="Host, username, and password are required")
+    ok, message = mashreq_test_connection(host, port, user, password, folder)
+    return MashreqTestResult(ok=ok, message=message)
+
+
+@router.post("/mashreq-sync", response_model=MashreqSyncResult)
+def mashreq_sync(db: Session = Depends(get_db)):
+    host = get_str_setting(db, MASHREQ_IMAP_HOST_KEY, "")
+    user = get_str_setting(db, MASHREQ_IMAP_USER_KEY, "")
+    password = get_str_setting(db, MASHREQ_IMAP_PASSWORD_KEY, "")
+    port = get_str_setting(db, MASHREQ_IMAP_PORT_KEY, DEFAULT_MASHREQ_IMAP_PORT)
+    folder = get_str_setting(db, MASHREQ_IMAP_FOLDER_KEY, DEFAULT_MASHREQ_IMAP_FOLDER)
+    if not host or not user or not password:
+        raise HTTPException(400, "Configure Mashreq sync in Profile first")
+
+    try:
+        card_accounts: dict[str, int] = json.loads(
+            get_str_setting(db, MASHREQ_CARD_ACCOUNTS_KEY, "{}") or "{}"
+        )
+    except ValueError:
+        card_accounts = {}
+
+    try:
+        alerts = fetch_unseen_alerts(host, port, user, password, folder)
+    except OSError as e:
+        raise HTTPException(502, f"Couldn't reach the mailbox: {e}")
+    except imaplib.IMAP4.error as e:
+        raise HTTPException(502, f"IMAP error: {e}")
+
+    by_account: dict[int, list] = {}
+    unmapped_count = 0
+    unparsed_count = 0
+    for subject, body in alerts:
+        parsed = parse_alert(subject, body)
+        if not parsed:
+            unparsed_count += 1
+            continue
+        account_id = card_accounts.get(parsed.card_suffix)
+        if account_id is None:
+            unmapped_count += 1
+            continue
+        by_account.setdefault(account_id, []).append(parsed)
+
+    summaries = []
+    for account_id, parsed_alerts in by_account.items():
+        imp = Import(
+            filename=f"Mashreq sync {parsed_alerts[0].date.date().isoformat()}",
+            account_id=account_id,
+            status="preview",
+            mapping={},
+        )
+        for i, alert in enumerate(parsed_alerts):
+            imp.rows.append(
+                ImportRow(
+                    row_index=i,
+                    raw=[f"{alert.merchant} — {alert.date.isoformat()}"],
+                    parsed_date=alert.date.date(),
+                    parsed_amount=-alert.amount,
+                    parsed_payee=alert.merchant,
+                )
+            )
+        db.add(imp)
+        db.commit()
+        importer.finalize_rows(db, imp)
+        summaries.append({"id": imp.id, "account_id": account_id, "count": len(parsed_alerts)})
+
+    return MashreqSyncResult(imports=summaries, unmapped_count=unmapped_count, unparsed_count=unparsed_count)
 
 
 @router.get("/{import_id}", response_model=ImportDetail)

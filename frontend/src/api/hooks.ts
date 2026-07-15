@@ -14,6 +14,8 @@ import type {
   IgnoreRule,
   ImportDetail,
   Loan,
+  MashreqSyncResult,
+  MashreqTestResult,
   OverallBudgetStatus,
   Projection,
   ReportFilters,
@@ -95,6 +97,17 @@ export function useUpdateSettings() {
   return useInvalidating(
     (d: Partial<Settings>) => api.put<Settings>("/api/settings", d),
     [["settings"], ["budgets"]],
+  );
+}
+
+export function useMashreqSync() {
+  return useInvalidating(() => api.post<MashreqSyncResult>("/api/imports/mashreq-sync"), []);
+}
+
+export function useMashreqTest() {
+  return useInvalidating(
+    (d: Partial<Settings>) => api.post<MashreqTestResult>("/api/imports/mashreq-test", d),
+    [],
   );
 }
 

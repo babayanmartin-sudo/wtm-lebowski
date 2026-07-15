@@ -194,6 +194,25 @@ def apply_mapping(db: Session, imp: Import) -> None:
     dayfirst = options.get("dayfirst", True)
     negate = options.get("negate", False)
 
+    for row in imp.rows:
+        row.error = ""
+        row.parsed_date = None
+        row.parsed_amount = None
+        row.ignored = False
+        try:
+            _parse_row(row, mapping, dayfirst, negate)
+        except (ValueError, OverflowError, IndexError) as e:
+            row.error = str(e)[:200]
+            row.skip = True
+            continue
+    finalize_rows(db, imp)
+
+
+def finalize_rows(db: Session, imp: Import) -> None:
+    """Dedupe/ignore-rule/category-suggestion pass over rows that already
+    have parsed_date/parsed_amount/parsed_payee set — shared by the CSV path
+    (after _parse_row) and any other source that arrives pre-parsed (e.g. an
+    email-alert sync), so both go through identical dedupe/suggestion logic."""
     existing_hashes = set(
         db.scalars(
             select(Transaction.dedupe_hash).where(
@@ -205,15 +224,7 @@ def apply_mapping(db: Session, imp: Import) -> None:
     seen_in_file: set[str] = set()
 
     for row in imp.rows:
-        row.error = ""
-        row.parsed_date = None
-        row.parsed_amount = None
-        row.ignored = False
-        try:
-            _parse_row(row, mapping, dayfirst, negate)
-        except (ValueError, OverflowError, IndexError) as e:
-            row.error = str(e)[:200]
-            row.skip = True
+        if row.parsed_date is None or row.parsed_amount is None:
             continue
         row.dedupe_hash = dedupe_hash(row.parsed_date, row.parsed_amount)
         row.is_duplicate = row.dedupe_hash in existing_hashes or row.dedupe_hash in seen_in_file

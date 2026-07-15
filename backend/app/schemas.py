@@ -365,8 +365,45 @@ class SavedReportDetail(SavedReportOut):
 class SettingsIn(BaseModel):
     budget_threshold: float | None = None
     overall_monthly_cap: float | None = None
+    mashreq_imap_host: str | None = None
+    mashreq_imap_port: str | None = None
+    mashreq_imap_user: str | None = None
+    mashreq_imap_password: str | None = None
+    mashreq_imap_folder: str | None = None
+    mashreq_card_accounts: dict[str, int] | None = None
 
 
 class SettingsOut(BaseModel):
     budget_threshold: float
     overall_monthly_cap: float | None
+    mashreq_imap_host: str
+    mashreq_imap_port: str
+    mashreq_imap_user: str
+    mashreq_imap_password: str
+    mashreq_imap_folder: str
+    mashreq_card_accounts: dict[str, int]
+
+
+class MashreqSyncImportSummary(BaseModel):
+    id: int
+    account_id: int
+    count: int
+
+
+class MashreqSyncResult(BaseModel):
+    imports: list[MashreqSyncImportSummary]
+    unmapped_count: int
+    unparsed_count: int
+
+
+class MashreqTestIn(BaseModel):
+    mashreq_imap_host: str | None = None
+    mashreq_imap_port: str | None = None
+    mashreq_imap_user: str | None = None
+    mashreq_imap_password: str | None = None
+    mashreq_imap_folder: str | None = None
+
+
+class MashreqTestResult(BaseModel):
+    ok: bool
+    message: str

@@ -247,7 +247,7 @@ export function CategorySelect({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<"alpha" | "usage">("alpha");
-  const [align, setAlign] = useState<"left" | "right">("left");
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; openUp: boolean } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -262,13 +262,26 @@ export function CategorySelect({
 
   useEffect(() => {
     if (!open || !rootRef.current) return;
-    // The panel has a min-width wider than many triggers — if left-anchoring
-    // it would run past the viewport edge, anchor from the right instead so
-    // it never overflows (which was forcing a horizontal scroll of the
-    // whole page when the autofocused search input landed off-screen).
+    // Positioned `fixed` (computed here) instead of `absolute` in the
+    // normal flow — an ancestor with overflow-x-auto (e.g. Import's table
+    // wrapper) forces overflow-y to auto too per the CSS spec, which was
+    // clipping an absolutely-positioned panel instead of letting it float
+    // above everything.
     const rect = rootRef.current.getBoundingClientRect();
     const PANEL_MIN_WIDTH = 224;
-    setAlign(rect.left + Math.max(rect.width, PANEL_MIN_WIDTH) > window.innerWidth ? "right" : "left");
+    const PANEL_MAX_HEIGHT = 320;
+    const width = Math.max(rect.width, PANEL_MIN_WIDTH);
+    const openUp = rect.bottom + PANEL_MAX_HEIGHT > window.innerHeight && rect.top > PANEL_MAX_HEIGHT;
+    const left = Math.min(
+      Math.max(rect.left, 8),
+      window.innerWidth - width - 8,
+    );
+    setPos({
+      top: openUp ? rect.top - 4 : rect.bottom + 4,
+      left,
+      width,
+      openUp,
+    });
     searchRef.current?.focus();
   }, [open]);
 
@@ -322,11 +335,15 @@ export function CategorySelect({
         <span className={`min-w-0 truncate ${selected ? "" : "text-gray-500"}`}>{selected ?? emptyLabel}</span>
         <ChevronDown size={14} className="shrink-0 text-gray-500" />
       </button>
-      {open && (
+      {open && pos && (
         <div
-          className={`absolute z-20 mt-1 max-h-72 w-full min-w-[14rem] overflow-hidden rounded-xl border border-white/10 bg-[var(--color-panel)] shadow-xl ${
-            align === "right" ? "right-0" : "left-0"
-          }`}
+          className="fixed z-50 max-h-72 overflow-hidden rounded-xl border border-white/10 bg-[var(--color-panel)] shadow-xl"
+          style={{
+            top: pos.openUp ? undefined : pos.top,
+            bottom: pos.openUp ? window.innerHeight - pos.top : undefined,
+            left: pos.left,
+            width: pos.width,
+          }}
         >
           <div className="flex items-center gap-2 border-b border-white/10 px-2 py-1.5">
             <Search size={13} className="shrink-0 text-gray-500" />

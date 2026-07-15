@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, CopyX, EyeOff, FileUp, Pencil, RotateCcw, Sparkles, Undo2, Wand2 } from "lucide-react";
+import { AlertTriangle, Check, CopyX, EyeOff, FileUp, Mail, Pencil, RotateCcw, Sparkles, Undo2, Wand2 } from "lucide-react";
 import { useState } from "react";
 
 import { api } from "../api/client";
@@ -8,10 +8,12 @@ import {
   useCategories,
   useImport,
   useInvalidating,
+  useMashreqSync,
 } from "../api/hooks";
 import type { ImportDetail, ImportRow } from "../api/types";
 import { Badge, CategorySelect, ErrorState, Field, PageHeader, SuccessIcon } from "../components/ui";
 import { fmtMoney } from "../lib/format";
+import { toast } from "../lib/toast";
 
 const FIELDS: { key: string; label: string; hint: string }[] = [
   { key: "date", label: "Date", hint: "required" },
@@ -39,6 +41,29 @@ export default function ImportPage() {
   const [uncategorizedOnly, setUncategorizedOnly] = useState(true);
 
   const commit = useInvalidating(() => api.post(`/api/imports/${importId}/commit`), MONEY_KEYS);
+  const mashreqSync = useMashreqSync();
+
+  async function syncMashreq() {
+    setError("");
+    try {
+      const result = await mashreqSync.mutateAsync(undefined);
+      if (result.imports.length === 1) {
+        setImportId(result.imports[0].id);
+      } else if (result.imports.length > 1) {
+        toast(`Synced into ${result.imports.length} imports — open each from its account`);
+      } else {
+        toast("No new Mashreq alerts found");
+      }
+      if (result.unmapped_count > 0) {
+        toast(`${result.unmapped_count} alert(s) skipped — unmapped card, add it in Profile`);
+      }
+      if (result.unparsed_count > 0) {
+        toast(`${result.unparsed_count} alert(s) couldn't be parsed`);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Mashreq sync failed");
+    }
+  }
 
   const active = accounts.filter((a) => !a.archived);
   const mainAccount = active.find((a) => a.is_main) ?? active[0];
@@ -189,6 +214,12 @@ export default function ImportPage() {
           {active.length === 0 && (
             <p className="mt-3 text-sm text-amber-400">Create an account first.</p>
           )}
+          <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-4">
+            <button className="btn-ghost text-sm" onClick={syncMashreq} disabled={mashreqSync.isPending}>
+              <Mail size={14} /> {mashreqSync.isPending ? "Syncing…" : "Sync Mashreq"}
+            </button>
+            <span className="text-xs text-gray-500">Pulls new alert emails — configure in Profile.</span>
+          </div>
           {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
         </div>
       )}

@@ -122,6 +122,29 @@ export interface OverallBudgetStatus {
 export interface Settings {
   budget_threshold: number;
   overall_monthly_cap: number | null;
+  mashreq_imap_host: string;
+  mashreq_imap_port: string;
+  mashreq_imap_user: string;
+  mashreq_imap_password: string;
+  mashreq_imap_folder: string;
+  mashreq_card_accounts: Record<string, number>;
+}
+
+export interface MashreqSyncImportSummary {
+  id: number;
+  account_id: number;
+  count: number;
+}
+
+export interface MashreqSyncResult {
+  imports: MashreqSyncImportSummary[];
+  unmapped_count: number;
+  unparsed_count: number;
+}
+
+export interface MashreqTestResult {
+  ok: boolean;
+  message: string;
 }
 
 export interface Contribution {
