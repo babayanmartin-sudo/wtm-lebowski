@@ -168,6 +168,70 @@ export default function TransactionModal({
           />
         </Field>
 
+        {kind !== "transfer" && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-400">
+                {isSplit ? `Splits (${splitsTotal.toFixed(2)} / ${amountNum.toFixed(2)})` : "Category"}
+              </span>
+              <button
+                type="button"
+                className="text-xs text-lime-300 hover:text-lime-200"
+                onClick={() => setSplits([...splits, { category_id: null, amount: "", note: "" }])}
+              >
+                <Plus size={12} className="mr-0.5 inline" />
+                Add split
+              </button>
+            </div>
+            {kind === "income" && (
+              <label className="flex items-center gap-2 text-xs text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={isReturn}
+                  onChange={(e) => setIsReturn(e.target.checked)}
+                />
+                This is a refund/return — categorize under an expense category
+              </label>
+            )}
+            {splits.map((s, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <CategorySelect
+                  categories={categories}
+                  kind={categorySelectKind}
+                  value={s.category_id}
+                  onChange={(id) => setSplits(splits.map((x, j) => (j === i ? { ...x, category_id: id } : x)))}
+                  className="input min-w-0 flex-1"
+                  usage={categoryUsage}
+                />
+                {isSplit && (
+                  <>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="input w-28"
+                      placeholder="0.00"
+                      value={s.amount}
+                      onChange={(e) =>
+                        setSplits(splits.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="rounded p-1.5 text-gray-500 hover:bg-rose-500/20 hover:text-rose-300"
+                      onClick={() => setSplits(splits.filter((_, j) => j !== i))}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+            {splitsMismatch && (
+              <p className="text-xs text-amber-400">Split amounts must add up to the total.</p>
+            )}
+          </div>
+        )}
+
         {kind === "transfer" && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="To account">
@@ -228,68 +292,6 @@ export default function TransactionModal({
                 </select>
               </Field>
             )}
-
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-400">
-                  {isSplit ? `Splits (${splitsTotal.toFixed(2)} / ${amountNum.toFixed(2)})` : "Category"}
-                </span>
-                <button
-                  type="button"
-                  className="text-xs text-lime-300 hover:text-lime-200"
-                  onClick={() => setSplits([...splits, { category_id: null, amount: "", note: "" }])}
-                >
-                  <Plus size={12} className="mr-0.5 inline" />
-                  Add split
-                </button>
-              </div>
-              {kind === "income" && (
-                <label className="flex items-center gap-2 text-xs text-gray-400">
-                  <input
-                    type="checkbox"
-                    checked={isReturn}
-                    onChange={(e) => setIsReturn(e.target.checked)}
-                  />
-                  This is a refund/return — categorize under an expense category
-                </label>
-              )}
-              {splits.map((s, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <CategorySelect
-                    categories={categories}
-                    kind={categorySelectKind}
-                    value={s.category_id}
-                    onChange={(id) => setSplits(splits.map((x, j) => (j === i ? { ...x, category_id: id } : x)))}
-                    className="input min-w-0 flex-1"
-                    usage={categoryUsage}
-                  />
-                  {isSplit && (
-                    <>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="input w-28"
-                        placeholder="0.00"
-                        value={s.amount}
-                        onChange={(e) =>
-                          setSplits(splits.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))
-                        }
-                      />
-                      <button
-                        type="button"
-                        className="rounded p-1.5 text-gray-500 hover:bg-rose-500/20 hover:text-rose-300"
-                        onClick={() => setSplits(splits.filter((_, j) => j !== i))}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </>
-                  )}
-                </div>
-              ))}
-              {splitsMismatch && (
-                <p className="text-xs text-amber-400">Split amounts must add up to the total.</p>
-              )}
-            </div>
           </>
         )}
 

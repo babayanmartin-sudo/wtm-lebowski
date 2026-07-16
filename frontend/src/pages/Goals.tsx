@@ -122,6 +122,98 @@ export default function GoalsPage() {
   return (
     <div>
       <PageHeader
+        title="Loans & debts"
+        subtitle="Track a mortgage/loan you're paying off, or money someone owes you"
+        actions={
+          <button
+            className="btn-primary"
+            onClick={() =>
+              setLoanDraft({ name: "", direction: "debt", principal_amount: "", currency: "AED", color: "#f97316" })
+            }
+          >
+            <Plus size={16} /> Add loan
+          </button>
+        }
+      />
+
+      {loansLoading ? (
+        <LoadingState />
+      ) : loansIsError ? (
+        <ErrorState error={loansError} />
+      ) : loans.length === 0 ? (
+        <EmptyState text="No loans yet. Add a mortgage you're paying down, or money someone owes you." />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {loans.map((l: Loan) => {
+            const ratio = l.principal_amount > 0 ? Math.min(1, l.paid / l.principal_amount) : 0;
+            const deg = ratio * 360;
+            return (
+              <div key={l.id} className="glass glass-hover p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="flex h-14 w-14 items-center justify-center rounded-full"
+                      style={{
+                        background: `conic-gradient(${l.color} ${deg}deg, rgba(255,255,255,0.08) ${deg}deg)`,
+                      }}
+                    >
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-panel)] text-xs font-semibold">
+                        {Math.round(ratio * 100)}%
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-medium">{l.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {l.direction === "debt" ? "You owe this" : "Owed to you"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+                      onClick={() =>
+                        setLoanDraft({
+                          id: l.id,
+                          name: l.name,
+                          direction: l.direction,
+                          principal_amount: String(l.principal_amount),
+                          currency: l.currency,
+                          color: l.color,
+                        })
+                      }
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
+                      onClick={() => removeLoan.mutate(l.id, { onSuccess: () => toast("Loan deleted") })}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+                <p className="mt-4 text-lg font-semibold tabular-nums">
+                  {fmtMoney(l.paid)} <span className="text-sm text-gray-500">/ {fmtMoney(l.principal_amount)} {l.currency}</span>
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  {l.remaining > 0 ? `${fmtMoney(l.remaining)} ${l.currency} remaining` : "Fully settled 🎉"}
+                </p>
+                <Link
+                  to={`/transactions?loan=${l.id}`}
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-2 text-sm text-gray-200 transition-colors hover:bg-white/10"
+                >
+                  View transactions <ChevronRight size={14} />
+                </Link>
+                <p className="mt-2 text-center text-[11px] text-gray-500">
+                  Updates automatically from linked transactions
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <PageHeader
         title="Savings goals"
         subtitle="Put money aside with a target in mind"
         actions={
@@ -279,98 +371,6 @@ export default function GoalsPage() {
             </button>
           </div>
         </Modal>
-      )}
-
-      <PageHeader
-        title="Loans & debts"
-        subtitle="Track a mortgage/loan you're paying off, or money someone owes you"
-        actions={
-          <button
-            className="btn-primary"
-            onClick={() =>
-              setLoanDraft({ name: "", direction: "debt", principal_amount: "", currency: "AED", color: "#f97316" })
-            }
-          >
-            <Plus size={16} /> Add loan
-          </button>
-        }
-      />
-
-      {loansLoading ? (
-        <LoadingState />
-      ) : loansIsError ? (
-        <ErrorState error={loansError} />
-      ) : loans.length === 0 ? (
-        <EmptyState text="No loans yet. Add a mortgage you're paying down, or money someone owes you." />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {loans.map((l: Loan) => {
-            const ratio = l.principal_amount > 0 ? Math.min(1, l.paid / l.principal_amount) : 0;
-            const deg = ratio * 360;
-            return (
-              <div key={l.id} className="glass glass-hover p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="flex h-14 w-14 items-center justify-center rounded-full"
-                      style={{
-                        background: `conic-gradient(${l.color} ${deg}deg, rgba(255,255,255,0.08) ${deg}deg)`,
-                      }}
-                    >
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-panel)] text-xs font-semibold">
-                        {Math.round(ratio * 100)}%
-                      </div>
-                    </div>
-                    <div>
-                      <p className="font-medium">{l.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {l.direction === "debt" ? "You owe this" : "Owed to you"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <button
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
-                      onClick={() =>
-                        setLoanDraft({
-                          id: l.id,
-                          name: l.name,
-                          direction: l.direction,
-                          principal_amount: String(l.principal_amount),
-                          currency: l.currency,
-                          color: l.color,
-                        })
-                      }
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
-                      onClick={() => removeLoan.mutate(l.id, { onSuccess: () => toast("Loan deleted") })}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-                <p className="mt-4 text-lg font-semibold tabular-nums">
-                  {fmtMoney(l.paid)} <span className="text-sm text-gray-500">/ {fmtMoney(l.principal_amount)} {l.currency}</span>
-                </p>
-                <p className="mt-1 text-xs text-gray-400">
-                  {l.remaining > 0 ? `${fmtMoney(l.remaining)} ${l.currency} remaining` : "Fully settled 🎉"}
-                </p>
-                <Link
-                  to={`/transactions?loan=${l.id}`}
-                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-2 text-sm text-gray-200 transition-colors hover:bg-white/10"
-                >
-                  View transactions <ChevronRight size={14} />
-                </Link>
-                <p className="mt-2 text-center text-[11px] text-gray-500">
-                  Updates automatically from linked transactions
-                </p>
-              </div>
-            );
-          })}
-        </div>
       )}
 
       {loanDraft && (

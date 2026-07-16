@@ -203,7 +203,69 @@ export default function BudgetsPage() {
         </div>
       )}
 
-      <div className="glass mb-4 p-5">
+      {isLoading ? (
+        <LoadingState />
+      ) : isError ? (
+        <ErrorState error={loadError} />
+      ) : budgets.length === 0 ? (
+        <EmptyState text="No budgets yet. Set a monthly or yearly limit for a category to start tracking." />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {budgets.map((b) => {
+            const cat = categoryById.get(b.category_id);
+            const st = statusById.get(b.id);
+            const spent = st?.spent ?? 0;
+            const ratio = b.amount > 0 ? spent / b.amount : 0;
+            const left = b.amount - spent;
+            const suffix = b.period === "yearly" ? "/yr" : "/mo";
+            return (
+              <div key={b.id} className="glass glass-hover p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="flex items-center gap-2 font-medium">
+                    {cat && <ColorDot color={cat.color} />}
+                    {cat?.name ?? "?"}
+                    <Badge>{b.period}</Badge>
+                    {ratio >= 1 && <Badge color="rose">over budget</Badge>}
+                  </span>
+                  <div className="flex gap-1">
+                    <button
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+                      onClick={() =>
+                        setDraft({
+                          id: b.id,
+                          category_id: b.category_id,
+                          amount: String(b.amount),
+                          period: b.period,
+                        })
+                      }
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
+                      onClick={() => remove.mutate(b.id, { onSuccess: () => toast("Budget deleted") })}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+                <ProgressBar value={ratio} threshold={threshold} />
+                <div className="mt-2 flex items-center justify-between text-sm">
+                  <span className="tabular-nums text-gray-400">
+                    {fmtMoney(spent)} of {fmtMoney(b.amount)}
+                    {suffix}
+                  </span>
+                  <span className={`tabular-nums ${left < 0 ? "text-rose-400" : "text-emerald-300"}`}>
+                    {left < 0 ? `${fmtMoney(-left)} over` : `${fmtMoney(left)} left`}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="glass mt-4 p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-300">
             Net worth forecast
@@ -270,68 +332,6 @@ export default function BudgetsPage() {
           </AreaChart>
         </ResponsiveContainer>
       </div>
-
-      {isLoading ? (
-        <LoadingState />
-      ) : isError ? (
-        <ErrorState error={loadError} />
-      ) : budgets.length === 0 ? (
-        <EmptyState text="No budgets yet. Set a monthly or yearly limit for a category to start tracking." />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {budgets.map((b) => {
-            const cat = categoryById.get(b.category_id);
-            const st = statusById.get(b.id);
-            const spent = st?.spent ?? 0;
-            const ratio = b.amount > 0 ? spent / b.amount : 0;
-            const left = b.amount - spent;
-            const suffix = b.period === "yearly" ? "/yr" : "/mo";
-            return (
-              <div key={b.id} className="glass glass-hover p-5">
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="flex items-center gap-2 font-medium">
-                    {cat && <ColorDot color={cat.color} />}
-                    {cat?.name ?? "?"}
-                    <Badge>{b.period}</Badge>
-                    {ratio >= 1 && <Badge color="rose">over budget</Badge>}
-                  </span>
-                  <div className="flex gap-1">
-                    <button
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
-                      onClick={() =>
-                        setDraft({
-                          id: b.id,
-                          category_id: b.category_id,
-                          amount: String(b.amount),
-                          period: b.period,
-                        })
-                      }
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-rose-500/20 hover:text-rose-300"
-                      onClick={() => remove.mutate(b.id, { onSuccess: () => toast("Budget deleted") })}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-                <ProgressBar value={ratio} threshold={threshold} />
-                <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="tabular-nums text-gray-400">
-                    {fmtMoney(spent)} of {fmtMoney(b.amount)}
-                    {suffix}
-                  </span>
-                  <span className={`tabular-nums ${left < 0 ? "text-rose-400" : "text-emerald-300"}`}>
-                    {left < 0 ? `${fmtMoney(-left)} over` : `${fmtMoney(left)} left`}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {draft && (
         <Modal title={draft.id ? "Edit budget" : "New budget"} onClose={() => setDraft(null)}>

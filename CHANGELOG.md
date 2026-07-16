@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.8.1 — 2026-07-16
+
+### UI reordering
+
+- Budgets: Net worth forecast moved to the bottom of the page, below the
+  budget cards.
+- Goals & Loans: Loans section now comes first, Goals second.
+- New Transaction modal: Category/splits now sit directly under Amount,
+  before Payee and the loan-link field.
+
 ## v1.8.0 — 2026-07-16
 
 ### Reports: clickable charts + recent transactions (#45)
