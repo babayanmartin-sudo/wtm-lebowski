@@ -7,6 +7,7 @@ import { useAccounts, useCategories, useDashboard, useOverallBudgetStatus } from
 import type { CategoryTotal } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
 import { CategorySelect, ErrorState, LoadingState, Select } from "../components/ui";
+import { AskWidget } from "../pages/Dashboard";
 import { chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
 import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
@@ -250,6 +251,8 @@ export default function MobileDashboard() {
           )}
         </div>
       </div>
+
+      <AskWidget />
         </>
       )}
     </div>

@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.9.1 — 2026-07-16
+
+### Mobile
+
+- Ask widget (AI Chat Q&A) now also available on the mobile Home page,
+  reusing the same component as desktop.
+
 ## v1.9.0 — 2026-07-16
 
 ### AI Chat Q&A on spending (#43)

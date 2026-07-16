@@ -520,7 +520,7 @@ function StatCell({ label, value, color }: { label: string; value: string; color
  * persisted server-side. Each question is answered by an LLM calling
  * read-only aggregation tools against this app's own data, not by dumping
  * transaction history into the prompt (see services/insights_tools.py). */
-function AskWidget() {
+export function AskWidget() {
   const { data: settings } = useSettings();
   const [messages, setMessages] = useState<InsightsMessage[]>([]);
   const [input, setInput] = useState("");
