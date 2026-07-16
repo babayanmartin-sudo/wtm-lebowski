@@ -5,6 +5,23 @@ def test_settings_defaults(seeded):
     assert d["overall_monthly_cap"] is None
     assert d["mashreq_sync_enabled"] is False
     assert d["amazon_sync_enabled"] is False
+    assert d["llm_provider"] == ""
+    assert d["llm_api_key"] == ""
+    assert d["llm_model"] == ""
+
+
+def test_llm_settings_round_trip(seeded):
+    c = seeded["client"]
+    c.put("/api/settings", json={"llm_provider": "anthropic", "llm_api_key": "sk-xyz"})
+    d = c.get("/api/settings").json()
+    assert d["llm_provider"] == "anthropic"
+    assert d["llm_api_key"] == "sk-xyz"
+    assert d["llm_model"] == ""
+
+    c.put("/api/settings", json={"llm_model": "claude-sonnet-5"})
+    d = c.get("/api/settings").json()
+    assert d["llm_provider"] == "anthropic"  # unaffected
+    assert d["llm_model"] == "claude-sonnet-5"
 
 
 def test_sync_enabled_flags_round_trip_independently(seeded):

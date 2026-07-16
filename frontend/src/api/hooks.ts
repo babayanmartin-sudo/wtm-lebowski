@@ -14,6 +14,8 @@ import type {
   Goal,
   IgnoreRule,
   ImportDetail,
+  InsightsAskResult,
+  InsightsMessage,
   Loan,
   MashreqSyncResult,
   MashreqTestResult,
@@ -114,6 +116,14 @@ export function useMashreqTest() {
 
 export function useAmazonSync() {
   return useInvalidating(() => api.post<AmazonSyncResult>("/api/imports/amazon-sync"), []);
+}
+
+export function useInsightsAsk() {
+  return useInvalidating(
+    (d: { message: string; history: InsightsMessage[] }) =>
+      api.post<InsightsAskResult>("/api/insights/ask", d),
+    [],
+  );
 }
 
 export function useGoals() {

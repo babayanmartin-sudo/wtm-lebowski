@@ -1,10 +1,18 @@
-import { ChevronLeft, ChevronRight, RotateCcw, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, Send, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-import { useAccounts, useBudgetStatus, useCategories, useDashboard, useOverallBudgetStatus } from "../api/hooks";
-import type { CategoryTotal, Transaction } from "../api/types";
+import {
+  useAccounts,
+  useBudgetStatus,
+  useCategories,
+  useDashboard,
+  useInsightsAsk,
+  useOverallBudgetStatus,
+  useSettings,
+} from "../api/hooks";
+import type { CategoryTotal, InsightsMessage, Transaction } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
 import {
   Badge,
@@ -14,6 +22,7 @@ import {
   LoadingState,
   ProgressBar,
   Select,
+  Spinner,
 } from "../components/ui";
 import { CHART_COLORS, chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
@@ -366,6 +375,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <AskWidget />
         </>
       )}
     </div>
@@ -501,6 +512,84 @@ function StatCell({ label, value, color }: { label: string; value: string; color
     <div className="flex flex-col gap-1.5 px-4 py-3">
       <span className="font-mono text-[11px] tracking-widest text-gray-500 uppercase">{label}</span>
       <span className={`font-mono text-lg tracking-tight tabular-nums ${color ?? ""}`}>{value}</span>
+    </div>
+  );
+}
+
+/** Ephemeral chat — history lives only in this component's state, nothing
+ * persisted server-side. Each question is answered by an LLM calling
+ * read-only aggregation tools against this app's own data, not by dumping
+ * transaction history into the prompt (see services/insights_tools.py). */
+function AskWidget() {
+  const { data: settings } = useSettings();
+  const [messages, setMessages] = useState<InsightsMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [error, setError] = useState("");
+  const ask = useInsightsAsk();
+
+  const configured = !!settings?.llm_provider && !!settings?.llm_api_key;
+
+  async function send() {
+    const question = input.trim();
+    if (!question || ask.isPending) return;
+    setError("");
+    setInput("");
+    const nextMessages: InsightsMessage[] = [...messages, { role: "user", content: question }];
+    setMessages(nextMessages);
+    try {
+      const result = await ask.mutateAsync({ message: question, history: messages });
+      setMessages([...nextMessages, { role: "assistant", content: result.reply }]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to get an answer");
+    }
+  }
+
+  return (
+    <div className="glass p-5">
+      <h2 className="mb-4 flex items-center gap-1.5 font-mono text-xs tracking-wide text-gray-500 uppercase">
+        <Sparkles size={14} /> Ask
+      </h2>
+      {!configured ? (
+        <p className="text-sm text-gray-500">
+          Configure the AI Assistant in Profile to ask questions about your spending.
+        </p>
+      ) : (
+        <>
+          {messages.length > 0 && (
+            <div className="mb-4 flex max-h-80 flex-col gap-3 overflow-y-auto">
+              {messages.map((m, i) => (
+                <div
+                  key={i}
+                  className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                    m.role === "user" ? "self-end bg-white/10 text-gray-100" : "self-start bg-white/5 text-gray-300"
+                  }`}
+                >
+                  {m.content}
+                </div>
+              ))}
+              {ask.isPending && (
+                <div className="self-start rounded-lg bg-white/5 px-3 py-2 text-sm text-gray-400">
+                  <Spinner size={14} />
+                </div>
+              )}
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <input
+              className="input flex-1"
+              placeholder="e.g. how much did I spend on groceries last month?"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && send()}
+              disabled={ask.isPending}
+            />
+            <button className="btn-primary h-9" onClick={send} disabled={ask.isPending || !input.trim()}>
+              <Send size={14} />
+            </button>
+          </div>
+          {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
+        </>
+      )}
     </div>
   );
 }

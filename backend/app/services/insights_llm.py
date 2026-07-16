@@ -1,0 +1,119 @@
+"""Provider-agnostic tool-use loop for the Chat Q&A widget (#43). Both
+Anthropic and OpenAI are supported since the user has paid access to both;
+the loop hands the model a fixed set of read-only aggregation tools
+(`insights_tools.TOOLS`) instead of dumping transaction history into the
+prompt, so each question only pulls the data it actually needs."""
+
+import json
+from typing import Any
+
+from sqlalchemy.orm import Session
+
+from .insights_tools import TOOL_SCHEMAS, TOOLS
+
+MAX_TOOL_ITERATIONS = 5
+
+DEFAULT_MODELS = {
+    "anthropic": "claude-sonnet-5",
+    "openai": "gpt-5",
+}
+
+
+class InsightsError(Exception):
+    """Wraps any provider SDK failure (auth, rate limit, network) into one
+    type the router can turn into a clean 502."""
+
+
+def _run_tool(db: Session, name: str, arguments: dict) -> dict:
+    fn = TOOLS.get(name)
+    if fn is None:
+        return {"error": f"Unknown tool: {name}"}
+    try:
+        return fn(db, **arguments)
+    except Exception as e:  # noqa: BLE001 — surface the failure to the model, not a 500
+        return {"error": str(e)}
+
+
+def run_chat(
+    db: Session,
+    provider: str,
+    api_key: str,
+    model: str | None,
+    system_prompt: str,
+    messages: list[dict[str, str]],
+) -> str:
+    resolved_model = model or DEFAULT_MODELS.get(provider)
+    if provider == "anthropic":
+        return _run_anthropic(db, api_key, resolved_model, system_prompt, messages)
+    if provider == "openai":
+        return _run_openai(db, api_key, resolved_model, system_prompt, messages)
+    raise InsightsError(f"Unknown provider: {provider}")
+
+
+def _run_anthropic(db: Session, api_key: str, model: str, system_prompt: str, messages: list[dict]) -> str:
+    try:
+        from anthropic import Anthropic
+    except ImportError as e:
+        raise InsightsError("anthropic package not installed") from e
+
+    client = Anthropic(api_key=api_key)
+    convo: list[dict[str, Any]] = [{"role": m["role"], "content": m["content"]} for m in messages]
+    tools = [{"name": s["name"], "description": s["description"], "input_schema": s["parameters"]} for s in TOOL_SCHEMAS]
+
+    for _ in range(MAX_TOOL_ITERATIONS):
+        try:
+            resp = client.messages.create(
+                model=model, max_tokens=1024, system=system_prompt, messages=convo, tools=tools
+            )
+        except Exception as e:  # noqa: BLE001 — collapse SDK-specific errors to one type
+            raise InsightsError(str(e)) from e
+
+        if resp.stop_reason != "tool_use":
+            return "".join(b.text for b in resp.content if b.type == "text").strip() or "No response."
+
+        convo.append({"role": "assistant", "content": resp.content})
+        tool_results = []
+        for block in resp.content:
+            if block.type != "tool_use":
+                continue
+            result = _run_tool(db, block.name, block.input or {})
+            tool_results.append(
+                {"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)}
+            )
+        convo.append({"role": "user", "content": tool_results})
+
+    return "I wasn't able to finish looking that up — try a narrower question."
+
+
+def _run_openai(db: Session, api_key: str, model: str, system_prompt: str, messages: list[dict]) -> str:
+    try:
+        from openai import OpenAI
+    except ImportError as e:
+        raise InsightsError("openai package not installed") from e
+
+    client = OpenAI(api_key=api_key)
+    convo: list[dict[str, Any]] = [{"role": "system", "content": system_prompt}] + [
+        {"role": m["role"], "content": m["content"]} for m in messages
+    ]
+    tools = [{"type": "function", "function": s} for s in TOOL_SCHEMAS]
+
+    for _ in range(MAX_TOOL_ITERATIONS):
+        try:
+            resp = client.chat.completions.create(model=model, messages=convo, tools=tools)
+        except Exception as e:  # noqa: BLE001
+            raise InsightsError(str(e)) from e
+
+        choice = resp.choices[0]
+        if choice.finish_reason != "tool_calls" or not choice.message.tool_calls:
+            return (choice.message.content or "No response.").strip()
+
+        convo.append(choice.message.model_dump())
+        for call in choice.message.tool_calls:
+            try:
+                arguments = json.loads(call.function.arguments or "{}")
+            except ValueError:
+                arguments = {}
+            result = _run_tool(db, call.function.name, arguments)
+            convo.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(result)})
+
+    return "I wasn't able to finish looking that up — try a narrower question."

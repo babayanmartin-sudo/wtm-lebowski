@@ -36,6 +36,9 @@ export default function ProfilePage() {
           <CollapsibleCard title="Email connection settings">
             <MailboxSyncForm settings={settings} accounts={accounts} />
           </CollapsibleCard>
+          <CollapsibleCard title="AI Assistant">
+            <AiAssistantForm settings={settings} />
+          </CollapsibleCard>
         </>
       ) : (
         <div className="glass mt-4 max-w-sm p-6">
@@ -377,6 +380,67 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
           Save email connection settings
         </button>
       </div>
+    </>
+  );
+}
+
+function AiAssistantForm({ settings }: { settings: Settings }) {
+  const updateSettings = useUpdateSettings();
+  const [provider, setProvider] = useState(settings.llm_provider || "anthropic");
+  const [apiKey, setApiKey] = useState(settings.llm_api_key);
+  const [model, setModel] = useState(settings.llm_model);
+  const [error, setError] = useState("");
+
+  async function save() {
+    setError("");
+    try {
+      await updateSettings.mutateAsync({ llm_provider: provider, llm_api_key: apiKey, llm_model: model });
+      toast("AI Assistant settings saved");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save");
+    }
+  }
+
+  return (
+    <>
+      <p className="text-xs text-gray-500">
+        Powers the "Ask" widget on the Dashboard — questions you type, and the aggregated
+        numbers needed to answer them, are sent to the provider below. Nothing is sent unless
+        you ask a question.
+      </p>
+      <Field label="Provider">
+        <Select
+          className="input"
+          value={provider}
+          onChange={(v) => v && setProvider(v)}
+          allowEmpty={false}
+          options={[
+            { value: "anthropic", label: "Anthropic (Claude)" },
+            { value: "openai", label: "OpenAI (GPT)" },
+          ]}
+        />
+      </Field>
+      <Field label="API key">
+        <input
+          type="password"
+          className="input"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          placeholder="sk-…"
+        />
+      </Field>
+      <Field label="Model override (optional)">
+        <input
+          className="input"
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
+          placeholder={provider === "anthropic" ? "claude-sonnet-5" : "gpt-5"}
+        />
+      </Field>
+      {error && <p className="text-xs text-rose-400">{error}</p>}
+      <button className="btn-primary h-9 text-sm whitespace-nowrap" onClick={save}>
+        Save AI Assistant settings
+      </button>
     </>
   );
 }

@@ -374,6 +374,9 @@ class SettingsIn(BaseModel):
     amazon_default_account_id: int | None = None
     mashreq_sync_enabled: bool | None = None
     amazon_sync_enabled: bool | None = None
+    llm_provider: str | None = None
+    llm_api_key: str | None = None
+    llm_model: str | None = None
 
 
 class SettingsOut(BaseModel):
@@ -388,6 +391,9 @@ class SettingsOut(BaseModel):
     amazon_default_account_id: int | None
     mashreq_sync_enabled: bool
     amazon_sync_enabled: bool
+    llm_provider: str
+    llm_api_key: str
+    llm_model: str
 
 
 class MashreqSyncImportSummary(BaseModel):
@@ -419,3 +425,18 @@ class AmazonSyncResult(BaseModel):
     imported_count: int
     unparsed_count: int
     import_id: int | None
+
+
+# ---- insights (AI chat) ----
+class InsightsMessage(BaseModel):
+    role: str  # "user"|"assistant"
+    content: str
+
+
+class InsightsAskIn(BaseModel):
+    message: str
+    history: list[InsightsMessage] = []
+
+
+class InsightsAskOut(BaseModel):
+    reply: str

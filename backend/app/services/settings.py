@@ -20,6 +20,10 @@ AMAZON_DEFAULT_ACCOUNT_ID_KEY = "amazon_default_account_id"
 MASHREQ_SYNC_ENABLED_KEY = "mashreq_sync_enabled"
 AMAZON_SYNC_ENABLED_KEY = "amazon_sync_enabled"
 
+LLM_PROVIDER_KEY = "llm_provider"
+LLM_API_KEY_KEY = "llm_api_key"
+LLM_MODEL_KEY = "llm_model"
+
 
 def get_float_setting(db: Session, key: str, default: float | None) -> float | None:
     row = db.get(Setting, key)

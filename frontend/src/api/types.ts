@@ -131,6 +131,18 @@ export interface Settings {
   amazon_default_account_id: number | null;
   mashreq_sync_enabled: boolean;
   amazon_sync_enabled: boolean;
+  llm_provider: string;
+  llm_api_key: string;
+  llm_model: string;
+}
+
+export interface InsightsMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface InsightsAskResult {
+  reply: string;
 }
 
 export interface MashreqSyncImportSummary {

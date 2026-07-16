@@ -37,6 +37,7 @@ from .routers import (  # noqa: E402
     goals,
     ignore_rules,
     imports,
+    insights,
     loans,
     rates,
     reports,
@@ -60,6 +61,7 @@ app.include_router(rates.router)
 app.include_router(imports.router)
 app.include_router(dashboard.router)
 app.include_router(reports.router)
+app.include_router(insights.router)
 app.include_router(settings.router)
 
 

@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.9.0 — 2026-07-16
+
+### AI Chat Q&A on spending (#43)
+
+- New "Ask" widget on the Dashboard: type a question about your spending
+  ("how much did I spend on groceries last month?") and get an answer
+  backed by your real data.
+- Provider-agnostic: choose Anthropic (Claude) or OpenAI (GPT) per your
+  own API key, configured in a new "AI Assistant" Profile section.
+- The model answers by calling 5 read-only tool functions
+  (`get_summary`, `get_category_breakdown`, `search_transactions`,
+  `get_budget_status`, `get_accounts_balances`) that reuse the existing
+  dashboard/reports/transactions aggregation code — no full transaction
+  dump goes into the prompt, only what a question actually needs.
+  Tool-use loop capped at 5 iterations per question.
+- Chat history is ephemeral (frontend-only state) — nothing is persisted
+  server-side.
+- Split from #43's original broader scope; the non-LLM insight ideas
+  (subscription detection, period comparison, savings suggestions) moved
+  to #46.
+
 ## v1.8.1 — 2026-07-16
 
 ### UI reordering

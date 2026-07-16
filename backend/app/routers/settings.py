@@ -18,6 +18,9 @@ from ..services.settings import (
     MASHREQ_IMAP_HOST_KEY,
     MASHREQ_IMAP_PASSWORD_KEY,
     MASHREQ_IMAP_PORT_KEY,
+    LLM_API_KEY_KEY,
+    LLM_MODEL_KEY,
+    LLM_PROVIDER_KEY,
     MASHREQ_IMAP_USER_KEY,
     MASHREQ_SYNC_ENABLED_KEY,
     OVERALL_MONTHLY_CAP_KEY,
@@ -53,6 +56,9 @@ def get_settings(db: Session = Depends(get_db)):
         ),
         mashreq_sync_enabled=get_bool_setting(db, MASHREQ_SYNC_ENABLED_KEY, False),
         amazon_sync_enabled=get_bool_setting(db, AMAZON_SYNC_ENABLED_KEY, False),
+        llm_provider=get_str_setting(db, LLM_PROVIDER_KEY, "") or "",
+        llm_api_key=get_str_setting(db, LLM_API_KEY_KEY, "") or "",
+        llm_model=get_str_setting(db, LLM_MODEL_KEY, "") or "",
     )
 
 
@@ -83,5 +89,11 @@ def update_settings(body: SettingsIn, db: Session = Depends(get_db)):
         set_bool_setting(db, MASHREQ_SYNC_ENABLED_KEY, bool(fields["mashreq_sync_enabled"]))
     if "amazon_sync_enabled" in fields:
         set_bool_setting(db, AMAZON_SYNC_ENABLED_KEY, bool(fields["amazon_sync_enabled"]))
+    if "llm_provider" in fields:
+        set_str_setting(db, LLM_PROVIDER_KEY, fields["llm_provider"])
+    if "llm_api_key" in fields:
+        set_str_setting(db, LLM_API_KEY_KEY, fields["llm_api_key"])
+    if "llm_model" in fields:
+        set_str_setting(db, LLM_MODEL_KEY, fields["llm_model"])
     db.commit()
     return get_settings(db)
