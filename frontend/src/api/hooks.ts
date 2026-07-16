@@ -15,7 +15,8 @@ import type {
   IgnoreRule,
   ImportDetail,
   InsightsAskResult,
-  InsightsMessage,
+  InsightsConversationDetail,
+  InsightsConversationSummary,
   Loan,
   MashreqSyncResult,
   MashreqTestResult,
@@ -120,9 +121,31 @@ export function useAmazonSync() {
 
 export function useInsightsAsk() {
   return useInvalidating(
-    (d: { message: string; history: InsightsMessage[] }) =>
+    (d: { message: string; conversation_id: number | null }) =>
       api.post<InsightsAskResult>("/api/insights/ask", d),
-    [],
+    [["insights-conversations"]],
+  );
+}
+
+export function useInsightsConversations() {
+  return useQuery({
+    queryKey: ["insights-conversations"],
+    queryFn: () => api.get<InsightsConversationSummary[]>("/api/insights/conversations"),
+  });
+}
+
+export function useInsightsConversation(id: number | null) {
+  return useQuery({
+    queryKey: ["insights-conversations", id],
+    queryFn: () => api.get<InsightsConversationDetail>(`/api/insights/conversations/${id}`),
+    enabled: id !== null,
+  });
+}
+
+export function useDeleteInsightsConversation() {
+  return useInvalidating(
+    (id: number) => api.del(`/api/insights/conversations/${id}`),
+    [["insights-conversations"]],
   );
 }
 

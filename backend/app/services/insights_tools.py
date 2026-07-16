@@ -17,6 +17,7 @@ from ..routers.budgets import compute_budget_status
 from ..routers.dashboard import _by_category, _category_ids_with_children, _period, _totals
 from ..routers.transactions import list_transactions
 from ..services.balances import balance_in_base, compute_balances
+from ..services.settings import INSIGHTS_MEMORY_KEY, INSIGHTS_MEMORY_MAX_CHARS, get_str_setting, set_str_setting
 
 
 def get_summary(
@@ -117,6 +118,26 @@ def get_budget_status(db: Session, month: str | None = None) -> dict:
     }
 
 
+def remember(db: Session, note: str) -> dict:
+    """Save a short durable fact about the user's preferences for future
+    conversations. Only call when the user explicitly states something
+    worth remembering long-term (e.g. 'my main account is X', 'always
+    exclude transfers from spending totals') — not for routine Q&A."""
+    note = note.strip()
+    if not note:
+        return {"ok": False, "error": "empty note"}
+    existing = get_str_setting(db, INSIGHTS_MEMORY_KEY, "") or ""
+    lines = [line for line in existing.splitlines() if line.strip()]
+    lines.append(f"- {note}")
+    combined = "\n".join(lines)
+    while len(combined) > INSIGHTS_MEMORY_MAX_CHARS and len(lines) > 1:
+        lines.pop(0)
+        combined = "\n".join(lines)
+    set_str_setting(db, INSIGHTS_MEMORY_KEY, combined[-INSIGHTS_MEMORY_MAX_CHARS:])
+    db.commit()
+    return {"ok": True, "saved": note}
+
+
 def get_accounts_balances(db: Session) -> dict:
     """Current balance of every non-archived account, in base currency."""
     balances = compute_balances(db)
@@ -192,6 +213,19 @@ TOOL_SCHEMAS = [
         "description": "Current balance of every account in base currency.",
         "parameters": {"type": "object", "properties": {}},
     },
+    {
+        "name": "remember",
+        "description": (
+            "Save a short durable fact about the user's preferences for future conversations. "
+            "Only call this when the user explicitly states something worth remembering long-term "
+            "(e.g. 'my main account is X', 'always exclude transfers') — never for routine Q&A."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {"note": {"type": "string"}},
+            "required": ["note"],
+        },
+    },
 ]
 
 TOOLS = {
@@ -200,4 +234,5 @@ TOOLS = {
     "search_transactions": search_transactions,
     "get_budget_status": get_budget_status,
     "get_accounts_balances": get_accounts_balances,
+    "remember": remember,
 }

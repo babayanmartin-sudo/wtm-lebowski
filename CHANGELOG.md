@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.10.0 — 2026-07-16
+
+### Ask widget memory + chat history
+
+- Conversations with the Ask widget now persist server-side (new
+  `insights_conversations` table) instead of resetting on reload — a
+  history icon lists past chats, a "New chat" button starts fresh.
+- The assistant can call a new `remember` tool to save durable
+  preferences ("my main account is X") to a persistent memory blob,
+  included in the system prompt on every future request.
+- Profile → AI Assistant now shows the stored memory with a "Clear
+  memory" button.
+
 ## v1.9.2 — 2026-07-16
 
 ### Ask widget formatting

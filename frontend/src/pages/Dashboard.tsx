@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight, RotateCcw, Send, Sparkles, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, History, Plus, RotateCcw, Send, Sparkles, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -10,6 +10,8 @@ import {
   useCategories,
   useDashboard,
   useInsightsAsk,
+  useInsightsConversation,
+  useInsightsConversations,
   useOverallBudgetStatus,
   useSettings,
 } from "../api/hooks";
@@ -546,12 +548,46 @@ function ChatMarkdown({ content }: { content: string }) {
 
 export function AskWidget() {
   const { data: settings } = useSettings();
+  const [conversationId, setConversationId] = useSessionState<number | null>("dashboard.askConversationId", null);
   const [messages, setMessages] = useState<InsightsMessage[]>([]);
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
   const ask = useInsightsAsk();
+  const conversation = useInsightsConversation(conversationId);
+  const { data: conversations = [] } = useInsightsConversations();
+  const loadedConvoRef = useRef<number | null>(null);
+  const historyRef = useRef<HTMLDivElement>(null);
 
   const configured = !!settings?.llm_provider && !!settings?.llm_api_key;
+
+  useEffect(() => {
+    if (conversationId !== null && conversation.data && loadedConvoRef.current !== conversationId) {
+      setMessages(conversation.data.messages);
+      loadedConvoRef.current = conversationId;
+    }
+  }, [conversationId, conversation.data]);
+
+  useEffect(() => {
+    if (!historyOpen) return;
+    function onDocClick(e: MouseEvent) {
+      if (historyRef.current && !historyRef.current.contains(e.target as Node)) setHistoryOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [historyOpen]);
+
+  function newChat() {
+    setConversationId(null);
+    setMessages([]);
+    setError("");
+    setHistoryOpen(false);
+  }
+
+  function loadConversation(id: number) {
+    setConversationId(id);
+    setHistoryOpen(false);
+  }
 
   async function send() {
     const question = input.trim();
@@ -561,8 +597,12 @@ export function AskWidget() {
     const nextMessages: InsightsMessage[] = [...messages, { role: "user", content: question }];
     setMessages(nextMessages);
     try {
-      const result = await ask.mutateAsync({ message: question, history: messages });
+      const result = await ask.mutateAsync({ message: question, conversation_id: conversationId });
       setMessages([...nextMessages, { role: "assistant", content: result.reply }]);
+      if (conversationId === null) {
+        loadedConvoRef.current = result.conversation_id;
+        setConversationId(result.conversation_id);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to get an answer");
     }
@@ -570,9 +610,50 @@ export function AskWidget() {
 
   return (
     <div className="glass p-5">
-      <h2 className="mb-4 flex items-center gap-1.5 font-mono text-xs tracking-wide text-gray-500 uppercase">
-        <Sparkles size={14} /> Ask
-      </h2>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="flex items-center gap-1.5 font-mono text-xs tracking-wide text-gray-500 uppercase">
+          <Sparkles size={14} /> Ask
+        </h2>
+        {configured && (
+          <div className="flex items-center gap-1">
+            <div ref={historyRef} className="relative">
+              <button
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+                title="Past conversations"
+                onClick={() => setHistoryOpen((o) => !o)}
+              >
+                <History size={14} />
+              </button>
+              {historyOpen && (
+                <div className="absolute right-0 z-20 mt-1 max-h-72 w-64 overflow-y-auto rounded-xl border border-white/10 bg-[var(--color-panel)] py-1 shadow-xl">
+                  {conversations.length === 0 ? (
+                    <p className="px-3 py-2 text-xs text-gray-500">No past conversations.</p>
+                  ) : (
+                    conversations.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => loadConversation(c.id)}
+                        className={`block w-full truncate px-3 py-1.5 text-left text-xs hover:bg-white/5 ${
+                          c.id === conversationId ? "text-lime-300" : "text-gray-300"
+                        }`}
+                      >
+                        {c.title || "Untitled"}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+            <button
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
+              title="New chat"
+              onClick={newChat}
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+        )}
+      </div>
       {!configured ? (
         <p className="text-sm text-gray-500">
           Configure the AI Assistant in Profile to ask questions about your spending.

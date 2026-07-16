@@ -441,6 +441,33 @@ function AiAssistantForm({ settings }: { settings: Settings }) {
       <button className="btn-primary h-9 text-sm whitespace-nowrap" onClick={save}>
         Save AI Assistant settings
       </button>
+      <AssistantMemory settings={settings} />
     </>
+  );
+}
+
+function AssistantMemory({ settings }: { settings: Settings }) {
+  const updateSettings = useUpdateSettings();
+
+  async function clear() {
+    if (!confirm("Clear everything the assistant has remembered about you?")) return;
+    await updateSettings.mutateAsync({ insights_memory: "" });
+    toast("Assistant memory cleared");
+  }
+
+  if (!settings.insights_memory) return null;
+
+  return (
+    <div className="mt-2 border-t border-white/10 pt-4">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="font-mono text-xs tracking-wide text-gray-500 uppercase">Assistant memory</span>
+        <button className="text-xs text-rose-400 hover:underline" onClick={clear}>
+          Clear memory
+        </button>
+      </div>
+      <pre className="input h-auto max-h-48 overflow-y-auto whitespace-pre-wrap font-sans text-xs text-gray-300">
+        {settings.insights_memory}
+      </pre>
+    </div>
   );
 }

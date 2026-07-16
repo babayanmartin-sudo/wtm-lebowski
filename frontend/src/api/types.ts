@@ -134,6 +134,7 @@ export interface Settings {
   llm_provider: string;
   llm_api_key: string;
   llm_model: string;
+  insights_memory: string;
 }
 
 export interface InsightsMessage {
@@ -143,6 +144,18 @@ export interface InsightsMessage {
 
 export interface InsightsAskResult {
   reply: string;
+  conversation_id: number;
+}
+
+export interface InsightsConversationSummary {
+  id: number;
+  title: string;
+  updated_at: string;
+}
+
+export interface InsightsConversationDetail extends InsightsConversationSummary {
+  messages: InsightsMessage[];
+  created_at: string;
 }
 
 export interface MashreqSyncImportSummary {

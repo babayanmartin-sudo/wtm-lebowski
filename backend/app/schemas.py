@@ -377,6 +377,7 @@ class SettingsIn(BaseModel):
     llm_provider: str | None = None
     llm_api_key: str | None = None
     llm_model: str | None = None
+    insights_memory: str | None = None
 
 
 class SettingsOut(BaseModel):
@@ -394,6 +395,7 @@ class SettingsOut(BaseModel):
     llm_provider: str
     llm_api_key: str
     llm_model: str
+    insights_memory: str
 
 
 class MashreqSyncImportSummary(BaseModel):
@@ -435,8 +437,20 @@ class InsightsMessage(BaseModel):
 
 class InsightsAskIn(BaseModel):
     message: str
-    history: list[InsightsMessage] = []
+    conversation_id: int | None = None
 
 
 class InsightsAskOut(BaseModel):
     reply: str
+    conversation_id: int
+
+
+class InsightsConversationSummary(BaseModel):
+    id: int
+    title: str
+    updated_at: datetime
+
+
+class InsightsConversationDetail(InsightsConversationSummary):
+    messages: list[InsightsMessage]
+    created_at: datetime

@@ -18,6 +18,7 @@ from ..services.settings import (
     MASHREQ_IMAP_HOST_KEY,
     MASHREQ_IMAP_PASSWORD_KEY,
     MASHREQ_IMAP_PORT_KEY,
+    INSIGHTS_MEMORY_KEY,
     LLM_API_KEY_KEY,
     LLM_MODEL_KEY,
     LLM_PROVIDER_KEY,
@@ -59,6 +60,7 @@ def get_settings(db: Session = Depends(get_db)):
         llm_provider=get_str_setting(db, LLM_PROVIDER_KEY, "") or "",
         llm_api_key=get_str_setting(db, LLM_API_KEY_KEY, "") or "",
         llm_model=get_str_setting(db, LLM_MODEL_KEY, "") or "",
+        insights_memory=get_str_setting(db, INSIGHTS_MEMORY_KEY, "") or "",
     )
 
 
@@ -95,5 +97,7 @@ def update_settings(body: SettingsIn, db: Session = Depends(get_db)):
         set_str_setting(db, LLM_API_KEY_KEY, fields["llm_api_key"])
     if "llm_model" in fields:
         set_str_setting(db, LLM_MODEL_KEY, fields["llm_model"])
+    if "insights_memory" in fields:
+        set_str_setting(db, INSIGHTS_MEMORY_KEY, fields["insights_memory"])
     db.commit()
     return get_settings(db)

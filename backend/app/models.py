@@ -288,3 +288,13 @@ class SavedReport(Base):
     description: Mapped[str] = mapped_column(String, default="")
     filters: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class InsightsConversation(Base):
+    __tablename__ = "insights_conversations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String, default="")
+    messages: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

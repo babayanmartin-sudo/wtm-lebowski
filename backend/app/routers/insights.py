@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -7,12 +7,25 @@ from sqlalchemy.orm import Session
 from ..auth import require_auth
 from ..config import BASE_CURRENCY
 from ..db import get_db
-from ..models import Account
-from ..schemas import InsightsAskIn, InsightsAskOut
+from ..models import Account, InsightsConversation
+from ..schemas import (
+    InsightsAskIn,
+    InsightsAskOut,
+    InsightsConversationDetail,
+    InsightsConversationSummary,
+)
 from ..services.insights_llm import InsightsError, run_chat
-from ..services.settings import LLM_API_KEY_KEY, LLM_MODEL_KEY, LLM_PROVIDER_KEY, get_str_setting
+from ..services.settings import (
+    INSIGHTS_MEMORY_KEY,
+    LLM_API_KEY_KEY,
+    LLM_MODEL_KEY,
+    LLM_PROVIDER_KEY,
+    get_str_setting,
+)
 
 router = APIRouter(prefix="/api/insights", tags=["insights"], dependencies=[Depends(require_auth)])
+
+TITLE_MAX_LEN = 60
 
 
 @router.post("/ask", response_model=InsightsAskOut)
@@ -23,7 +36,16 @@ def ask(body: InsightsAskIn, db: Session = Depends(get_db)):
     if not provider or not api_key:
         raise HTTPException(400, "Configure the AI Assistant in Profile first")
 
+    convo = None
+    if body.conversation_id is not None:
+        convo = db.get(InsightsConversation, body.conversation_id)
+        if not convo:
+            raise HTTPException(404, "Conversation not found")
+
+    history = convo.messages if convo else []
+
     accounts = db.scalars(select(Account).where(Account.archived.is_(False))).all()
+    memory = get_str_setting(db, INSIGHTS_MEMORY_KEY, "") or ""
     system_prompt = (
         "You are a spending-insights assistant for a personal finance tracker. "
         f"Today's date is {date.today().isoformat()}. Base currency is {BASE_CURRENCY}. "
@@ -33,8 +55,9 @@ def ask(body: InsightsAskIn, db: Session = Depends(get_db)):
         "Format your reply in markdown: use a bulleted or numbered list when giving more "
         "than one figure or category, **bold** the key numbers, and use short paragraphs "
         "with blank lines between them — never one dense wall of text."
+        + (f"\n\nKnown preferences about this user (from earlier conversations):\n{memory}" if memory else "")
     )
-    messages = [{"role": m.role, "content": m.content} for m in body.history] + [
+    messages = [{"role": m["role"], "content": m["content"]} for m in history] + [
         {"role": "user", "content": body.message}
     ]
 
@@ -43,4 +66,46 @@ def ask(body: InsightsAskIn, db: Session = Depends(get_db)):
     except InsightsError as e:
         raise HTTPException(502, str(e))
 
-    return InsightsAskOut(reply=reply)
+    updated_messages = history + [
+        {"role": "user", "content": body.message},
+        {"role": "assistant", "content": reply},
+    ]
+
+    if convo is None:
+        convo = InsightsConversation(
+            title=body.message[:TITLE_MAX_LEN],
+            messages=updated_messages,
+        )
+        db.add(convo)
+    else:
+        convo.messages = updated_messages
+        convo.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(convo)
+
+    return InsightsAskOut(reply=reply, conversation_id=convo.id)
+
+
+@router.get("/conversations", response_model=list[InsightsConversationSummary])
+def list_conversations(db: Session = Depends(get_db)):
+    return db.scalars(
+        select(InsightsConversation).order_by(InsightsConversation.updated_at.desc())
+    ).all()
+
+
+@router.get("/conversations/{conversation_id}", response_model=InsightsConversationDetail)
+def get_conversation(conversation_id: int, db: Session = Depends(get_db)):
+    convo = db.get(InsightsConversation, conversation_id)
+    if not convo:
+        raise HTTPException(404, "Conversation not found")
+    return convo
+
+
+@router.delete("/conversations/{conversation_id}")
+def delete_conversation(conversation_id: int, db: Session = Depends(get_db)):
+    convo = db.get(InsightsConversation, conversation_id)
+    if not convo:
+        raise HTTPException(404, "Conversation not found")
+    db.delete(convo)
+    db.commit()
+    return {"ok": True}

@@ -8,6 +8,18 @@ def test_settings_defaults(seeded):
     assert d["llm_provider"] == ""
     assert d["llm_api_key"] == ""
     assert d["llm_model"] == ""
+    assert d["insights_memory"] == ""
+
+
+def test_insights_memory_round_trip_and_clear(seeded):
+    c = seeded["client"]
+    c.put("/api/settings", json={"insights_memory": "- main account is AED Bank"})
+    d = c.get("/api/settings").json()
+    assert d["insights_memory"] == "- main account is AED Bank"
+
+    c.put("/api/settings", json={"insights_memory": ""})
+    d = c.get("/api/settings").json()
+    assert d["insights_memory"] == ""
 
 
 def test_llm_settings_round_trip(seeded):
