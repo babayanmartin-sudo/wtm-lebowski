@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, RotateCcw, Send, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import {
@@ -520,6 +521,29 @@ function StatCell({ label, value, color }: { label: string; value: string; color
  * persisted server-side. Each question is answered by an LLM calling
  * read-only aggregation tools against this app's own data, not by dumping
  * transaction history into the prompt (see services/insights_tools.py). */
+/** Assistant replies often come back as markdown (bullet lists, bold
+ * numbers) — Tailwind's reset strips list/paragraph spacing by default, so
+ * map each element to sized/spaced classes instead of relying on a
+ * typography plugin. */
+function ChatMarkdown({ content }: { content: string }) {
+  return (
+    <ReactMarkdown
+      components={{
+        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+        ul: ({ children }) => <ul className="mb-2 list-disc space-y-1 pl-4 last:mb-0">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-4 last:mb-0">{children}</ol>,
+        li: ({ children }) => <li>{children}</li>,
+        strong: ({ children }) => <strong className="font-semibold text-gray-100">{children}</strong>,
+        code: ({ children }) => (
+          <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-xs">{children}</code>
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+}
+
 export function AskWidget() {
   const { data: settings } = useSettings();
   const [messages, setMessages] = useState<InsightsMessage[]>([]);
@@ -564,7 +588,7 @@ export function AskWidget() {
                     m.role === "user" ? "self-end bg-white/10 text-gray-100" : "self-start bg-white/5 text-gray-300"
                   }`}
                 >
-                  {m.content}
+                  {m.role === "assistant" ? <ChatMarkdown content={m.content} /> : m.content}
                 </div>
               ))}
               {ask.isPending && (

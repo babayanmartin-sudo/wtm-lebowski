@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.9.2 — 2026-07-16
+
+### Ask widget formatting
+
+- Assistant replies now render as markdown (bullet/numbered lists, bold
+  numbers, paragraph breaks) instead of one dense block of squished text —
+  added `react-markdown` with Tailwind-mapped list/paragraph spacing.
+- System prompt now explicitly asks the model to format multi-figure
+  answers as a list and bold key numbers.
+
 ## v1.9.1 — 2026-07-16
 
 ### Mobile

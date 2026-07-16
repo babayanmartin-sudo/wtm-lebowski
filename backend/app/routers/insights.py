@@ -29,7 +29,10 @@ def ask(body: InsightsAskIn, db: Session = Depends(get_db)):
         f"Today's date is {date.today().isoformat()}. Base currency is {BASE_CURRENCY}. "
         f"The user's accounts: {', '.join(a.name for a in accounts) or 'none yet'}. "
         "Answer using the provided tools — never guess numbers. Be concise and specific, "
-        "state amounts with the currency, and avoid generic financial advice."
+        "state amounts with the currency, and avoid generic financial advice. "
+        "Format your reply in markdown: use a bulleted or numbered list when giving more "
+        "than one figure or category, **bold** the key numbers, and use short paragraphs "
+        "with blank lines between them — never one dense wall of text."
     )
     messages = [{"role": m.role, "content": m.content} for m in body.history] + [
         {"role": "user", "content": body.message}
