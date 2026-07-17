@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.12.0 — 2026-07-17
+
+### AI Assistant
+
+- Profile → AI Assistant now has a "Test connection" button (mirrors
+  Mashreq's IMAP test) — does a minimal round-trip to the configured
+  provider/model to verify the API key works before saving.
+
 ## v1.11.5 — 2026-07-17
 
 ### Ask widget (diagnostic only, no behavior change)
