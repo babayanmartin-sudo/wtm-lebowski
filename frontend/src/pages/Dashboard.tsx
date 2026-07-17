@@ -434,7 +434,11 @@ export function AskWidget() {
   const historyRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const configured = !!settings?.llm_provider && !!settings?.llm_api_key;
+  const configured =
+    !!settings?.llm_provider &&
+    (settings.llm_provider === "anthropic"
+      ? settings.llm_anthropic_api_key_set
+      : settings.llm_openai_api_key_set);
 
   useEffect(() => {
     if (conversationId !== null && conversation.data && loadedConvoRef.current !== conversationId) {

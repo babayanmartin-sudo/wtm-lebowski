@@ -377,8 +377,11 @@ class SettingsIn(BaseModel):
     auto_sync_enabled: bool | None = None
     auto_sync_frequency_minutes: float | None = None
     llm_provider: str | None = None
-    llm_api_key: str | None = None
-    llm_model: str | None = None
+    llm_anthropic_api_key: str | None = None
+    llm_anthropic_model: str | None = None
+    llm_openai_api_key: str | None = None
+    llm_openai_model: str | None = None
+    llm_max_tokens: int | None = None  # 0 = uncapped (see UNCAPPED_LLM_MAX_TOKENS)
     insights_memory: str | None = None
 
     @field_validator("auto_sync_frequency_minutes")
@@ -388,6 +391,13 @@ class SettingsIn(BaseModel):
 
         if v is not None and v < MIN_AUTO_SYNC_FREQUENCY_MINUTES:
             raise ValueError(f"Frequency must be at least {int(MIN_AUTO_SYNC_FREQUENCY_MINUTES)} minutes")
+        return v
+
+    @field_validator("llm_max_tokens")
+    @classmethod
+    def validate_llm_max_tokens(cls, v: int | None) -> int | None:
+        if v is not None and v < 0:
+            raise ValueError("llm_max_tokens must be >= 0")
         return v
 
 
@@ -407,8 +417,13 @@ class SettingsOut(BaseModel):
     auto_sync_enabled: bool
     auto_sync_frequency_minutes: float
     llm_provider: str
-    llm_api_key: str
-    llm_model: str
+    llm_anthropic_api_key: str  # always "" — never round-trip the plaintext key to the client
+    llm_anthropic_api_key_set: bool
+    llm_anthropic_model: str
+    llm_openai_api_key: str  # always "" — never round-trip the plaintext key to the client
+    llm_openai_api_key_set: bool
+    llm_openai_model: str
+    llm_max_tokens: int  # 0 = uncapped
     insights_memory: str
 
 
@@ -478,7 +493,7 @@ class InsightsConversationDetail(InsightsConversationSummary):
 
 class InsightsTestIn(BaseModel):
     llm_provider: str | None = None
-    llm_api_key: str | None = None
+    llm_api_key: str | None = None  # falls back to the saved key for llm_provider if blank
     llm_model: str | None = None
 
 

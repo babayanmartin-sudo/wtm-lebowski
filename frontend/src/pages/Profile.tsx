@@ -11,7 +11,7 @@ import {
   useVersion,
 } from "../api/hooks";
 import type { Account, Settings } from "../api/types";
-import { Field, LoadingState, PageHeader, Select } from "../components/ui";
+import { Field, LoadingState, PageHeader, SegmentedToggle, Select } from "../components/ui";
 import { toast } from "../lib/toast";
 
 interface CardMapping {
@@ -443,19 +443,56 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
   );
 }
 
+type LlmProvider = "anthropic" | "openai";
+
 function AiAssistantForm({ settings }: { settings: Settings }) {
   const updateSettings = useUpdateSettings();
   const insightsTest = useInsightsTest();
-  const [provider, setProvider] = useState(settings.llm_provider || "anthropic");
-  const [apiKey, setApiKey] = useState(settings.llm_api_key);
-  const [model, setModel] = useState(settings.llm_model);
+  const [provider, setProvider] = useState<LlmProvider>(
+    (settings.llm_provider as LlmProvider) || "anthropic",
+  );
+
+  const [anthropicKey, setAnthropicKey] = useState("");
+  const [anthropicKeyTouched, setAnthropicKeyTouched] = useState(false);
+  const [anthropicModel, setAnthropicModel] = useState(settings.llm_anthropic_model);
+
+  const [openaiKey, setOpenaiKey] = useState("");
+  const [openaiKeyTouched, setOpenaiKeyTouched] = useState(false);
+  const [openaiModel, setOpenaiModel] = useState(settings.llm_openai_model);
+
+  const [maxTokensUncapped, setMaxTokensUncapped] = useState(settings.llm_max_tokens === 0);
+  const [maxTokens, setMaxTokens] = useState(
+    String(settings.llm_max_tokens === 0 ? 1024 : settings.llm_max_tokens),
+  );
+
   const [error, setError] = useState("");
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
+  const activeKey = provider === "anthropic" ? anthropicKey : openaiKey;
+  const activeKeySet =
+    provider === "anthropic" ? settings.llm_anthropic_api_key_set : settings.llm_openai_api_key_set;
+  const activeModel = provider === "anthropic" ? anthropicModel : openaiModel;
+
   async function save() {
     setError("");
+    const tokens = maxTokensUncapped ? 0 : Number(maxTokens);
+    if (!maxTokensUncapped && (!Number.isFinite(tokens) || tokens < 1)) {
+      setError("Max tokens must be a positive number (or turned off)");
+      return;
+    }
     try {
-      await updateSettings.mutateAsync({ llm_provider: provider, llm_api_key: apiKey, llm_model: model });
+      await updateSettings.mutateAsync({
+        llm_provider: provider,
+        ...(anthropicKeyTouched ? { llm_anthropic_api_key: anthropicKey } : {}),
+        llm_anthropic_model: anthropicModel,
+        ...(openaiKeyTouched ? { llm_openai_api_key: openaiKey } : {}),
+        llm_openai_model: openaiModel,
+        llm_max_tokens: tokens,
+      });
+      setAnthropicKeyTouched(false);
+      setAnthropicKey("");
+      setOpenaiKeyTouched(false);
+      setOpenaiKey("");
       toast("AI Assistant settings saved");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save");
@@ -467,8 +504,8 @@ function AiAssistantForm({ settings }: { settings: Settings }) {
     try {
       const result = await insightsTest.mutateAsync({
         llm_provider: provider,
-        llm_api_key: apiKey,
-        llm_model: model,
+        llm_api_key: activeKey,
+        llm_model: activeModel,
       });
       setTestResult(result);
     } catch (e) {
@@ -480,38 +517,97 @@ function AiAssistantForm({ settings }: { settings: Settings }) {
     <>
       <p className="text-xs text-gray-500">
         Powers the "Ask" widget on the Dashboard — questions you type, and the aggregated
-        numbers needed to answer them, are sent to the provider below. Nothing is sent unless
-        you ask a question.
+        numbers needed to answer them, are sent to the active provider below. Nothing is sent
+        unless you ask a question. Both providers can be configured at once — the toggle picks
+        which one is active.
       </p>
-      <Field label="Provider">
-        <Select
-          className="input"
+      <Field label="Active provider">
+        <SegmentedToggle
           value={provider}
-          onChange={(v) => v && setProvider(v)}
-          allowEmpty={false}
+          onChange={setProvider}
           options={[
             { value: "anthropic", label: "Anthropic (Claude)" },
             { value: "openai", label: "OpenAI (GPT)" },
           ]}
         />
       </Field>
-      <Field label="API key">
-        <input
-          type="password"
-          className="input"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          placeholder="sk-…"
-        />
-      </Field>
-      <Field label="Model override (optional)">
-        <input
-          className="input"
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-          placeholder={provider === "anthropic" ? "claude-sonnet-5" : "gpt-5"}
-        />
-      </Field>
+
+      <div className="flex flex-col gap-4 border-t border-white/10 pt-4">
+        <span className="font-mono text-xs tracking-wide text-gray-500 uppercase">Anthropic</span>
+        <Field label="API key">
+          <input
+            type="password"
+            className="input"
+            value={anthropicKey}
+            onChange={(e) => {
+              setAnthropicKey(e.target.value);
+              setAnthropicKeyTouched(true);
+            }}
+            placeholder={
+              settings.llm_anthropic_api_key_set ? "•••••••• (saved — leave blank to keep)" : "sk-ant-…"
+            }
+          />
+        </Field>
+        <Field label="Model override (optional)">
+          <input
+            className="input"
+            value={anthropicModel}
+            onChange={(e) => setAnthropicModel(e.target.value)}
+            placeholder="claude-sonnet-5"
+          />
+        </Field>
+        <Field label="Max tokens per reply">
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              className="input flex-1"
+              value={maxTokens}
+              disabled={maxTokensUncapped}
+              onChange={(e) => setMaxTokens(e.target.value)}
+            />
+            <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-400">
+              <input
+                type="checkbox"
+                checked={maxTokensUncapped}
+                onChange={(e) => setMaxTokensUncapped(e.target.checked)}
+              />
+              Off (uncapped)
+            </label>
+          </div>
+          <p className="mt-1 text-xs text-gray-500">
+            Caps how long a reply can be — raise it (or turn it off) if answers get cut short on
+            long questions. Anthropic only; OpenAI has no cap here.
+          </p>
+        </Field>
+      </div>
+
+      <div className="flex flex-col gap-4 border-t border-white/10 pt-4">
+        <span className="font-mono text-xs tracking-wide text-gray-500 uppercase">OpenAI</span>
+        <Field label="API key">
+          <input
+            type="password"
+            className="input"
+            value={openaiKey}
+            onChange={(e) => {
+              setOpenaiKey(e.target.value);
+              setOpenaiKeyTouched(true);
+            }}
+            placeholder={
+              settings.llm_openai_api_key_set ? "•••••••• (saved — leave blank to keep)" : "sk-…"
+            }
+          />
+        </Field>
+        <Field label="Model override (optional)">
+          <input
+            className="input"
+            value={openaiModel}
+            onChange={(e) => setOpenaiModel(e.target.value)}
+            placeholder="gpt-5"
+          />
+        </Field>
+      </div>
+
       {testResult && (
         <p className={`text-xs ${testResult.ok ? "text-emerald-300" : "text-rose-400"}`}>
           {testResult.message}
@@ -523,9 +619,9 @@ function AiAssistantForm({ settings }: { settings: Settings }) {
           type="button"
           className="btn-ghost h-9 justify-center text-sm whitespace-nowrap"
           onClick={testConnection}
-          disabled={insightsTest.isPending || !apiKey}
+          disabled={insightsTest.isPending || !(activeKey || activeKeySet)}
         >
-          <Plug size={14} /> {insightsTest.isPending ? "Testing…" : "Test connection"}
+          <Plug size={14} /> {insightsTest.isPending ? "Testing…" : `Test ${provider} connection`}
         </button>
         <button className="btn-primary h-9 text-sm whitespace-nowrap" onClick={save}>
           Save AI Assistant settings

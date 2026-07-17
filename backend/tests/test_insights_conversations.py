@@ -2,7 +2,7 @@ import app.routers.insights as insights_router
 
 
 def _configure(client):
-    client.put("/api/settings", json={"llm_provider": "anthropic", "llm_api_key": "sk-test"})
+    client.put("/api/settings", json={"llm_provider": "anthropic", "llm_anthropic_api_key": "sk-test"})
 
 
 def test_list_conversations_empty(seeded):
@@ -64,7 +64,7 @@ def test_system_prompt_includes_memory(seeded, monkeypatch):
     c.put("/api/settings", json={"insights_memory": "- main account is AED Bank"})
     captured = {}
 
-    def fake_run_chat(db, provider, api_key, model, system_prompt, messages):
+    def fake_run_chat(db, provider, api_key, model, system_prompt, messages, max_tokens=1024):
         captured["system_prompt"] = system_prompt
         return "ok"
 
@@ -78,7 +78,7 @@ def test_system_prompt_omits_memory_block_when_empty(seeded, monkeypatch):
     _configure(c)
     captured = {}
 
-    def fake_run_chat(db, provider, api_key, model, system_prompt, messages):
+    def fake_run_chat(db, provider, api_key, model, system_prompt, messages, max_tokens=1024):
         captured["system_prompt"] = system_prompt
         return "ok"
 

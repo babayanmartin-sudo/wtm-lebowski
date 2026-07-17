@@ -19,10 +19,13 @@ from ..schemas import (
 from ..services.insights_llm import InsightsError, run_chat
 from ..services.insights_llm import test_connection as insights_test_connection
 from ..services.settings import (
+    DEFAULT_LLM_MAX_TOKENS,
     INSIGHTS_MEMORY_KEY,
-    LLM_API_KEY_KEY,
-    LLM_MODEL_KEY,
+    LLM_MAX_TOKENS_KEY,
     LLM_PROVIDER_KEY,
+    UNCAPPED_LLM_MAX_TOKENS,
+    get_int_setting,
+    get_llm_credentials,
     get_str_setting,
 )
 
@@ -37,8 +40,9 @@ def test(body: InsightsTestIn, db: Session = Depends(get_db)):
     values, falling back to whatever's already saved for any field left
     blank — same pattern as Mashreq's 'Test connection' button."""
     provider = body.llm_provider or get_str_setting(db, LLM_PROVIDER_KEY, "")
-    api_key = body.llm_api_key or get_str_setting(db, LLM_API_KEY_KEY, "")
-    model = body.llm_model or get_str_setting(db, LLM_MODEL_KEY, "") or None
+    saved_key, saved_model = get_llm_credentials(db, provider) if provider else ("", "")
+    api_key = body.llm_api_key or saved_key
+    model = body.llm_model or saved_model or None
     if not provider or not api_key:
         return InsightsTestResult(ok=False, message="Provider and API key are required")
     ok, message = insights_test_connection(provider, api_key, model)
@@ -48,10 +52,13 @@ def test(body: InsightsTestIn, db: Session = Depends(get_db)):
 @router.post("/ask", response_model=InsightsAskOut)
 def ask(body: InsightsAskIn, db: Session = Depends(get_db)):
     provider = get_str_setting(db, LLM_PROVIDER_KEY, "")
-    api_key = get_str_setting(db, LLM_API_KEY_KEY, "")
-    model = get_str_setting(db, LLM_MODEL_KEY, "") or None
+    api_key, saved_model = get_llm_credentials(db, provider) if provider else ("", "")
+    model = saved_model or None
     if not provider or not api_key:
         raise HTTPException(400, "Configure the AI Assistant in Profile first")
+    max_tokens = get_int_setting(db, LLM_MAX_TOKENS_KEY, DEFAULT_LLM_MAX_TOKENS)
+    if max_tokens == 0:  # "off" — Anthropic requires a value, so use a high ceiling instead
+        max_tokens = UNCAPPED_LLM_MAX_TOKENS
 
     convo = None
     if body.conversation_id is not None:
@@ -79,7 +86,7 @@ def ask(body: InsightsAskIn, db: Session = Depends(get_db)):
     ]
 
     try:
-        reply = run_chat(db, provider, api_key, model, system_prompt, messages)
+        reply = run_chat(db, provider, api_key, model, system_prompt, messages, max_tokens)
     except InsightsError as e:
         raise HTTPException(502, str(e))
 

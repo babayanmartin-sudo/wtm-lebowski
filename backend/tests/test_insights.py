@@ -28,7 +28,7 @@ def test_test_connection_uses_unsaved_form_values(seeded, monkeypatch):
 
 def test_test_connection_falls_back_to_saved_values(seeded, monkeypatch):
     c = seeded["client"]
-    c.put("/api/settings", json={"llm_provider": "openai", "llm_api_key": "sk-saved"})
+    c.put("/api/settings", json={"llm_provider": "openai", "llm_openai_api_key": "sk-saved"})
     seen = {}
 
     def fake_test(provider, api_key, model):
@@ -60,7 +60,7 @@ def test_ask_requires_configuration(seeded):
 
 def test_ask_returns_reply_when_configured(seeded, monkeypatch):
     c = seeded["client"]
-    c.put("/api/settings", json={"llm_provider": "anthropic", "llm_api_key": "sk-test"})
+    c.put("/api/settings", json={"llm_provider": "anthropic", "llm_anthropic_api_key": "sk-test"})
     monkeypatch.setattr(insights_router, "run_chat", lambda *a, **k: "You spent 40 AED on groceries.")
 
     r = c.post("/api/insights/ask", json={"message": "how much on groceries?"})
@@ -72,10 +72,10 @@ def test_ask_returns_reply_when_configured(seeded, monkeypatch):
 
 def test_ask_persists_and_replays_history(seeded, monkeypatch):
     c = seeded["client"]
-    c.put("/api/settings", json={"llm_provider": "openai", "llm_api_key": "sk-test"})
+    c.put("/api/settings", json={"llm_provider": "openai", "llm_openai_api_key": "sk-test"})
     captured = {"call_count": 0}
 
-    def fake_run_chat(db, provider, api_key, model, system_prompt, messages):
+    def fake_run_chat(db, provider, api_key, model, system_prompt, messages, max_tokens=1024):
         captured["call_count"] += 1
         captured["messages"] = messages
         captured["provider"] = provider
@@ -97,15 +97,49 @@ def test_ask_persists_and_replays_history(seeded, monkeypatch):
 
 def test_ask_with_unknown_conversation_id_404s(seeded, monkeypatch):
     c = seeded["client"]
-    c.put("/api/settings", json={"llm_provider": "anthropic", "llm_api_key": "sk-test"})
+    c.put("/api/settings", json={"llm_provider": "anthropic", "llm_anthropic_api_key": "sk-test"})
     monkeypatch.setattr(insights_router, "run_chat", lambda *a, **k: "ok")
     r = c.post("/api/insights/ask", json={"message": "hi", "conversation_id": 999})
     assert r.status_code == 404
 
 
+def test_ask_passes_max_tokens_through(seeded, monkeypatch):
+    c = seeded["client"]
+    c.put(
+        "/api/settings",
+        json={"llm_provider": "anthropic", "llm_anthropic_api_key": "sk-test", "llm_max_tokens": 2048},
+    )
+    captured = {}
+
+    def fake_run_chat(db, provider, api_key, model, system_prompt, messages, max_tokens=1024):
+        captured["max_tokens"] = max_tokens
+        return "ok"
+
+    monkeypatch.setattr(insights_router, "run_chat", fake_run_chat)
+    c.post("/api/insights/ask", json={"message": "hi"})
+    assert captured["max_tokens"] == 2048
+
+
+def test_ask_max_tokens_zero_means_uncapped(seeded, monkeypatch):
+    c = seeded["client"]
+    c.put(
+        "/api/settings",
+        json={"llm_provider": "anthropic", "llm_anthropic_api_key": "sk-test", "llm_max_tokens": 0},
+    )
+    captured = {}
+
+    def fake_run_chat(db, provider, api_key, model, system_prompt, messages, max_tokens=1024):
+        captured["max_tokens"] = max_tokens
+        return "ok"
+
+    monkeypatch.setattr(insights_router, "run_chat", fake_run_chat)
+    c.post("/api/insights/ask", json={"message": "hi"})
+    assert captured["max_tokens"] > 1024  # "off" resolves to a high ceiling, not the default
+
+
 def test_ask_maps_provider_error_to_502(seeded, monkeypatch):
     c = seeded["client"]
-    c.put("/api/settings", json={"llm_provider": "anthropic", "llm_api_key": "sk-bad"})
+    c.put("/api/settings", json={"llm_provider": "anthropic", "llm_anthropic_api_key": "sk-bad"})
 
     def raise_error(*a, **k):
         raise insights_router.InsightsError("invalid api key")

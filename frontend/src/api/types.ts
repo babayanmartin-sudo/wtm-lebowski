@@ -134,9 +134,14 @@ export interface Settings {
   amazon_sync_enabled: boolean;
   auto_sync_enabled: boolean;
   auto_sync_frequency_minutes: number;
-  llm_provider: string;
-  llm_api_key: string;
-  llm_model: string;
+  llm_provider: string; // "anthropic" | "openai" | "" — which stored config is active
+  llm_anthropic_api_key: string; // always "" from the server — see llm_anthropic_api_key_set
+  llm_anthropic_api_key_set: boolean;
+  llm_anthropic_model: string;
+  llm_openai_api_key: string; // always "" from the server — see llm_openai_api_key_set
+  llm_openai_api_key_set: boolean;
+  llm_openai_model: string;
+  llm_max_tokens: number; // 0 = uncapped
   insights_memory: string;
 }
 

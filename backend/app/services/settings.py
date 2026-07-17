@@ -32,9 +32,21 @@ AUTO_SYNC_LAST_RUN_KEY = "auto_sync_last_run"
 DEFAULT_AUTO_SYNC_FREQUENCY_MINUTES = 60.0
 MIN_AUTO_SYNC_FREQUENCY_MINUTES = 15.0
 
-LLM_PROVIDER_KEY = "llm_provider"
-LLM_API_KEY_KEY = "llm_api_key"
-LLM_MODEL_KEY = "llm_model"
+LLM_PROVIDER_KEY = "llm_provider"  # which provider is active: "anthropic" | "openai"
+LLM_ANTHROPIC_API_KEY_KEY = "llm_anthropic_api_key"
+LLM_ANTHROPIC_MODEL_KEY = "llm_anthropic_model"
+LLM_OPENAI_API_KEY_KEY = "llm_openai_api_key"
+LLM_OPENAI_MODEL_KEY = "llm_openai_model"
+LLM_MAX_TOKENS_KEY = "llm_max_tokens"
+DEFAULT_LLM_MAX_TOKENS = 1024
+# "Unlimited" isn't real for Anthropic (max_tokens is a required field) —
+# this is the cap used when the user turns the limit off.
+UNCAPPED_LLM_MAX_TOKENS = 8192
+
+# Pre-v1.13 single-slot keys — no longer written, only read as a fallback
+# so upgrading doesn't silently drop an already-configured key.
+LEGACY_LLM_API_KEY_KEY = "llm_api_key"
+LEGACY_LLM_MODEL_KEY = "llm_model"
 
 INSIGHTS_MEMORY_KEY = "insights_memory"
 INSIGHTS_MEMORY_MAX_CHARS = 4000
@@ -90,6 +102,21 @@ def get_int_setting(db: Session, key: str, default: int | None) -> int | None:
 
 def set_int_setting(db: Session, key: str, value: int | None) -> None:
     set_float_setting(db, key, None if value is None else float(value))
+
+
+def get_llm_credentials(db: Session, provider: str) -> tuple[str, str]:
+    """(api_key, model) for the given provider, falling back to the
+    pre-v1.13 single-slot key/model if this provider was the active one
+    when they were saved — so upgrading doesn't silently drop an
+    already-configured key."""
+    key_setting = LLM_ANTHROPIC_API_KEY_KEY if provider == "anthropic" else LLM_OPENAI_API_KEY_KEY
+    model_setting = LLM_ANTHROPIC_MODEL_KEY if provider == "anthropic" else LLM_OPENAI_MODEL_KEY
+    api_key = get_str_setting(db, key_setting, "") or ""
+    model = get_str_setting(db, model_setting, "") or ""
+    if not api_key and get_str_setting(db, LLM_PROVIDER_KEY, "") == provider:
+        api_key = get_str_setting(db, LEGACY_LLM_API_KEY_KEY, "") or ""
+        model = model or get_str_setting(db, LEGACY_LLM_MODEL_KEY, "") or ""
+    return api_key, model
 
 
 def get_card_accounts(db: Session) -> dict[str, int]:

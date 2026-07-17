@@ -77,16 +77,19 @@ def run_chat(
     model: str | None,
     system_prompt: str,
     messages: list[dict[str, str]],
+    max_tokens: int = 1024,
 ) -> str:
     resolved_model = model or DEFAULT_MODELS.get(provider)
     if provider == "anthropic":
-        return _run_anthropic(db, api_key, resolved_model, system_prompt, messages)
+        return _run_anthropic(db, api_key, resolved_model, system_prompt, messages, max_tokens)
     if provider == "openai":
         return _run_openai(db, api_key, resolved_model, system_prompt, messages)
     raise InsightsError(f"Unknown provider: {provider}")
 
 
-def _run_anthropic(db: Session, api_key: str, model: str, system_prompt: str, messages: list[dict]) -> str:
+def _run_anthropic(
+    db: Session, api_key: str, model: str, system_prompt: str, messages: list[dict], max_tokens: int = 1024
+) -> str:
     try:
         from anthropic import Anthropic
     except ImportError as e:
@@ -99,7 +102,7 @@ def _run_anthropic(db: Session, api_key: str, model: str, system_prompt: str, me
     for _ in range(MAX_TOOL_ITERATIONS):
         try:
             resp = client.messages.create(
-                model=model, max_tokens=1024, system=system_prompt, messages=convo, tools=tools
+                model=model, max_tokens=max_tokens, system=system_prompt, messages=convo, tools=tools
             )
         except Exception as e:  # noqa: BLE001 — collapse SDK-specific errors to one type
             raise InsightsError(str(e)) from e

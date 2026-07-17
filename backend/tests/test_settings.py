@@ -6,8 +6,13 @@ def test_settings_defaults(seeded):
     assert d["mashreq_sync_enabled"] is False
     assert d["amazon_sync_enabled"] is False
     assert d["llm_provider"] == ""
-    assert d["llm_api_key"] == ""
-    assert d["llm_model"] == ""
+    assert d["llm_anthropic_api_key"] == ""
+    assert d["llm_anthropic_api_key_set"] is False
+    assert d["llm_anthropic_model"] == ""
+    assert d["llm_openai_api_key"] == ""
+    assert d["llm_openai_api_key_set"] is False
+    assert d["llm_openai_model"] == ""
+    assert d["llm_max_tokens"] == 1024
     assert d["insights_memory"] == ""
 
 
@@ -40,16 +45,54 @@ def test_mashreq_password_never_returned_plaintext(seeded):
 
 def test_llm_settings_round_trip(seeded):
     c = seeded["client"]
-    c.put("/api/settings", json={"llm_provider": "anthropic", "llm_api_key": "sk-xyz"})
+    c.put("/api/settings", json={"llm_provider": "anthropic", "llm_anthropic_api_key": "sk-xyz"})
     d = c.get("/api/settings").json()
     assert d["llm_provider"] == "anthropic"
-    assert d["llm_api_key"] == "sk-xyz"
-    assert d["llm_model"] == ""
+    assert d["llm_anthropic_api_key"] == ""  # never round-tripped
+    assert d["llm_anthropic_api_key_set"] is True
+    assert d["llm_anthropic_model"] == ""
 
-    c.put("/api/settings", json={"llm_model": "claude-sonnet-5"})
+    c.put("/api/settings", json={"llm_anthropic_model": "claude-sonnet-5"})
     d = c.get("/api/settings").json()
     assert d["llm_provider"] == "anthropic"  # unaffected
-    assert d["llm_model"] == "claude-sonnet-5"
+    assert d["llm_anthropic_model"] == "claude-sonnet-5"
+
+
+def test_llm_settings_store_both_providers_independently(seeded):
+    c = seeded["client"]
+    c.put(
+        "/api/settings",
+        json={
+            "llm_anthropic_api_key": "sk-ant",
+            "llm_anthropic_model": "claude-sonnet-5",
+            "llm_openai_api_key": "sk-oai",
+            "llm_openai_model": "gpt-5",
+        },
+    )
+    d = c.get("/api/settings").json()
+    assert d["llm_anthropic_api_key_set"] is True
+    assert d["llm_anthropic_model"] == "claude-sonnet-5"
+    assert d["llm_openai_api_key_set"] is True
+    assert d["llm_openai_model"] == "gpt-5"
+
+    # switching the active provider toggle doesn't drop either stored key
+    c.put("/api/settings", json={"llm_provider": "openai"})
+    d = c.get("/api/settings").json()
+    assert d["llm_provider"] == "openai"
+    assert d["llm_anthropic_api_key_set"] is True
+    assert d["llm_openai_api_key_set"] is True
+
+
+def test_llm_max_tokens_round_trip_and_min(seeded):
+    c = seeded["client"]
+    c.put("/api/settings", json={"llm_max_tokens": 4096})
+    assert c.get("/api/settings").json()["llm_max_tokens"] == 4096
+
+    c.put("/api/settings", json={"llm_max_tokens": 0})  # "off"
+    assert c.get("/api/settings").json()["llm_max_tokens"] == 0
+
+    r = c.put("/api/settings", json={"llm_max_tokens": -1})
+    assert r.status_code == 422
 
 
 def test_sync_enabled_flags_round_trip_independently(seeded):

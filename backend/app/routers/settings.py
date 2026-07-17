@@ -12,11 +12,15 @@ from ..services.settings import (
     BUDGET_THRESHOLD_KEY,
     DEFAULT_AUTO_SYNC_FREQUENCY_MINUTES,
     DEFAULT_BUDGET_THRESHOLD,
+    DEFAULT_LLM_MAX_TOKENS,
     DEFAULT_SYNC_IMAP_FOLDER,
     DEFAULT_SYNC_IMAP_PORT,
     INSIGHTS_MEMORY_KEY,
-    LLM_API_KEY_KEY,
-    LLM_MODEL_KEY,
+    LLM_ANTHROPIC_API_KEY_KEY,
+    LLM_ANTHROPIC_MODEL_KEY,
+    LLM_MAX_TOKENS_KEY,
+    LLM_OPENAI_API_KEY_KEY,
+    LLM_OPENAI_MODEL_KEY,
     LLM_PROVIDER_KEY,
     MASHREQ_SYNC_ENABLED_KEY,
     OVERALL_MONTHLY_CAP_KEY,
@@ -29,6 +33,7 @@ from ..services.settings import (
     get_card_accounts,
     get_float_setting,
     get_int_setting,
+    get_llm_credentials,
     get_str_setting,
     set_bool_setting,
     set_card_accounts,
@@ -62,8 +67,13 @@ def get_settings(db: Session = Depends(get_db)):
         )
         or DEFAULT_AUTO_SYNC_FREQUENCY_MINUTES,
         llm_provider=get_str_setting(db, LLM_PROVIDER_KEY, "") or "",
-        llm_api_key=get_str_setting(db, LLM_API_KEY_KEY, "") or "",
-        llm_model=get_str_setting(db, LLM_MODEL_KEY, "") or "",
+        llm_anthropic_api_key="",  # never round-trip the plaintext key to the client
+        llm_anthropic_api_key_set=bool(get_llm_credentials(db, "anthropic")[0]),
+        llm_anthropic_model=get_llm_credentials(db, "anthropic")[1],
+        llm_openai_api_key="",  # never round-trip the plaintext key to the client
+        llm_openai_api_key_set=bool(get_llm_credentials(db, "openai")[0]),
+        llm_openai_model=get_llm_credentials(db, "openai")[1],
+        llm_max_tokens=get_int_setting(db, LLM_MAX_TOKENS_KEY, DEFAULT_LLM_MAX_TOKENS),
         insights_memory=get_str_setting(db, INSIGHTS_MEMORY_KEY, "") or "",
     )
 
@@ -102,10 +112,19 @@ def update_settings(body: SettingsIn, db: Session = Depends(get_db)):
         set_float_setting(db, AUTO_SYNC_FREQUENCY_KEY, fields["auto_sync_frequency_minutes"])
     if "llm_provider" in fields:
         set_str_setting(db, LLM_PROVIDER_KEY, fields["llm_provider"])
-    if "llm_api_key" in fields:
-        set_str_setting(db, LLM_API_KEY_KEY, fields["llm_api_key"])
-    if "llm_model" in fields:
-        set_str_setting(db, LLM_MODEL_KEY, fields["llm_model"])
+    if "llm_anthropic_api_key" in fields:
+        # frontend only sends this key when the user actually retyped it
+        # (see llm_anthropic_api_key_set on GET) — empty here is an
+        # intentional clear, not "leave unchanged"
+        set_str_setting(db, LLM_ANTHROPIC_API_KEY_KEY, fields["llm_anthropic_api_key"])
+    if "llm_anthropic_model" in fields:
+        set_str_setting(db, LLM_ANTHROPIC_MODEL_KEY, fields["llm_anthropic_model"])
+    if "llm_openai_api_key" in fields:
+        set_str_setting(db, LLM_OPENAI_API_KEY_KEY, fields["llm_openai_api_key"])
+    if "llm_openai_model" in fields:
+        set_str_setting(db, LLM_OPENAI_MODEL_KEY, fields["llm_openai_model"])
+    if "llm_max_tokens" in fields:
+        set_int_setting(db, LLM_MAX_TOKENS_KEY, fields["llm_max_tokens"])
     if "insights_memory" in fields:
         set_str_setting(db, INSIGHTS_MEMORY_KEY, fields["insights_memory"])
     db.commit()
