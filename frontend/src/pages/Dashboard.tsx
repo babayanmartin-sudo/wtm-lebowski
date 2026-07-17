@@ -13,10 +13,11 @@ import {
   useInsightsConversations,
   useOverallBudgetStatus,
   useSettings,
+  useUpdateSettings,
 } from "../api/hooks";
 import type { CategoryTotal, InsightsMessage } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import { ColorDot, ErrorState, LoadingState, ProgressBar, Spinner } from "../components/ui";
+import { ColorDot, ErrorState, LoadingState, ProgressBar, SegmentedToggle, Spinner } from "../components/ui";
 import { CHART_COLORS, chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
 import { useSessionState } from "../lib/session";
@@ -422,6 +423,7 @@ function ChatMarkdown({ content }: { content: string }) {
 
 export function AskWidget() {
   const { data: settings } = useSettings();
+  const updateSettings = useUpdateSettings();
   const [conversationId, setConversationId] = useSessionState<number | null>("dashboard.askConversationId", null);
   const [messages, setMessages] = useState<InsightsMessage[]>([]);
   const [input, setInput] = useState("");
@@ -434,11 +436,11 @@ export function AskWidget() {
   const historyRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const anthropicReady = !!settings?.llm_anthropic_api_key_set;
+  const openaiReady = !!settings?.llm_openai_api_key_set;
   const configured =
     !!settings?.llm_provider &&
-    (settings.llm_provider === "anthropic"
-      ? settings.llm_anthropic_api_key_set
-      : settings.llm_openai_api_key_set);
+    (settings.llm_provider === "anthropic" ? anthropicReady : openaiReady);
 
   useEffect(() => {
     if (conversationId !== null && conversation.data && loadedConvoRef.current !== conversationId) {
@@ -490,12 +492,22 @@ export function AskWidget() {
 
   return (
     <div className="glass p-5">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-1.5 font-mono text-xs tracking-wide text-gray-500 uppercase">
           <Sparkles size={14} /> Ask
         </h2>
-        {configured && (
-          <div className="flex items-center gap-1">
+        {(anthropicReady || openaiReady) && (
+          <div className="flex items-center gap-2">
+            {anthropicReady && openaiReady && (
+              <SegmentedToggle
+                value={settings?.llm_provider === "openai" ? "openai" : "anthropic"}
+                onChange={(v) => updateSettings.mutate({ llm_provider: v })}
+                options={[
+                  { value: "anthropic", label: "Claude" },
+                  { value: "openai", label: "GPT" },
+                ]}
+              />
+            )}
             <div ref={historyRef} className="relative">
               <button
                 className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10"
