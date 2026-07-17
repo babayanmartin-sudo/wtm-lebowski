@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -23,7 +24,12 @@ async def lifespan(app: FastAPI):
         materialize_due(db)
     finally:
         db.close()
+
+    from .services.auto_sync import auto_sync_loop
+
+    task = asyncio.create_task(auto_sync_loop())
     yield
+    task.cancel()
 
 
 app = FastAPI(title="Where's the Money, Lebowski", lifespan=lifespan)

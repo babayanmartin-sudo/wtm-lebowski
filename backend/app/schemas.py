@@ -374,10 +374,21 @@ class SettingsIn(BaseModel):
     amazon_default_account_id: int | None = None
     mashreq_sync_enabled: bool | None = None
     amazon_sync_enabled: bool | None = None
+    auto_sync_enabled: bool | None = None
+    auto_sync_frequency_minutes: float | None = None
     llm_provider: str | None = None
     llm_api_key: str | None = None
     llm_model: str | None = None
     insights_memory: str | None = None
+
+    @field_validator("auto_sync_frequency_minutes")
+    @classmethod
+    def validate_auto_sync_frequency(cls, v: float | None) -> float | None:
+        from .services.settings import MIN_AUTO_SYNC_FREQUENCY_MINUTES
+
+        if v is not None and v < MIN_AUTO_SYNC_FREQUENCY_MINUTES:
+            raise ValueError(f"Frequency must be at least {int(MIN_AUTO_SYNC_FREQUENCY_MINUTES)} minutes")
+        return v
 
 
 class SettingsOut(BaseModel):
@@ -392,6 +403,8 @@ class SettingsOut(BaseModel):
     amazon_default_account_id: int | None
     mashreq_sync_enabled: bool
     amazon_sync_enabled: bool
+    auto_sync_enabled: bool
+    auto_sync_frequency_minutes: float
     llm_provider: str
     llm_api_key: str
     llm_model: str
@@ -427,6 +440,12 @@ class AmazonSyncResult(BaseModel):
     imported_count: int
     unparsed_count: int
     import_id: int | None
+
+
+class SyncAllResult(BaseModel):
+    mashreq: MashreqSyncResult | None
+    amazon: AmazonSyncResult | None
+    errors: list[str]
 
 
 # ---- insights (AI chat) ----

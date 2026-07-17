@@ -131,6 +131,8 @@ export interface Settings {
   amazon_default_account_id: number | null;
   mashreq_sync_enabled: boolean;
   amazon_sync_enabled: boolean;
+  auto_sync_enabled: boolean;
+  auto_sync_frequency_minutes: number;
   llm_provider: string;
   llm_api_key: string;
   llm_model: string;
@@ -173,6 +175,12 @@ export interface MashreqSyncResult {
 export interface MashreqTestResult {
   ok: boolean;
   message: string;
+}
+
+export interface SyncAllResult {
+  mashreq: MashreqSyncResult | null;
+  amazon: AmazonSyncResult | null;
+  errors: string[];
 }
 
 export interface AmazonSyncResult {

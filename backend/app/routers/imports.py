@@ -17,6 +17,7 @@ from ..schemas import (
     MashreqTestIn,
     MashreqTestResult,
     RowPatch,
+    SyncAllResult,
 )
 from ..services import importer
 from ..services.amazon_email import fetch_unseen_orders, fetch_unseen_refunds, parse_order_items, parse_refund_items
@@ -95,17 +96,17 @@ def mashreq_test(body: MashreqTestIn, db: Session = Depends(get_db)):
     return MashreqTestResult(ok=ok, message=message)
 
 
-@router.post("/mashreq-sync", response_model=MashreqSyncResult)
-def mashreq_sync(db: Session = Depends(get_db)):
-    if not get_bool_setting(db, MASHREQ_SYNC_ENABLED_KEY, False):
-        raise HTTPException(400, "Enable Mashreq sync in Profile first")
+def _run_mashreq_sync(db: Session) -> MashreqSyncResult | None:
+    """Core Mashreq sync logic, reused by the manual endpoint, /sync-all,
+    and the auto-sync scheduler. Returns None if the mailbox isn't
+    configured (nothing to do), rather than raising."""
     host = get_str_setting(db, MASHREQ_IMAP_HOST_KEY, "")
     user = get_str_setting(db, MASHREQ_IMAP_USER_KEY, "")
     password = get_str_setting(db, MASHREQ_IMAP_PASSWORD_KEY, "")
     port = get_str_setting(db, MASHREQ_IMAP_PORT_KEY, DEFAULT_MASHREQ_IMAP_PORT)
     folder = get_str_setting(db, MASHREQ_IMAP_FOLDER_KEY, DEFAULT_MASHREQ_IMAP_FOLDER)
     if not host or not user or not password:
-        raise HTTPException(400, "Configure Mashreq sync in Profile first")
+        return None
 
     try:
         card_accounts: dict[str, int] = json.loads(
@@ -161,21 +162,31 @@ def mashreq_sync(db: Session = Depends(get_db)):
     return MashreqSyncResult(imports=summaries, unmapped_count=unmapped_count, unparsed_count=unparsed_count)
 
 
-@router.post("/amazon-sync", response_model=AmazonSyncResult)
-def amazon_sync(db: Session = Depends(get_db)):
-    if not get_bool_setting(db, AMAZON_SYNC_ENABLED_KEY, False):
-        raise HTTPException(400, "Enable Amazon sync in Profile first")
+@router.post("/mashreq-sync", response_model=MashreqSyncResult)
+def mashreq_sync(db: Session = Depends(get_db)):
+    if not get_bool_setting(db, MASHREQ_SYNC_ENABLED_KEY, False):
+        raise HTTPException(400, "Enable Mashreq sync in Profile first")
+    result = _run_mashreq_sync(db)
+    if result is None:
+        raise HTTPException(400, "Configure Mashreq sync in Profile first")
+    return result
+
+
+def _run_amazon_sync(db: Session) -> AmazonSyncResult | None:
+    """Core Amazon sync logic, reused by the manual endpoint, /sync-all,
+    and the auto-sync scheduler. Returns None if the mailbox or default
+    account isn't configured (nothing to do), rather than raising."""
     host = get_str_setting(db, MASHREQ_IMAP_HOST_KEY, "")
     user = get_str_setting(db, MASHREQ_IMAP_USER_KEY, "")
     password = get_str_setting(db, MASHREQ_IMAP_PASSWORD_KEY, "")
     port = get_str_setting(db, MASHREQ_IMAP_PORT_KEY, DEFAULT_MASHREQ_IMAP_PORT)
     folder = get_str_setting(db, MASHREQ_IMAP_FOLDER_KEY, DEFAULT_MASHREQ_IMAP_FOLDER)
     if not host or not user or not password:
-        raise HTTPException(400, "Configure the sync mailbox in Profile first")
+        return None
 
     account_id_float = get_float_setting(db, AMAZON_DEFAULT_ACCOUNT_ID_KEY, None)
     if account_id_float is None:
-        raise HTTPException(400, "Set a default Amazon account in Profile first")
+        return None
     account_id = int(account_id_float)
 
     try:
@@ -226,6 +237,34 @@ def amazon_sync(db: Session = Depends(get_db)):
     importer.finalize_rows(db, imp)
 
     return AmazonSyncResult(imported_count=len(items), unparsed_count=unparsed_count, import_id=imp.id)
+
+
+@router.post("/amazon-sync", response_model=AmazonSyncResult)
+def amazon_sync(db: Session = Depends(get_db)):
+    if not get_bool_setting(db, AMAZON_SYNC_ENABLED_KEY, False):
+        raise HTTPException(400, "Enable Amazon sync in Profile first")
+    result = _run_amazon_sync(db)
+    if result is None:
+        raise HTTPException(400, "Configure the sync mailbox and default Amazon account in Profile first")
+    return result
+
+
+@router.post("/sync-all", response_model=SyncAllResult)
+def sync_all(db: Session = Depends(get_db)):
+    """Runs Mashreq + Amazon sync once, immediately — regardless of their
+    individual manual-button toggles — for use when auto-sync is off."""
+    mashreq_result = None
+    amazon_result = None
+    errors: list[str] = []
+    try:
+        mashreq_result = _run_mashreq_sync(db)
+    except HTTPException as e:
+        errors.append(f"Mashreq: {e.detail}")
+    try:
+        amazon_result = _run_amazon_sync(db)
+    except HTTPException as e:
+        errors.append(f"Amazon: {e.detail}")
+    return SyncAllResult(mashreq=mashreq_result, amazon=amazon_result, errors=errors)
 
 
 @router.get("/{import_id}", response_model=ImportDetail)

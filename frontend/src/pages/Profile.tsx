@@ -24,12 +24,14 @@ export default function ProfilePage() {
         subtitle={`Account settings${version?.version ? ` · ${version.version}` : ""}`}
       />
 
-      <CollapsibleCard title="Change your password" icon={<KeyRound size={15} />}>
-        <ChangePasswordForm />
-      </CollapsibleCard>
+      <div className="mt-4 max-w-sm">
+        <CollapsibleCard title="Change your password" icon={<KeyRound size={15} />}>
+          <ChangePasswordForm />
+        </CollapsibleCard>
+      </div>
 
       {settings ? (
-        <>
+        <div className="mt-4 grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
           <CollapsibleCard title="Budget thresholds">
             <PreferencesForm settings={settings} />
           </CollapsibleCard>
@@ -39,7 +41,7 @@ export default function ProfilePage() {
           <CollapsibleCard title="AI Assistant">
             <AiAssistantForm settings={settings} />
           </CollapsibleCard>
-        </>
+        </div>
       ) : (
         <div className="glass mt-4 max-w-sm p-6">
           <LoadingState />
@@ -63,7 +65,7 @@ function CollapsibleCard({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="glass mt-4 max-w-sm overflow-hidden">
+    <div className="glass w-full max-w-sm overflow-hidden lg:max-w-none">
       <button
         type="button"
         className="flex w-full items-center justify-between gap-2 p-6 text-left"
@@ -209,6 +211,8 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
   const [amazonAccountId, setAmazonAccountId] = useState<number | null>(settings.amazon_default_account_id);
   const [mashreqEnabled, setMashreqEnabled] = useState(settings.mashreq_sync_enabled);
   const [amazonEnabled, setAmazonEnabled] = useState(settings.amazon_sync_enabled);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(settings.auto_sync_enabled);
+  const [autoSyncFrequency, setAutoSyncFrequency] = useState(String(settings.auto_sync_frequency_minutes));
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [saveError, setSaveError] = useState("");
 
@@ -217,6 +221,11 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
     const mashreq_card_accounts: Record<string, number> = {};
     for (const m of cardMappings) {
       if (m.suffix.trim() && m.accountId !== null) mashreq_card_accounts[m.suffix.trim()] = m.accountId;
+    }
+    const frequency = Number(autoSyncFrequency);
+    if (autoSyncEnabled && (!Number.isFinite(frequency) || frequency < 15)) {
+      setSaveError("Auto-sync frequency must be at least 15 minutes");
+      return;
     }
     try {
       await updateSettings.mutateAsync({
@@ -229,6 +238,8 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
         amazon_default_account_id: amazonAccountId,
         mashreq_sync_enabled: mashreqEnabled,
         amazon_sync_enabled: amazonEnabled,
+        auto_sync_enabled: autoSyncEnabled,
+        auto_sync_frequency_minutes: frequency,
       });
       toast("Email connection settings saved");
     } catch (e) {
@@ -278,6 +289,34 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
           Enable Amazon sync
         </label>
       </div>
+
+      <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
+        <label className="flex items-center gap-2 text-sm text-gray-300">
+          <input
+            type="checkbox"
+            checked={autoSyncEnabled}
+            onChange={(e) => setAutoSyncEnabled(e.target.checked)}
+          />
+          Automatically sync all configured emails
+        </label>
+        {autoSyncEnabled && (
+          <Field label="Frequency (minutes, min 15)">
+            <input
+              type="number"
+              min={15}
+              className="input"
+              value={autoSyncFrequency}
+              onChange={(e) => setAutoSyncFrequency(e.target.value)}
+            />
+          </Field>
+        )}
+        {!autoSyncEnabled && (
+          <p className="text-xs text-gray-500">
+            Manual mode — use the "Sync All" button on the Import page instead.
+          </p>
+        )}
+      </div>
+
       <Field label="IMAP host">
         <input
           className="input"

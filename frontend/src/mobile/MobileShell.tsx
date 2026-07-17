@@ -46,13 +46,13 @@ export default function MobileShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-full flex-col bg-[var(--color-bg)] text-white">
-      <main className="min-h-0 flex-1 overflow-y-auto px-4 pt-6 pb-24">
+      <main className="min-h-0 flex-1 overflow-y-auto pt-6 pb-24 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
         <div key={location.pathname} className="m-page-transition">
           {children}
         </div>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-around border-t border-[var(--color-line)] bg-[var(--color-panel)] px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)]">
+      <nav className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-around border-t border-[var(--color-line)] bg-[var(--color-panel)] pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))]">
         <TabButton
           icon={LayoutDashboard}
           label="Home"
@@ -79,7 +79,7 @@ export default function MobileShell({ children }: { children: ReactNode }) {
           className="m-sheet-backdrop fixed inset-0 z-30 flex items-end bg-black/60"
           onMouseDown={(e) => e.target === e.currentTarget && setMenuOpen(false)}
         >
-          <div className="m-sheet w-full rounded-t-xl border-t border-[var(--color-line)] bg-[var(--color-panel)] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)]">
+          <div className="m-sheet max-h-[85vh] w-full overflow-y-auto rounded-t-xl border-t border-[var(--color-line)] bg-[var(--color-panel)] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))]">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-base font-semibold">Menu</h2>
               <button
@@ -89,7 +89,7 @@ export default function MobileShell({ children }: { children: ReactNode }) {
                 <X size={20} />
               </button>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3 landscape:grid-cols-4">
               {MENU_ITEMS.map(({ to, label, icon: Icon }) => (
                 <button
                   key={to}

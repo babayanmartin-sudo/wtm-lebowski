@@ -1,6 +1,6 @@
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Download, RotateCcw, Save, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { useAccounts, useCategories, useDeleteReport, useReportPreview, useSaveReport, useSavedReports } from "../api/hooks";
@@ -24,8 +24,17 @@ import { useSessionState } from "../lib/session";
 import { toast } from "../lib/toast";
 
 export default function ReportsPage() {
-  const [pickerMode, setPickerMode] = useSessionState<PickerMode>("reports.mode", "month");
-  const [pickerDate, setPickerDate] = useSessionState("reports.date", toISO(new Date()));
+  const [searchParams] = useSearchParams();
+  const [pickerMode, setPickerMode] = useSessionState<PickerMode>(
+    "reports.mode",
+    "month",
+    (searchParams.get("mode") as PickerMode) ?? undefined,
+  );
+  const [pickerDate, setPickerDate] = useSessionState(
+    "reports.date",
+    toISO(new Date()),
+    searchParams.get("date") ?? undefined,
+  );
   const [accountId, setAccountId] = useSessionState<number | null>("reports.account", null);
   const [includeIds, setIncludeIds] = useSessionState<number[]>("reports.include", []);
   const [excludeIds, setExcludeIds] = useSessionState<number[]>("reports.exclude", []);

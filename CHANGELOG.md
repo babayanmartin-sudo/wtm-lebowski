@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.11.0 — 2026-07-17
+
+### Home page cleanup + auto-sync
+
+- Home (desktop + mobile): removed Account/Category filter dropdowns,
+  the Budgets panel, and Recent Transactions panel. "Income vs spending"
+  title now links to Reports with the current date range. Net
+  worth/Income/Spent no longer show a currency code. (#47, #48, #49, #50)
+- Profile: new "Automatically sync all configured emails" toggle with a
+  frequency (minutes, min 15) — runs Mashreq + Amazon sync on a
+  background schedule. When off, a "Sync All" button appears on the
+  Import page to run both once on demand. (#51)
+- Fixed Profile page rendering as a single narrow mobile-style column on
+  desktop — cards now lay out in a responsive grid. (#52)
+- Fixed mobile landscape layout: bottom nav, content, and the menu sheet
+  now respect safe-area insets and the menu sheet scrolls instead of
+  overflowing off-screen. (#53)
+
 ## v1.10.0 — 2026-07-16
 
 ### Ask widget memory + chat history

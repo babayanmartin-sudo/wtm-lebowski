@@ -6,8 +6,6 @@ import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis
 
 import {
   useAccounts,
-  useBudgetStatus,
-  useCategories,
   useDashboard,
   useInsightsAsk,
   useInsightsConversation,
@@ -15,18 +13,9 @@ import {
   useOverallBudgetStatus,
   useSettings,
 } from "../api/hooks";
-import type { CategoryTotal, InsightsMessage, Transaction } from "../api/types";
+import type { CategoryTotal, InsightsMessage } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import {
-  Badge,
-  CategorySelect,
-  ColorDot,
-  ErrorState,
-  LoadingState,
-  ProgressBar,
-  Select,
-  Spinner,
-} from "../components/ui";
+import { ColorDot, ErrorState, LoadingState, Spinner } from "../components/ui";
 import { CHART_COLORS, chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
 import { useSessionState } from "../lib/session";
@@ -46,34 +35,27 @@ const ALL_MODES: PickerMode[] = ["day", "week", "month", "year", "custom"];
 export default function DashboardPage() {
   const [pickerMode, setPickerMode] = useSessionState<PickerMode>("dashboard.mode", "month");
   const [pickerDate, setPickerDate] = useSessionState("dashboard.date", toISO(new Date()));
-  const [accountId, setAccountId] = useSessionState<number | null>("dashboard.account", null);
-  const [categoryId, setCategoryId] = useSessionState<number | null>("dashboard.category", null);
+  const [categoryId, setCategoryId] = useState<number | null>(null);
 
   const period = useMemo(() => periodFor(pickerMode, parseISO(pickerDate), pickerDate), [pickerMode, pickerDate]);
 
   const { data, isLoading, isError, error } = useDashboard({
     date_from: period.from,
     date_to: period.to,
-    account_id: accountId ?? undefined,
     category_id: categoryId ?? undefined,
   });
   const { data: accounts = [] } = useAccounts();
-  const { data: categories = [] } = useCategories();
   const budgetMonth = period.from.slice(0, 7);
-  const { data: budgetStatus = [] } = useBudgetStatus(budgetMonth);
   const { data: overallBudget } = useOverallBudgetStatus(budgetMonth);
 
-  const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const activeAccounts = useMemo(() => accounts.filter((a) => !a.archived), [accounts]);
   const donut = (data?.by_category ?? []).slice(0, 8);
   const donutIncome = (data?.by_category_income ?? []).slice(0, 8);
   const granularityData = data?.series_granularity ?? "day";
-  const transactionsLink = useMemo(() => {
+  const reportsLink = useMemo(() => {
     const params = new URLSearchParams({ mode: pickerMode, date: pickerDate });
-    if (accountId) params.set("account", String(accountId));
-    if (categoryId) params.set("category", String(categoryId));
-    return `/transactions?${params.toString()}`;
-  }, [pickerMode, pickerDate, accountId, categoryId]);
+    return `/reports?${params.toString()}`;
+  }, [pickerMode, pickerDate]);
 
   const [periodHistory, setPeriodHistory] = useState<{ mode: PickerMode; date: string }[]>([]);
 
@@ -99,21 +81,12 @@ export default function DashboardPage() {
     });
   }
 
-  function resetView() {
-    goToMonth();
-    setAccountId(null);
-    setCategoryId(null);
-  }
-
   function toggleCategory(id: number | null) {
     if (id === null) return;
     setCategoryId((prev) => (prev === id ? null : id));
   }
 
   const zoomed = pickerMode !== "month";
-  const hasFilter = accountId !== null || categoryId !== null;
-  const filterAccount = accounts.find((a) => a.id === accountId);
-  const filterCategory = categoryId ? categoryById.get(categoryId) : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -149,58 +122,23 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {(zoomed || hasFilter) && (
-            <button className="btn-ghost h-9 px-3 text-sm" title="Back to current month, clear filters" onClick={resetView}>
+          {zoomed && (
+            <button className="btn-ghost h-9 px-3 text-sm" title="Back to current month" onClick={goToMonth}>
               <RotateCcw size={13} /> Reset
             </button>
           )}
-
-          <Select
-            className="input h-9 w-40"
-            value={accountId}
-            onChange={setAccountId}
-            emptyLabel="Accounts"
-            options={activeAccounts.map((a) => ({ value: a.id, label: a.name }))}
-          />
-
-          <CategorySelect
-            categories={categories}
-            value={categoryId}
-            onChange={setCategoryId}
-            emptyLabel="Categories"
-            className="input h-9 w-40"
-          />
         </div>
       </div>
 
-      {(hasFilter || zoomed) && (
+      {zoomed && (
         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
           Filtering by
-          {zoomed && (
-            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
-              {periodLabel(pickerMode, pickerMode === "custom" ? pickerDate : period.from)}
-              <button onClick={goToMonth}>
-                <X size={12} />
-              </button>
-            </span>
-          )}
-          {filterAccount && (
-            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
-              {filterAccount.name}
-              <button onClick={() => setAccountId(null)}>
-                <X size={12} />
-              </button>
-            </span>
-          )}
-          {filterCategory && (
-            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
-              <ColorDot color={filterCategory.color} />
-              {filterCategory.name}
-              <button onClick={() => setCategoryId(null)}>
-                <X size={12} />
-              </button>
-            </span>
-          )}
+          <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+            {periodLabel(pickerMode, pickerMode === "custom" ? pickerDate : period.from)}
+            <button onClick={goToMonth}>
+              <X size={12} />
+            </button>
+          </span>
         </div>
       )}
 
@@ -215,17 +153,9 @@ export default function DashboardPage() {
           overallBudget?.cap != null ? "sm:grid-cols-4" : "sm:grid-cols-3"
         } sm:divide-x sm:divide-y-0`}
       >
-        <StatCell label="Net worth" value={data ? fmtMoney(data.net_worth, data.base_currency) : "…"} />
-        <StatCell
-          label="Income"
-          value={data ? fmtMoney(data.income, data.base_currency) : "…"}
-          color="text-emerald-400"
-        />
-        <StatCell
-          label="Spent"
-          value={data ? fmtMoney(data.expense, data.base_currency) : "…"}
-          color="text-rose-400"
-        />
+        <StatCell label="Net worth" value={data ? fmtMoney(data.net_worth) : "…"} />
+        <StatCell label="Income" value={data ? fmtMoney(data.income) : "…"} color="text-emerald-400" />
+        <StatCell label="Spent" value={data ? fmtMoney(data.expense) : "…"} color="text-rose-400" />
         {overallBudget?.cap != null && (
           <StatCell
             label="Overall budget"
@@ -237,7 +167,12 @@ export default function DashboardPage() {
 
       <div className="glass p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-mono text-xs tracking-wide text-gray-500 uppercase">Income vs spending</h2>
+          <Link
+            to={reportsLink}
+            className="font-mono text-xs tracking-wide text-gray-500 uppercase transition-colors hover:text-lime-300"
+          >
+            Income vs spending
+          </Link>
           <div className="flex items-center gap-2">
             {periodHistory.length > 0 && (
               <button className="btn-ghost px-2.5 py-1 text-xs" onClick={drillBack}>
@@ -317,65 +252,17 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="glass p-5">
-          <PanelHeader to="/accounts" label="Accounts" />
-          <div className="flex flex-col gap-2.5">
-            {activeAccounts.map((a) => (
-              <button
-                key={a.id}
-                onClick={() => setAccountId((prev) => (prev === a.id ? null : a.id))}
-                className={`flex w-full items-center gap-2 rounded px-1 py-0.5 text-left text-sm hover:bg-white/5 ${
-                  accountId && accountId !== a.id ? "opacity-40" : ""
-                }`}
-              >
-                <ColorDot color={a.color} />
-                <span className="flex-1 text-gray-300">{a.name}</span>
-                <span className="font-mono tabular-nums">{fmtMoney(a.balance, a.currency)}</span>
-              </button>
-            ))}
-            {activeAccounts.length === 0 && <p className="text-sm text-gray-500">No accounts yet.</p>}
-          </div>
-        </div>
-
-        <div className="glass p-5">
-          <PanelHeader to="/budgets" label={`Budgets · ${budgetMonth}`} />
-          <div className="flex flex-col gap-3">
-            {budgetStatus.map((b) => {
-              const cat = categoryById.get(b.category_id);
-              const ratio = b.amount > 0 ? b.spent / b.amount : 0;
-              return (
-                <div key={b.budget_id}>
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-1.5 text-gray-300">
-                      {cat && <ColorDot color={cat.color} />}
-                      {cat?.name ?? "?"}
-                    </span>
-                    <span
-                      className={`font-mono tabular-nums ${ratio >= 1 ? "text-rose-400" : "text-gray-400"}`}
-                    >
-                      {fmtMoney(b.spent)} / {fmtMoney(b.amount)}
-                      {b.period === "yearly" ? "/yr" : "/mo"}
-                    </span>
-                  </div>
-                  <ProgressBar value={ratio} />
-                </div>
-              );
-            })}
-            {budgetStatus.length === 0 && <p className="text-sm text-gray-500">No budgets set.</p>}
-          </div>
-        </div>
-
-        <div className="glass p-5">
-          <PanelHeader to={transactionsLink} label="Recent transactions" />
-          <div className="flex flex-col">
-            {(data?.recent ?? []).slice(0, 10).map((tx, i) => (
-              <RecentRow key={tx.id} tx={tx} categoryById={categoryById} divider={i > 0} />
-            ))}
-            {(data?.recent ?? []).length === 0 && (
-              <p className="text-sm text-gray-500">Nothing yet — add your first transaction.</p>
-            )}
-          </div>
+      <div className="glass p-5">
+        <PanelHeader to="/accounts" label="Accounts" />
+        <div className="flex flex-col gap-2.5">
+          {activeAccounts.map((a) => (
+            <div key={a.id} className="flex items-center gap-2 rounded px-1 py-0.5 text-sm">
+              <ColorDot color={a.color} />
+              <span className="flex-1 text-gray-300">{a.name}</span>
+              <span className="font-mono tabular-nums">{fmtMoney(a.balance, a.currency)}</span>
+            </div>
+          ))}
+          {activeAccounts.length === 0 && <p className="text-sm text-gray-500">No accounts yet.</p>}
         </div>
       </div>
 
@@ -395,43 +282,6 @@ function PanelHeader({ to, label }: { to: string; label: string }) {
       {label}
       <ChevronRight size={14} className="text-gray-500" />
     </Link>
-  );
-}
-
-function RecentRow({
-  tx,
-  categoryById,
-  divider,
-}: {
-  tx: Transaction;
-  categoryById: Map<number, { name: string; kind: string }>;
-  divider: boolean;
-}) {
-  const cat = tx.splits[0]?.category_id ? categoryById.get(tx.splits[0].category_id) : undefined;
-  const isReturn = tx.kind === "income" && cat?.kind === "expense";
-  return (
-    <div
-      className={`flex items-center gap-2 py-1.5 text-sm ${divider ? "border-t border-[var(--color-line)]" : ""}`}
-    >
-      <span className="w-12 shrink-0 font-mono text-xs text-gray-500">{tx.date.slice(5)}</span>
-      <span className="flex-1 truncate text-gray-300">
-        {tx.payee || (tx.kind === "transfer" ? "Transfer" : tx.note || "—")}
-      </span>
-      {cat && <Badge color="gray">{cat.name}</Badge>}
-      <span
-        className={`font-mono text-xs tabular-nums ${
-          tx.kind === "income"
-            ? "text-emerald-300"
-            : tx.kind === "transfer"
-              ? "text-sky-300"
-              : "text-gray-300"
-        }`}
-      >
-        {tx.kind === "income" ? "+" : tx.kind === "expense" ? "−" : ""}
-        {fmtMoney(tx.amount, tx.currency)}
-      </span>
-      {isReturn && <Badge color="amber">Return</Badge>}
-    </div>
   );
 }
 

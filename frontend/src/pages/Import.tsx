@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, CopyX, EyeOff, FileUp, Mail, Package, Pencil, RotateCcw, Sparkles, Undo2, Wand2 } from "lucide-react";
+import { AlertTriangle, Check, CopyX, EyeOff, FileUp, Mail, Package, Pencil, RefreshCw, RotateCcw, Sparkles, Undo2, Wand2 } from "lucide-react";
 import { useState } from "react";
 
 import { api } from "../api/client";
@@ -11,6 +11,7 @@ import {
   useInvalidating,
   useMashreqSync,
   useSettings,
+  useSyncAll,
 } from "../api/hooks";
 import type { ImportDetail, ImportRow } from "../api/types";
 import { Badge, CategorySelect, ErrorState, Field, PageHeader, SuccessIcon } from "../components/ui";
@@ -84,6 +85,27 @@ export default function ImportPage() {
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Amazon sync failed");
+    }
+  }
+
+  const syncAll = useSyncAll();
+
+  async function runSyncAll() {
+    setError("");
+    try {
+      const result = await syncAll.mutateAsync(undefined);
+      if (result.mashreq && result.mashreq.imports.length === 1) {
+        setImportId(result.mashreq.imports[0].id);
+      } else if (result.amazon?.import_id != null) {
+        setImportId(result.amazon.import_id);
+      } else {
+        toast("No new alerts or orders found");
+      }
+      if (result.errors.length > 0) {
+        toast(result.errors.join("; "));
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Sync failed");
     }
   }
 
@@ -236,7 +258,7 @@ export default function ImportPage() {
           {active.length === 0 && (
             <p className="mt-3 text-sm text-amber-400">Create an account first.</p>
           )}
-          {(settings?.mashreq_sync_enabled || settings?.amazon_sync_enabled) && (
+          {(settings?.mashreq_sync_enabled || settings?.amazon_sync_enabled || !settings?.auto_sync_enabled) && (
             <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
               {settings?.mashreq_sync_enabled && (
                 <button className="btn-ghost text-sm" onClick={syncMashreq} disabled={mashreqSync.isPending}>
@@ -246,6 +268,11 @@ export default function ImportPage() {
               {settings?.amazon_sync_enabled && (
                 <button className="btn-ghost text-sm" onClick={syncAmazon} disabled={amazonSync.isPending}>
                   <Package size={14} /> {amazonSync.isPending ? "Syncing…" : "Sync Amazon"}
+                </button>
+              )}
+              {!settings?.auto_sync_enabled && (
+                <button className="btn-ghost text-sm" onClick={runSyncAll} disabled={syncAll.isPending}>
+                  <RefreshCw size={14} /> {syncAll.isPending ? "Syncing…" : "Sync All"}
                 </button>
               )}
               <span className="text-xs text-gray-500">Pulls new alert/order emails — configure in Profile.</span>

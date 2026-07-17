@@ -20,6 +20,12 @@ AMAZON_DEFAULT_ACCOUNT_ID_KEY = "amazon_default_account_id"
 MASHREQ_SYNC_ENABLED_KEY = "mashreq_sync_enabled"
 AMAZON_SYNC_ENABLED_KEY = "amazon_sync_enabled"
 
+AUTO_SYNC_ENABLED_KEY = "auto_sync_enabled"
+AUTO_SYNC_FREQUENCY_KEY = "auto_sync_frequency_minutes"
+AUTO_SYNC_LAST_RUN_KEY = "auto_sync_last_run"
+DEFAULT_AUTO_SYNC_FREQUENCY_MINUTES = 60.0
+MIN_AUTO_SYNC_FREQUENCY_MINUTES = 15.0
+
 LLM_PROVIDER_KEY = "llm_provider"
 LLM_API_KEY_KEY = "llm_api_key"
 LLM_MODEL_KEY = "llm_model"

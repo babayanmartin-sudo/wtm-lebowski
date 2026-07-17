@@ -9,7 +9,10 @@ from ..schemas import SettingsIn, SettingsOut
 from ..services.settings import (
     AMAZON_DEFAULT_ACCOUNT_ID_KEY,
     AMAZON_SYNC_ENABLED_KEY,
+    AUTO_SYNC_ENABLED_KEY,
+    AUTO_SYNC_FREQUENCY_KEY,
     BUDGET_THRESHOLD_KEY,
+    DEFAULT_AUTO_SYNC_FREQUENCY_MINUTES,
     DEFAULT_BUDGET_THRESHOLD,
     DEFAULT_MASHREQ_IMAP_FOLDER,
     DEFAULT_MASHREQ_IMAP_PORT,
@@ -57,6 +60,11 @@ def get_settings(db: Session = Depends(get_db)):
         ),
         mashreq_sync_enabled=get_bool_setting(db, MASHREQ_SYNC_ENABLED_KEY, False),
         amazon_sync_enabled=get_bool_setting(db, AMAZON_SYNC_ENABLED_KEY, False),
+        auto_sync_enabled=get_bool_setting(db, AUTO_SYNC_ENABLED_KEY, False),
+        auto_sync_frequency_minutes=get_float_setting(
+            db, AUTO_SYNC_FREQUENCY_KEY, DEFAULT_AUTO_SYNC_FREQUENCY_MINUTES
+        )
+        or DEFAULT_AUTO_SYNC_FREQUENCY_MINUTES,
         llm_provider=get_str_setting(db, LLM_PROVIDER_KEY, "") or "",
         llm_api_key=get_str_setting(db, LLM_API_KEY_KEY, "") or "",
         llm_model=get_str_setting(db, LLM_MODEL_KEY, "") or "",
@@ -91,6 +99,10 @@ def update_settings(body: SettingsIn, db: Session = Depends(get_db)):
         set_bool_setting(db, MASHREQ_SYNC_ENABLED_KEY, bool(fields["mashreq_sync_enabled"]))
     if "amazon_sync_enabled" in fields:
         set_bool_setting(db, AMAZON_SYNC_ENABLED_KEY, bool(fields["amazon_sync_enabled"]))
+    if "auto_sync_enabled" in fields:
+        set_bool_setting(db, AUTO_SYNC_ENABLED_KEY, bool(fields["auto_sync_enabled"]))
+    if "auto_sync_frequency_minutes" in fields:
+        set_float_setting(db, AUTO_SYNC_FREQUENCY_KEY, fields["auto_sync_frequency_minutes"])
     if "llm_provider" in fields:
         set_str_setting(db, LLM_PROVIDER_KEY, fields["llm_provider"])
     if "llm_api_key" in fields:

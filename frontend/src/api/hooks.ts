@@ -28,6 +28,7 @@ import type {
   SavedReport,
   SavedReportDetail,
   Settings,
+  SyncAllResult,
   Template,
   TransactionPage,
 } from "./types";
@@ -117,6 +118,10 @@ export function useMashreqTest() {
 
 export function useAmazonSync() {
   return useInvalidating(() => api.post<AmazonSyncResult>("/api/imports/amazon-sync"), []);
+}
+
+export function useSyncAll() {
+  return useInvalidating(() => api.post<SyncAllResult>("/api/imports/sync-all"), []);
 }
 
 export function useInsightsAsk() {
