@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.13.0 — 2026-07-17
+
+### AI Assistant
+
+- Anthropic and OpenAI configs (API key + model) are now stored
+  independently, with a toggle in Profile to switch which one is
+  active — no more losing one provider's key when configuring the
+  other.
+- New "Max tokens per reply" control for Anthropic, with an
+  "Off (uncapped)" toggle for when answers get cut short.
+
 ## v1.12.1 — 2026-07-17
 
 ### AI Assistant
