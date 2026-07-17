@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.11.1 — 2026-07-17
+
+### Mashreq/Amazon sync cleanup (#44)
+
+- Mashreq mailbox password no longer round-trips to the client on
+  Profile load; Profile only sends a new password when retyped.
+- Renamed internal `MASHREQ_IMAP_*` settings constants to `SYNC_IMAP_*`
+  (mailbox backs both Mashreq and Amazon sync).
+- Deduped mailbox credential loading and card-account JSON handling.
+
 ## v1.11.0 — 2026-07-17
 
 ### Home page cleanup + auto-sync
