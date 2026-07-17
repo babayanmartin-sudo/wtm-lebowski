@@ -2,7 +2,14 @@ import { Check, ChevronDown, KeyRound, Plug, Plus, Trash2 } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
 
 import { api, ApiError } from "../api/client";
-import { useAccounts, useMashreqTest, useSettings, useUpdateSettings, useVersion } from "../api/hooks";
+import {
+  useAccounts,
+  useInsightsTest,
+  useMashreqTest,
+  useSettings,
+  useUpdateSettings,
+  useVersion,
+} from "../api/hooks";
 import type { Account, Settings } from "../api/types";
 import { Field, LoadingState, PageHeader, Select } from "../components/ui";
 import { toast } from "../lib/toast";
@@ -438,10 +445,12 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
 
 function AiAssistantForm({ settings }: { settings: Settings }) {
   const updateSettings = useUpdateSettings();
+  const insightsTest = useInsightsTest();
   const [provider, setProvider] = useState(settings.llm_provider || "anthropic");
   const [apiKey, setApiKey] = useState(settings.llm_api_key);
   const [model, setModel] = useState(settings.llm_model);
   const [error, setError] = useState("");
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   async function save() {
     setError("");
@@ -450,6 +459,20 @@ function AiAssistantForm({ settings }: { settings: Settings }) {
       toast("AI Assistant settings saved");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save");
+    }
+  }
+
+  async function testConnection() {
+    setTestResult(null);
+    try {
+      const result = await insightsTest.mutateAsync({
+        llm_provider: provider,
+        llm_api_key: apiKey,
+        llm_model: model,
+      });
+      setTestResult(result);
+    } catch (e) {
+      setTestResult({ ok: false, message: e instanceof Error ? e.message : "Test failed" });
     }
   }
 
@@ -489,10 +512,25 @@ function AiAssistantForm({ settings }: { settings: Settings }) {
           placeholder={provider === "anthropic" ? "claude-sonnet-5" : "gpt-5"}
         />
       </Field>
+      {testResult && (
+        <p className={`text-xs ${testResult.ok ? "text-emerald-300" : "text-rose-400"}`}>
+          {testResult.message}
+        </p>
+      )}
       {error && <p className="text-xs text-rose-400">{error}</p>}
-      <button className="btn-primary h-9 text-sm whitespace-nowrap" onClick={save}>
-        Save AI Assistant settings
-      </button>
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          className="btn-ghost h-9 justify-center text-sm whitespace-nowrap"
+          onClick={testConnection}
+          disabled={insightsTest.isPending || !apiKey}
+        >
+          <Plug size={14} /> {insightsTest.isPending ? "Testing…" : "Test connection"}
+        </button>
+        <button className="btn-primary h-9 text-sm whitespace-nowrap" onClick={save}>
+          Save AI Assistant settings
+        </button>
+      </div>
       <AssistantMemory settings={settings} />
     </>
   );

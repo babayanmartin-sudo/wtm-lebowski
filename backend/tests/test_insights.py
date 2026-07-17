@@ -1,6 +1,57 @@
 import app.routers.insights as insights_router
 
 
+def test_test_connection_requires_provider_and_key(seeded):
+    c = seeded["client"]
+    r = c.post("/api/insights/test", json={})
+    body = r.json()
+    assert body["ok"] is False
+
+
+def test_test_connection_uses_unsaved_form_values(seeded, monkeypatch):
+    c = seeded["client"]
+    seen = {}
+
+    def fake_test(provider, api_key, model):
+        seen.update(provider=provider, api_key=api_key, model=model)
+        return True, f"Connected ({model})"
+
+    monkeypatch.setattr(insights_router, "insights_test_connection", fake_test)
+    r = c.post(
+        "/api/insights/test",
+        json={"llm_provider": "anthropic", "llm_api_key": "sk-test", "llm_model": "claude-sonnet-5"},
+    )
+    body = r.json()
+    assert body["ok"] is True
+    assert seen == {"provider": "anthropic", "api_key": "sk-test", "model": "claude-sonnet-5"}
+
+
+def test_test_connection_falls_back_to_saved_values(seeded, monkeypatch):
+    c = seeded["client"]
+    c.put("/api/settings", json={"llm_provider": "openai", "llm_api_key": "sk-saved"})
+    seen = {}
+
+    def fake_test(provider, api_key, model):
+        seen.update(provider=provider, api_key=api_key)
+        return True, "Connected"
+
+    monkeypatch.setattr(insights_router, "insights_test_connection", fake_test)
+    r = c.post("/api/insights/test", json={})
+    assert r.json()["ok"] is True
+    assert seen == {"provider": "openai", "api_key": "sk-saved"}
+
+
+def test_test_connection_reports_failure(seeded, monkeypatch):
+    c = seeded["client"]
+    monkeypatch.setattr(
+        insights_router, "insights_test_connection", lambda *a, **k: (False, "invalid api key")
+    )
+    r = c.post("/api/insights/test", json={"llm_provider": "anthropic", "llm_api_key": "sk-bad"})
+    body = r.json()
+    assert body["ok"] is False
+    assert "invalid api key" in body["message"]
+
+
 def test_ask_requires_configuration(seeded):
     c = seeded["client"]
     r = c.post("/api/insights/ask", json={"message": "how much did I spend?"})

@@ -178,6 +178,11 @@ export interface MashreqTestResult {
   message: string;
 }
 
+export interface InsightsTestResult {
+  ok: boolean;
+  message: string;
+}
+
 export interface SyncAllResult {
   mashreq: MashreqSyncResult | null;
   amazon: AmazonSyncResult | null;

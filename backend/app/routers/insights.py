@@ -13,8 +13,11 @@ from ..schemas import (
     InsightsAskOut,
     InsightsConversationDetail,
     InsightsConversationSummary,
+    InsightsTestIn,
+    InsightsTestResult,
 )
 from ..services.insights_llm import InsightsError, run_chat
+from ..services.insights_llm import test_connection as insights_test_connection
 from ..services.settings import (
     INSIGHTS_MEMORY_KEY,
     LLM_API_KEY_KEY,
@@ -26,6 +29,20 @@ from ..services.settings import (
 router = APIRouter(prefix="/api/insights", tags=["insights"], dependencies=[Depends(require_auth)])
 
 TITLE_MAX_LEN = 60
+
+
+@router.post("/test", response_model=InsightsTestResult)
+def test(body: InsightsTestIn, db: Session = Depends(get_db)):
+    """Test the configured provider with the given (possibly unsaved) form
+    values, falling back to whatever's already saved for any field left
+    blank — same pattern as Mashreq's 'Test connection' button."""
+    provider = body.llm_provider or get_str_setting(db, LLM_PROVIDER_KEY, "")
+    api_key = body.llm_api_key or get_str_setting(db, LLM_API_KEY_KEY, "")
+    model = body.llm_model or get_str_setting(db, LLM_MODEL_KEY, "") or None
+    if not provider or not api_key:
+        return InsightsTestResult(ok=False, message="Provider and API key are required")
+    ok, message = insights_test_connection(provider, api_key, model)
+    return InsightsTestResult(ok=ok, message=message)
 
 
 @router.post("/ask", response_model=InsightsAskOut)

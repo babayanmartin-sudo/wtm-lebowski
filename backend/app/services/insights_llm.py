@@ -37,6 +37,37 @@ def _run_tool(db: Session, name: str, arguments: dict) -> dict:
         return {"error": str(e)}
 
 
+def test_connection(provider: str, api_key: str, model: str | None) -> tuple[bool, str]:
+    """Minimal round-trip to the provider — validates the API key and model
+    name without going through the tool-use loop. Used by Profile's 'Test
+    connection' button, mirroring the Mashreq IMAP test."""
+    resolved_model = model or DEFAULT_MODELS.get(provider)
+    if not resolved_model:
+        return False, f"Unknown provider: {provider}"
+    try:
+        if provider == "anthropic":
+            from anthropic import Anthropic
+
+            client = Anthropic(api_key=api_key)
+            client.messages.create(
+                model=resolved_model, max_tokens=1, messages=[{"role": "user", "content": "ping"}]
+            )
+        elif provider == "openai":
+            from openai import OpenAI
+
+            client = OpenAI(api_key=api_key)
+            client.chat.completions.create(
+                model=resolved_model, max_tokens=1, messages=[{"role": "user", "content": "ping"}]
+            )
+        else:
+            return False, f"Unknown provider: {provider}"
+    except ImportError as e:
+        return False, f"{provider} package not installed ({e})"
+    except Exception as e:  # noqa: BLE001 — surface the SDK's own message to the user
+        return False, str(e)
+    return True, f"Connected ({resolved_model})"
+
+
 def run_chat(
     db: Session,
     provider: str,

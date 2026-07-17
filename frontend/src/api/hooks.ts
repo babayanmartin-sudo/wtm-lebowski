@@ -17,6 +17,7 @@ import type {
   InsightsAskResult,
   InsightsConversationDetail,
   InsightsConversationSummary,
+  InsightsTestResult,
   Loan,
   MashreqSyncResult,
   MashreqTestResult,
@@ -122,6 +123,14 @@ export function useAmazonSync() {
 
 export function useSyncAll() {
   return useInvalidating(() => api.post<SyncAllResult>("/api/imports/sync-all"), []);
+}
+
+export function useInsightsTest() {
+  return useInvalidating(
+    (d: { llm_provider?: string; llm_api_key?: string; llm_model?: string }) =>
+      api.post<InsightsTestResult>("/api/insights/test", d),
+    [],
+  );
 }
 
 export function useInsightsAsk() {

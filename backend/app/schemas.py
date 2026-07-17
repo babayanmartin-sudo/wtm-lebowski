@@ -474,3 +474,14 @@ class InsightsConversationSummary(BaseModel):
 class InsightsConversationDetail(InsightsConversationSummary):
     messages: list[InsightsMessage]
     created_at: datetime
+
+
+class InsightsTestIn(BaseModel):
+    llm_provider: str | None = None
+    llm_api_key: str | None = None
+    llm_model: str | None = None
+
+
+class InsightsTestResult(BaseModel):
+    ok: bool
+    message: str
