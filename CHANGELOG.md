@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.11.2 — 2026-07-17
+
+### Ask widget
+
+- Prompt box is now an auto-growing textarea instead of a single-line
+  input — long prompts wrap live while typing. Enter sends, Shift+Enter
+  inserts a newline.
+
 ## v1.11.1 — 2026-07-17
 
 ### Mashreq/Amazon sync cleanup (#44)
