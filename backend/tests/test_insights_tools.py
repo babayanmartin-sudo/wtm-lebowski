@@ -47,6 +47,38 @@ def test_get_category_breakdown_matches_dashboard(seeded):
     assert result["categories"] == dash["by_category"]
 
 
+def test_get_category_breakdown_drills_into_subcategories(seeded):
+    """Without category_id, Groceries rolls up into its parent Food — the
+    tool must accept category_id to break Food back out into Groceries,
+    otherwise the assistant has no way to answer subcategory questions."""
+    c = seeded["client"]
+    c.post(
+        "/api/transactions",
+        json={
+            "date": "2026-07-05",
+            "kind": "expense",
+            "account_id": seeded["aed"]["id"],
+            "amount": 40.0,
+            "splits": [{"category_id": seeded["grocery"]["id"], "amount": 40.0, "note": ""}],
+        },
+    )
+
+    db = SessionLocal()
+    try:
+        rolled_up = insights_tools.get_category_breakdown(db, date_from="2026-07-01", date_to="2026-07-31")
+        drilled = insights_tools.get_category_breakdown(
+            db, date_from="2026-07-01", date_to="2026-07-31", category_id=seeded["food"]["id"]
+        )
+    finally:
+        db.close()
+
+    assert [c["category_id"] for c in rolled_up["categories"]] == [seeded["food"]["id"]]
+    # Food itself has no direct spend (all under Groceries) — zero rows are
+    # dropped, so only the subcategory shows up once drilled into.
+    assert [c["category_id"] for c in drilled["categories"]] == [seeded["grocery"]["id"]]
+    assert drilled["categories"][0]["amount"] == 40.0
+
+
 def test_search_transactions_matches_list_endpoint(seeded):
     c = seeded["client"]
     c.post(

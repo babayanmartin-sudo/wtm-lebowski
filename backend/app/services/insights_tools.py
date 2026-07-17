@@ -46,10 +46,14 @@ def get_category_breakdown(
     date_to: str | None = None,
     kind: str = "expense",
     account_id: int | None = None,
+    category_id: int | None = None,
 ) -> dict:
-    """Spend/income broken down by category for a period."""
+    """Spend/income broken down by category for a period. Without
+    category_id, subcategories are rolled up into their parent (same as
+    the Dashboard's default view) — pass a parent's category_id to break
+    it back out into its subcategories."""
     start, end = _period(date_from, date_to)
-    breakdown = _by_category(db, start, end, account_id, None, kind=kind)
+    breakdown = _by_category(db, start, end, account_id, category_id, kind=kind)
     return {"date_from": start.isoformat(), "date_to": end.isoformat(), "kind": kind, "categories": breakdown}
 
 
@@ -172,7 +176,12 @@ TOOL_SCHEMAS = [
     },
     {
         "name": "get_category_breakdown",
-        "description": "Spend or income broken down by category for a date range.",
+        "description": (
+            "Spend or income broken down by category for a date range. Without category_id, "
+            "subcategories are rolled up into their parent category. To see subcategories, first "
+            "call this without category_id to find the parent, then call again with that parent's "
+            "category_id to break it out into its subcategories."
+        ),
         "parameters": {
             "type": "object",
             "properties": {
@@ -180,6 +189,10 @@ TOOL_SCHEMAS = [
                 "date_to": {"type": "string"},
                 "kind": {"type": "string", "enum": ["expense", "income"]},
                 "account_id": {"type": "integer"},
+                "category_id": {
+                    "type": "integer",
+                    "description": "Parent category id — returns its subcategory breakdown instead of the top-level rollup",
+                },
             },
         },
     },
