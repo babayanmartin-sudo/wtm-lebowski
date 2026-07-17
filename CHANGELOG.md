@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.11.4 — 2026-07-17
+
+### Ask widget
+
+- `get_category_breakdown` tool can now drill into subcategories (was
+  hardcoded to always roll them up into the parent — the assistant had
+  no way to ever see subcategory-level data).
+
 ## v1.11.3 — 2026-07-17
 
 ### Ask widget
