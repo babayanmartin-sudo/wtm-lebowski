@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.11.3 — 2026-07-17
+
+### Ask widget
+
+- Markdown tables in assistant replies now render properly (added
+  remark-gfm) instead of collapsing into one unbroken line of `|` text.
+
 ## v1.11.2 — 2026-07-17
 
 ### Ask widget
