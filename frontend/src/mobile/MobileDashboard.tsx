@@ -6,7 +6,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { useAccounts, useDashboard, useOverallBudgetStatus } from "../api/hooks";
 import type { CategoryTotal } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import { ErrorState, LoadingState } from "../components/ui";
+import { ErrorState, LoadingState, ProgressBar } from "../components/ui";
 import { AskWidget } from "../pages/Dashboard";
 import { chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
@@ -27,7 +27,7 @@ export default function MobileDashboard() {
     category_id: categoryId ?? undefined,
   });
   const { data: accounts = [] } = useAccounts();
-  const { data: overallBudget } = useOverallBudgetStatus(period.from.slice(0, 7));
+  const { data: overallBudget } = useOverallBudgetStatus();
 
   const activeAccounts = accounts.filter((a) => !a.archived);
   const donut = (data?.by_category ?? []).slice(0, 6);
@@ -132,7 +132,9 @@ export default function MobileDashboard() {
             value={`${fmtMoney(overallBudget.spent)} / ${fmtMoney(overallBudget.cap)}`}
             icon={<TrendingUp size={14} />}
             color={overallBudget.spent > overallBudget.cap ? "text-rose-400" : "text-gray-100"}
-          />
+          >
+            <ProgressBar value={overallBudget.cap > 0 ? overallBudget.spent / overallBudget.cap : 0} />
+          </MobileStat>
         )}
       </div>
 
@@ -193,17 +195,22 @@ function MobileStat({
   value,
   icon,
   color,
+  children,
 }: {
   label: string;
   value: string;
   icon: React.ReactNode;
   color: string;
+  children?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-2 py-2.5">
-      <span className={color}>{icon}</span>
-      <span className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</span>
-      <span className={`ml-auto truncate text-sm font-semibold tabular-nums ${color}`}>{value}</span>
+    <div className="py-2.5">
+      <div className="flex items-center gap-2">
+        <span className={color}>{icon}</span>
+        <span className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</span>
+        <span className={`ml-auto truncate text-sm font-semibold tabular-nums ${color}`}>{value}</span>
+      </div>
+      {children && <div className="mt-1.5 pl-6">{children}</div>}
     </div>
   );
 }

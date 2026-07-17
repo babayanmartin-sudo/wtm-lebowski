@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, History, Plus, RotateCcw, Send, Sparkles, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -15,7 +15,7 @@ import {
 } from "../api/hooks";
 import type { CategoryTotal, InsightsMessage } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
-import { ColorDot, ErrorState, LoadingState, Spinner } from "../components/ui";
+import { ColorDot, ErrorState, LoadingState, ProgressBar, Spinner } from "../components/ui";
 import { CHART_COLORS, chartTooltipProps } from "../lib/charts";
 import { fmtMoney } from "../lib/format";
 import { useSessionState } from "../lib/session";
@@ -45,8 +45,7 @@ export default function DashboardPage() {
     category_id: categoryId ?? undefined,
   });
   const { data: accounts = [] } = useAccounts();
-  const budgetMonth = period.from.slice(0, 7);
-  const { data: overallBudget } = useOverallBudgetStatus(budgetMonth);
+  const { data: overallBudget } = useOverallBudgetStatus();
 
   const activeAccounts = useMemo(() => accounts.filter((a) => !a.archived), [accounts]);
   const donut = (data?.by_category ?? []).slice(0, 8);
@@ -161,7 +160,9 @@ export default function DashboardPage() {
             label="Overall budget"
             value={`${fmtMoney(overallBudget.spent)} / ${fmtMoney(overallBudget.cap)}`}
             color={overallBudget.spent > overallBudget.cap ? "text-rose-400" : "text-gray-100"}
-          />
+          >
+            <ProgressBar value={overallBudget.cap > 0 ? overallBudget.spent / overallBudget.cap : 0} />
+          </StatCell>
         )}
       </div>
 
@@ -360,11 +361,22 @@ function CategoryPie({
   );
 }
 
-function StatCell({ label, value, color }: { label: string; value: string; color?: string }) {
+function StatCell({
+  label,
+  value,
+  color,
+  children,
+}: {
+  label: string;
+  value: string;
+  color?: string;
+  children?: ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-1.5 px-4 py-3">
       <span className="font-mono text-[11px] tracking-widest text-gray-500 uppercase">{label}</span>
       <span className={`font-mono text-lg tracking-tight tabular-nums ${color ?? ""}`}>{value}</span>
+      {children}
     </div>
   );
 }
