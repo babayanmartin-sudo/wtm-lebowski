@@ -125,7 +125,8 @@ export interface Settings {
   mashreq_imap_host: string;
   mashreq_imap_port: string;
   mashreq_imap_user: string;
-  mashreq_imap_password: string;
+  mashreq_imap_password: string; // always "" from the server — see mashreq_imap_password_set
+  mashreq_imap_password_set: boolean;
   mashreq_imap_folder: string;
   mashreq_card_accounts: Record<string, number>;
   amazon_default_account_id: number | null;

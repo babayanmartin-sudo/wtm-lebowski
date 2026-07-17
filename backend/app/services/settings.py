@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy.orm import Session
 
 from ..models import Setting
@@ -6,14 +8,18 @@ BUDGET_THRESHOLD_KEY = "budget_threshold"
 OVERALL_MONTHLY_CAP_KEY = "overall_monthly_cap"
 DEFAULT_BUDGET_THRESHOLD = 80.0
 
-MASHREQ_IMAP_HOST_KEY = "mashreq_imap_host"
-MASHREQ_IMAP_PORT_KEY = "mashreq_imap_port"
-MASHREQ_IMAP_USER_KEY = "mashreq_imap_user"
-MASHREQ_IMAP_PASSWORD_KEY = "mashreq_imap_password"
-MASHREQ_IMAP_FOLDER_KEY = "mashreq_imap_folder"
+# Backs both Mashreq and Amazon sync — one shared mailbox by design — but
+# the underlying DB key strings stay "mashreq_imap_*" so upgrades don't
+# lose existing settings; only these Python names were renamed.
+SYNC_IMAP_HOST_KEY = "mashreq_imap_host"
+SYNC_IMAP_PORT_KEY = "mashreq_imap_port"
+SYNC_IMAP_USER_KEY = "mashreq_imap_user"
+SYNC_IMAP_PASSWORD_KEY = "mashreq_imap_password"
+SYNC_IMAP_FOLDER_KEY = "mashreq_imap_folder"
+DEFAULT_SYNC_IMAP_PORT = "993"
+DEFAULT_SYNC_IMAP_FOLDER = "INBOX"
+
 MASHREQ_CARD_ACCOUNTS_KEY = "mashreq_card_accounts"
-DEFAULT_MASHREQ_IMAP_PORT = "993"
-DEFAULT_MASHREQ_IMAP_FOLDER = "INBOX"
 
 AMAZON_DEFAULT_ACCOUNT_ID_KEY = "amazon_default_account_id"
 
@@ -75,3 +81,27 @@ def get_bool_setting(db: Session, key: str, default: bool) -> bool:
 
 def set_bool_setting(db: Session, key: str, value: bool) -> None:
     set_str_setting(db, key, "1" if value else "0")
+
+
+def get_int_setting(db: Session, key: str, default: int | None) -> int | None:
+    value = get_float_setting(db, key, None)
+    return default if value is None else int(value)
+
+
+def set_int_setting(db: Session, key: str, value: int | None) -> None:
+    set_float_setting(db, key, None if value is None else float(value))
+
+
+def get_card_accounts(db: Session) -> dict[str, int]:
+    """Mashreq card-suffix → account-id mapping, centralized here so the
+    settings router and the sync endpoints don't each parse the JSON
+    blob (and silently diverge on malformed-JSON handling)."""
+    raw = get_str_setting(db, MASHREQ_CARD_ACCOUNTS_KEY, "{}")
+    try:
+        return json.loads(raw or "{}")
+    except ValueError:
+        return {}
+
+
+def set_card_accounts(db: Session, value: dict[str, int] | None) -> None:
+    set_str_setting(db, MASHREQ_CARD_ACCOUNTS_KEY, json.dumps(value) if value is not None else None)

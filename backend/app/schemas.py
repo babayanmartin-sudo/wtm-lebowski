@@ -397,7 +397,8 @@ class SettingsOut(BaseModel):
     mashreq_imap_host: str
     mashreq_imap_port: str
     mashreq_imap_user: str
-    mashreq_imap_password: str
+    mashreq_imap_password: str  # always "" — never round-trip the plaintext password to the client
+    mashreq_imap_password_set: bool
     mashreq_imap_folder: str
     mashreq_card_accounts: dict[str, int]
     amazon_default_account_id: int | None

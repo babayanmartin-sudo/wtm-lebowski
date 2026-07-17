@@ -22,6 +22,22 @@ def test_insights_memory_round_trip_and_clear(seeded):
     assert d["insights_memory"] == ""
 
 
+def test_mashreq_password_never_returned_plaintext(seeded):
+    c = seeded["client"]
+    d = c.get("/api/settings").json()
+    assert d["mashreq_imap_password"] == ""
+    assert d["mashreq_imap_password_set"] is False
+
+    c.put("/api/settings", json={"mashreq_imap_password": "super-secret"})
+    d = c.get("/api/settings").json()
+    assert d["mashreq_imap_password"] == ""
+    assert d["mashreq_imap_password_set"] is True
+
+    c.put("/api/settings", json={"mashreq_imap_password": ""})
+    d = c.get("/api/settings").json()
+    assert d["mashreq_imap_password_set"] is False
+
+
 def test_llm_settings_round_trip(seeded):
     c = seeded["client"]
     c.put("/api/settings", json={"llm_provider": "anthropic", "llm_api_key": "sk-xyz"})

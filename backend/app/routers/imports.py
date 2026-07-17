@@ -1,5 +1,5 @@
 import imaplib
-import json
+from dataclasses import dataclass
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import select
@@ -28,21 +28,47 @@ from ..services.rates import to_base
 from ..services.settings import (
     AMAZON_DEFAULT_ACCOUNT_ID_KEY,
     AMAZON_SYNC_ENABLED_KEY,
-    DEFAULT_MASHREQ_IMAP_FOLDER,
-    DEFAULT_MASHREQ_IMAP_PORT,
-    MASHREQ_CARD_ACCOUNTS_KEY,
-    MASHREQ_IMAP_FOLDER_KEY,
-    MASHREQ_IMAP_HOST_KEY,
-    MASHREQ_IMAP_PASSWORD_KEY,
-    MASHREQ_IMAP_PORT_KEY,
-    MASHREQ_IMAP_USER_KEY,
+    DEFAULT_SYNC_IMAP_FOLDER,
+    DEFAULT_SYNC_IMAP_PORT,
     MASHREQ_SYNC_ENABLED_KEY,
+    SYNC_IMAP_FOLDER_KEY,
+    SYNC_IMAP_HOST_KEY,
+    SYNC_IMAP_PASSWORD_KEY,
+    SYNC_IMAP_PORT_KEY,
+    SYNC_IMAP_USER_KEY,
     get_bool_setting,
-    get_float_setting,
+    get_card_accounts,
+    get_int_setting,
     get_str_setting,
 )
 
 router = APIRouter(prefix="/api/imports", tags=["imports"], dependencies=[Depends(require_auth)])
+
+
+@dataclass
+class MailboxSettings:
+    host: str
+    port: str
+    user: str
+    password: str
+    folder: str
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.host and self.user and self.password)
+
+
+def _load_mailbox_settings(db: Session) -> MailboxSettings:
+    """Shared IMAP mailbox config — one mailbox backs both Mashreq and
+    Amazon sync by design, so this is loaded once instead of duplicated
+    per sync function."""
+    return MailboxSettings(
+        host=get_str_setting(db, SYNC_IMAP_HOST_KEY, "") or "",
+        port=get_str_setting(db, SYNC_IMAP_PORT_KEY, DEFAULT_SYNC_IMAP_PORT) or DEFAULT_SYNC_IMAP_PORT,
+        user=get_str_setting(db, SYNC_IMAP_USER_KEY, "") or "",
+        password=get_str_setting(db, SYNC_IMAP_PASSWORD_KEY, "") or "",
+        folder=get_str_setting(db, SYNC_IMAP_FOLDER_KEY, DEFAULT_SYNC_IMAP_FOLDER) or DEFAULT_SYNC_IMAP_FOLDER,
+    )
 
 
 @router.post("", response_model=ImportDetail, status_code=201)
@@ -85,11 +111,12 @@ def mashreq_test(body: MashreqTestIn, db: Session = Depends(get_db)):
     values, falling back to whatever's already saved for any field left
     blank — lets the Profile page's 'Test connection' button check
     in-progress edits without requiring a save first."""
-    host = body.mashreq_imap_host or get_str_setting(db, MASHREQ_IMAP_HOST_KEY, "")
-    user = body.mashreq_imap_user or get_str_setting(db, MASHREQ_IMAP_USER_KEY, "")
-    password = body.mashreq_imap_password or get_str_setting(db, MASHREQ_IMAP_PASSWORD_KEY, "")
-    port = body.mashreq_imap_port or get_str_setting(db, MASHREQ_IMAP_PORT_KEY, DEFAULT_MASHREQ_IMAP_PORT)
-    folder = body.mashreq_imap_folder or get_str_setting(db, MASHREQ_IMAP_FOLDER_KEY, DEFAULT_MASHREQ_IMAP_FOLDER)
+    saved = _load_mailbox_settings(db)
+    host = body.mashreq_imap_host or saved.host
+    user = body.mashreq_imap_user or saved.user
+    password = body.mashreq_imap_password or saved.password
+    port = body.mashreq_imap_port or saved.port
+    folder = body.mashreq_imap_folder or saved.folder
     if not host or not user or not password:
         return MashreqTestResult(ok=False, message="Host, username, and password are required")
     ok, message = mashreq_test_connection(host, port, user, password, folder)
@@ -100,23 +127,13 @@ def _run_mashreq_sync(db: Session) -> MashreqSyncResult | None:
     """Core Mashreq sync logic, reused by the manual endpoint, /sync-all,
     and the auto-sync scheduler. Returns None if the mailbox isn't
     configured (nothing to do), rather than raising."""
-    host = get_str_setting(db, MASHREQ_IMAP_HOST_KEY, "")
-    user = get_str_setting(db, MASHREQ_IMAP_USER_KEY, "")
-    password = get_str_setting(db, MASHREQ_IMAP_PASSWORD_KEY, "")
-    port = get_str_setting(db, MASHREQ_IMAP_PORT_KEY, DEFAULT_MASHREQ_IMAP_PORT)
-    folder = get_str_setting(db, MASHREQ_IMAP_FOLDER_KEY, DEFAULT_MASHREQ_IMAP_FOLDER)
-    if not host or not user or not password:
+    mailbox = _load_mailbox_settings(db)
+    if not mailbox.configured:
         return None
+    card_accounts = get_card_accounts(db)
 
     try:
-        card_accounts: dict[str, int] = json.loads(
-            get_str_setting(db, MASHREQ_CARD_ACCOUNTS_KEY, "{}") or "{}"
-        )
-    except ValueError:
-        card_accounts = {}
-
-    try:
-        alerts = fetch_unseen_alerts(host, port, user, password, folder)
+        alerts = fetch_unseen_alerts(mailbox.host, mailbox.port, mailbox.user, mailbox.password, mailbox.folder)
     except OSError as e:
         raise HTTPException(502, f"Couldn't reach the mailbox: {e}")
     except imaplib.IMAP4.error as e:
@@ -176,22 +193,17 @@ def _run_amazon_sync(db: Session) -> AmazonSyncResult | None:
     """Core Amazon sync logic, reused by the manual endpoint, /sync-all,
     and the auto-sync scheduler. Returns None if the mailbox or default
     account isn't configured (nothing to do), rather than raising."""
-    host = get_str_setting(db, MASHREQ_IMAP_HOST_KEY, "")
-    user = get_str_setting(db, MASHREQ_IMAP_USER_KEY, "")
-    password = get_str_setting(db, MASHREQ_IMAP_PASSWORD_KEY, "")
-    port = get_str_setting(db, MASHREQ_IMAP_PORT_KEY, DEFAULT_MASHREQ_IMAP_PORT)
-    folder = get_str_setting(db, MASHREQ_IMAP_FOLDER_KEY, DEFAULT_MASHREQ_IMAP_FOLDER)
-    if not host or not user or not password:
+    mailbox = _load_mailbox_settings(db)
+    if not mailbox.configured:
         return None
 
-    account_id_float = get_float_setting(db, AMAZON_DEFAULT_ACCOUNT_ID_KEY, None)
-    if account_id_float is None:
+    account_id = get_int_setting(db, AMAZON_DEFAULT_ACCOUNT_ID_KEY, None)
+    if account_id is None:
         return None
-    account_id = int(account_id_float)
 
     try:
-        order_emails = fetch_unseen_orders(host, port, user, password, folder)
-        refund_emails = fetch_unseen_refunds(host, port, user, password, folder)
+        order_emails = fetch_unseen_orders(mailbox.host, mailbox.port, mailbox.user, mailbox.password, mailbox.folder)
+        refund_emails = fetch_unseen_refunds(mailbox.host, mailbox.port, mailbox.user, mailbox.password, mailbox.folder)
     except OSError as e:
         raise HTTPException(502, f"Couldn't reach the mailbox: {e}")
     except imaplib.IMAP4.error as e:

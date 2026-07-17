@@ -203,7 +203,8 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
   const [imapHost, setImapHost] = useState(settings.mashreq_imap_host);
   const [imapPort, setImapPort] = useState(settings.mashreq_imap_port || "993");
   const [imapUser, setImapUser] = useState(settings.mashreq_imap_user);
-  const [imapPassword, setImapPassword] = useState(settings.mashreq_imap_password);
+  const [imapPassword, setImapPassword] = useState("");
+  const [imapPasswordTouched, setImapPasswordTouched] = useState(false);
   const [imapFolder, setImapFolder] = useState(settings.mashreq_imap_folder || "INBOX");
   const [cardMappings, setCardMappings] = useState<CardMapping[]>(
     Object.entries(settings.mashreq_card_accounts).map(([suffix, accountId]) => ({ suffix, accountId })),
@@ -232,7 +233,8 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
         mashreq_imap_host: imapHost,
         mashreq_imap_port: imapPort,
         mashreq_imap_user: imapUser,
-        mashreq_imap_password: imapPassword,
+        // omit entirely when untouched — sending "" would clear the saved password
+        ...(imapPasswordTouched ? { mashreq_imap_password: imapPassword } : {}),
         mashreq_imap_folder: imapFolder,
         mashreq_card_accounts,
         amazon_default_account_id: amazonAccountId,
@@ -241,6 +243,8 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
         auto_sync_enabled: autoSyncEnabled,
         auto_sync_frequency_minutes: frequency,
       });
+      setImapPasswordTouched(false);
+      setImapPassword("");
       toast("Email connection settings saved");
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Failed to save");
@@ -341,7 +345,11 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
           type="password"
           className="input"
           value={imapPassword}
-          onChange={(e) => setImapPassword(e.target.value)}
+          onChange={(e) => {
+            setImapPassword(e.target.value);
+            setImapPasswordTouched(true);
+          }}
+          placeholder={settings.mashreq_imap_password_set ? "•••••••• (saved — leave blank to keep)" : ""}
         />
       </Field>
 
@@ -411,7 +419,12 @@ function MailboxSyncForm({ settings, accounts }: { settings: Settings; accounts:
           type="button"
           className="btn-ghost h-9 justify-center text-sm whitespace-nowrap"
           onClick={testConnection}
-          disabled={mashreqTest.isPending || !imapHost || !imapUser || !imapPassword}
+          disabled={
+            mashreqTest.isPending ||
+            !imapHost ||
+            !imapUser ||
+            !(imapPassword || settings.mashreq_imap_password_set)
+          }
         >
           <Plug size={14} /> {mashreqTest.isPending ? "Testing…" : "Test connection"}
         </button>

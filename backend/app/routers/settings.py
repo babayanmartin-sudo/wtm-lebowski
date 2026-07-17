@@ -1,5 +1,3 @@
-import json
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -14,25 +12,28 @@ from ..services.settings import (
     BUDGET_THRESHOLD_KEY,
     DEFAULT_AUTO_SYNC_FREQUENCY_MINUTES,
     DEFAULT_BUDGET_THRESHOLD,
-    DEFAULT_MASHREQ_IMAP_FOLDER,
-    DEFAULT_MASHREQ_IMAP_PORT,
-    MASHREQ_CARD_ACCOUNTS_KEY,
-    MASHREQ_IMAP_FOLDER_KEY,
-    MASHREQ_IMAP_HOST_KEY,
-    MASHREQ_IMAP_PASSWORD_KEY,
-    MASHREQ_IMAP_PORT_KEY,
+    DEFAULT_SYNC_IMAP_FOLDER,
+    DEFAULT_SYNC_IMAP_PORT,
     INSIGHTS_MEMORY_KEY,
     LLM_API_KEY_KEY,
     LLM_MODEL_KEY,
     LLM_PROVIDER_KEY,
-    MASHREQ_IMAP_USER_KEY,
     MASHREQ_SYNC_ENABLED_KEY,
     OVERALL_MONTHLY_CAP_KEY,
+    SYNC_IMAP_FOLDER_KEY,
+    SYNC_IMAP_HOST_KEY,
+    SYNC_IMAP_PASSWORD_KEY,
+    SYNC_IMAP_PORT_KEY,
+    SYNC_IMAP_USER_KEY,
     get_bool_setting,
+    get_card_accounts,
     get_float_setting,
+    get_int_setting,
     get_str_setting,
     set_bool_setting,
+    set_card_accounts,
     set_float_setting,
+    set_int_setting,
     set_str_setting,
 )
 
@@ -41,23 +42,18 @@ router = APIRouter(prefix="/api/settings", tags=["settings"], dependencies=[Depe
 
 @router.get("", response_model=SettingsOut)
 def get_settings(db: Session = Depends(get_db)):
-    raw_accounts = get_str_setting(db, MASHREQ_CARD_ACCOUNTS_KEY, "{}")
-    try:
-        card_accounts = json.loads(raw_accounts or "{}")
-    except ValueError:
-        card_accounts = {}
+    stored_password = get_str_setting(db, SYNC_IMAP_PASSWORD_KEY, "") or ""
     return SettingsOut(
         budget_threshold=get_float_setting(db, BUDGET_THRESHOLD_KEY, DEFAULT_BUDGET_THRESHOLD),
         overall_monthly_cap=get_float_setting(db, OVERALL_MONTHLY_CAP_KEY, None),
-        mashreq_imap_host=get_str_setting(db, MASHREQ_IMAP_HOST_KEY, "") or "",
-        mashreq_imap_port=get_str_setting(db, MASHREQ_IMAP_PORT_KEY, DEFAULT_MASHREQ_IMAP_PORT) or "",
-        mashreq_imap_user=get_str_setting(db, MASHREQ_IMAP_USER_KEY, "") or "",
-        mashreq_imap_password=get_str_setting(db, MASHREQ_IMAP_PASSWORD_KEY, "") or "",
-        mashreq_imap_folder=get_str_setting(db, MASHREQ_IMAP_FOLDER_KEY, DEFAULT_MASHREQ_IMAP_FOLDER) or "",
-        mashreq_card_accounts=card_accounts,
-        amazon_default_account_id=(
-            int(v) if (v := get_float_setting(db, AMAZON_DEFAULT_ACCOUNT_ID_KEY, None)) is not None else None
-        ),
+        mashreq_imap_host=get_str_setting(db, SYNC_IMAP_HOST_KEY, "") or "",
+        mashreq_imap_port=get_str_setting(db, SYNC_IMAP_PORT_KEY, DEFAULT_SYNC_IMAP_PORT) or "",
+        mashreq_imap_user=get_str_setting(db, SYNC_IMAP_USER_KEY, "") or "",
+        mashreq_imap_password="",  # never round-trip the plaintext password to the client
+        mashreq_imap_password_set=bool(stored_password),
+        mashreq_imap_folder=get_str_setting(db, SYNC_IMAP_FOLDER_KEY, DEFAULT_SYNC_IMAP_FOLDER) or "",
+        mashreq_card_accounts=get_card_accounts(db),
+        amazon_default_account_id=get_int_setting(db, AMAZON_DEFAULT_ACCOUNT_ID_KEY, None),
         mashreq_sync_enabled=get_bool_setting(db, MASHREQ_SYNC_ENABLED_KEY, False),
         amazon_sync_enabled=get_bool_setting(db, AMAZON_SYNC_ENABLED_KEY, False),
         auto_sync_enabled=get_bool_setting(db, AUTO_SYNC_ENABLED_KEY, False),
@@ -80,21 +76,22 @@ def update_settings(body: SettingsIn, db: Session = Depends(get_db)):
     if "overall_monthly_cap" in fields:
         set_float_setting(db, OVERALL_MONTHLY_CAP_KEY, fields["overall_monthly_cap"])
     if "mashreq_imap_host" in fields:
-        set_str_setting(db, MASHREQ_IMAP_HOST_KEY, fields["mashreq_imap_host"])
+        set_str_setting(db, SYNC_IMAP_HOST_KEY, fields["mashreq_imap_host"])
     if "mashreq_imap_port" in fields:
-        set_str_setting(db, MASHREQ_IMAP_PORT_KEY, fields["mashreq_imap_port"])
+        set_str_setting(db, SYNC_IMAP_PORT_KEY, fields["mashreq_imap_port"])
     if "mashreq_imap_user" in fields:
-        set_str_setting(db, MASHREQ_IMAP_USER_KEY, fields["mashreq_imap_user"])
+        set_str_setting(db, SYNC_IMAP_USER_KEY, fields["mashreq_imap_user"])
     if "mashreq_imap_password" in fields:
-        set_str_setting(db, MASHREQ_IMAP_PASSWORD_KEY, fields["mashreq_imap_password"])
+        # frontend only sends this key when the user actually retyped the
+        # password (see mashreq_imap_password_set on GET) — empty string
+        # here is an intentional clear, not "leave unchanged"
+        set_str_setting(db, SYNC_IMAP_PASSWORD_KEY, fields["mashreq_imap_password"])
     if "mashreq_imap_folder" in fields:
-        set_str_setting(db, MASHREQ_IMAP_FOLDER_KEY, fields["mashreq_imap_folder"])
+        set_str_setting(db, SYNC_IMAP_FOLDER_KEY, fields["mashreq_imap_folder"])
     if "mashreq_card_accounts" in fields:
-        value = fields["mashreq_card_accounts"]
-        set_str_setting(db, MASHREQ_CARD_ACCOUNTS_KEY, json.dumps(value) if value is not None else None)
+        set_card_accounts(db, fields["mashreq_card_accounts"])
     if "amazon_default_account_id" in fields:
-        value = fields["amazon_default_account_id"]
-        set_float_setting(db, AMAZON_DEFAULT_ACCOUNT_ID_KEY, float(value) if value is not None else None)
+        set_int_setting(db, AMAZON_DEFAULT_ACCOUNT_ID_KEY, fields["amazon_default_account_id"])
     if "mashreq_sync_enabled" in fields:
         set_bool_setting(db, MASHREQ_SYNC_ENABLED_KEY, bool(fields["mashreq_sync_enabled"]))
     if "amazon_sync_enabled" in fields:
