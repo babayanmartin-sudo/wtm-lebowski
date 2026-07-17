@@ -57,7 +57,9 @@ def test_connection(provider: str, api_key: str, model: str | None) -> tuple[boo
 
             client = OpenAI(api_key=api_key)
             client.chat.completions.create(
-                model=resolved_model, max_tokens=1, messages=[{"role": "user", "content": "ping"}]
+                model=resolved_model,
+                max_completion_tokens=1,
+                messages=[{"role": "user", "content": "ping"}],
             )
         else:
             return False, f"Unknown provider: {provider}"
