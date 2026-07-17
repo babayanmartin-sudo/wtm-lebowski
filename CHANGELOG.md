@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.13.3 — 2026-07-17
+
+### Reports
+
+- Include/exclude category dropdowns now have a search field.
+
 ## v1.13.2 — 2026-07-17
 
 ### AI Assistant
