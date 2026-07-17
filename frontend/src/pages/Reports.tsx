@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Download, RotateCcw, Save, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Download, RotateCcw, Save, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -634,7 +634,9 @@ function CategoryMultiSelect({
   onChange: (ids: number[]) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -645,6 +647,11 @@ function CategoryMultiSelect({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
 
+  useEffect(() => {
+    if (open) searchRef.current?.focus();
+    else setQuery("");
+  }, [open]);
+
   const active = categories.filter((c) => !c.archived);
   const tops = active.filter((c) => c.parent_id === null);
   const selectedSet = new Set(value);
@@ -652,6 +659,17 @@ function CategoryMultiSelect({
   function toggle(id: number) {
     onChange(selectedSet.has(id) ? value.filter((v) => v !== id) : [...value, id]);
   }
+
+  const q = query.trim().toLowerCase();
+  const groups = tops
+    .map((top) => {
+      const children = active.filter((c) => c.parent_id === top.id);
+      const topMatches = !q || top.name.toLowerCase().includes(q);
+      const matchingChildren = q ? children.filter((c) => c.name.toLowerCase().includes(q)) : children;
+      if (q && !topMatches && matchingChildren.length === 0) return null;
+      return { top, children: topMatches ? children : matchingChildren };
+    })
+    .filter((g): g is { top: Category; children: Category[] } => g !== null);
 
   return (
     <div ref={rootRef} className="input relative h-9 w-48">
@@ -666,18 +684,33 @@ function CategoryMultiSelect({
         <ChevronDown size={14} className="shrink-0 text-gray-500" />
       </button>
       {open && (
-        <div className="absolute left-0 z-20 mt-1 max-h-72 w-56 overflow-y-auto rounded-xl border border-white/10 bg-[var(--color-panel)] py-1 shadow-xl">
-          {tops.map((top) => (
-            <div key={top.id}>
-              <MultiOption category={top} selected={selectedSet.has(top.id)} onClick={() => toggle(top.id)} />
-              {active
-                .filter((c) => c.parent_id === top.id)
-                .map((c) => (
+        <div className="absolute left-0 z-20 mt-1 max-h-80 w-56 overflow-hidden rounded-xl border border-white/10 bg-[var(--color-panel)] shadow-xl">
+          <div className="flex items-center gap-2 border-b border-white/10 px-2 py-1.5">
+            <Search size={13} className="shrink-0 text-gray-500" />
+            <input
+              ref={searchRef}
+              className="w-full bg-transparent text-sm outline-none placeholder:text-gray-500"
+              placeholder="Search categories…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
+            />
+          </div>
+          <div className="max-h-64 overflow-y-auto py-1">
+            {groups.map(({ top, children }) => (
+              <div key={top.id}>
+                <MultiOption category={top} selected={selectedSet.has(top.id)} onClick={() => toggle(top.id)} />
+                {children.map((c) => (
                   <MultiOption key={c.id} category={c} indent selected={selectedSet.has(c.id)} onClick={() => toggle(c.id)} />
                 ))}
-            </div>
-          ))}
-          {tops.length === 0 && <p className="px-3 py-2 text-xs text-gray-500">No categories.</p>}
+              </div>
+            ))}
+            {groups.length === 0 && (
+              <p className="px-3 py-2 text-xs text-gray-500">
+                {q ? "No categories match." : "No categories."}
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>
