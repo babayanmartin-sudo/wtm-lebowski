@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.13.2 — 2026-07-17
+
+### AI Assistant
+
+- Fixed OpenAI "Test connection" erroring on gpt-5/o-series with
+  "max_tokens or model output limit was reached" — the 1-token cap
+  left no room for the model's hidden reasoning tokens before any
+  visible output. Raised to 16.
+
 ## v1.13.1 — 2026-07-17
 
 ### AI Assistant
