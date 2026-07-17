@@ -420,6 +420,7 @@ export function AskWidget() {
   const { data: conversations = [] } = useInsightsConversations();
   const loadedConvoRef = useRef<number | null>(null);
   const historyRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const configured = !!settings?.llm_provider && !!settings?.llm_api_key;
 
@@ -456,6 +457,7 @@ export function AskWidget() {
     if (!question || ask.isPending) return;
     setError("");
     setInput("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
     const nextMessages: InsightsMessage[] = [...messages, { role: "user", content: question }];
     setMessages(nextMessages);
     try {
@@ -541,13 +543,25 @@ export function AskWidget() {
               )}
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <input
-              className="input flex-1"
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={textareaRef}
+              className="input max-h-40 min-h-9 flex-1 resize-none py-2 leading-normal"
               placeholder="e.g. how much did I spend on groceries last month?"
+              rows={1}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
+              onChange={(e) => {
+                setInput(e.target.value);
+                const el = e.target;
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
               disabled={ask.isPending}
             />
             <button className="btn-primary h-9" onClick={send} disabled={ask.isPending || !input.trim()}>
