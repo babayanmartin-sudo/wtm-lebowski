@@ -58,7 +58,11 @@ def test_connection(provider: str, api_key: str, model: str | None) -> tuple[boo
             client = OpenAI(api_key=api_key)
             client.chat.completions.create(
                 model=resolved_model,
-                max_completion_tokens=1,
+                # reasoning models (gpt-5, o-series) spend part of this
+                # budget on hidden reasoning tokens before any visible
+                # output — 1 starves them out and OpenAI errors instead
+                # of just returning empty content, so give it headroom
+                max_completion_tokens=16,
                 messages=[{"role": "user", "content": "ping"}],
             )
         else:
