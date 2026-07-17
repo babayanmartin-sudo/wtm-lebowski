@@ -41,6 +41,7 @@ import { fmtMoney, fmtMonth } from "../lib/format";
 import { toast } from "../lib/toast";
 import { toISO } from "../lib/period";
 import { useSessionState } from "../lib/session";
+import TemplatesPage from "./Templates";
 
 interface Draft {
   id?: number;
@@ -50,6 +51,26 @@ interface Draft {
 }
 
 export default function BudgetsPage() {
+  const [tab, setTab] = useSessionState<"budgets" | "planned">("budgets.tab", "budgets");
+
+  return (
+    <div>
+      <div className="mb-4">
+        <SegmentedToggle
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "budgets", label: "Budgets" },
+            { value: "planned", label: "Planned" },
+          ]}
+        />
+      </div>
+      {tab === "planned" ? <TemplatesPage /> : <BudgetsBody />}
+    </div>
+  );
+}
+
+function BudgetsBody() {
   const [periodDate, setPeriodDate] = useSessionState("budgets.date", toISO(new Date()));
   const month = periodDate.slice(0, 7);
   const { data: budgets = [], isLoading, isError, error: loadError } = useBudgets();

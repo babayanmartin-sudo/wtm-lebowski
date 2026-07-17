@@ -5,7 +5,6 @@ import {
   LogOut,
   Menu as MenuIcon,
   PiggyBank,
-  Repeat,
   ScrollText,
   Tags,
   Target,
@@ -22,13 +21,12 @@ import { api } from "../api/client";
 import { useVersion } from "../api/hooks";
 
 const MENU_ITEMS = [
+  { to: "/reports", label: "Reports", icon: ScrollText },
   { to: "/categories", label: "Categories", icon: Tags },
   { to: "/budgets", label: "Budgets", icon: PiggyBank },
   { to: "/goals", label: "Goals & Loans", icon: Target },
-  { to: "/templates", label: "Planned", icon: Repeat },
-  { to: "/import", label: "Import", icon: Upload },
   { to: "/rules", label: "Rules", icon: BookOpen },
-  { to: "/reports", label: "Reports", icon: ScrollText },
+  { to: "/import", label: "Import", icon: Upload },
   { to: "/profile", label: "Profile", icon: UserRound },
 ];
 

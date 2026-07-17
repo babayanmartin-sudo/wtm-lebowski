@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   LogOut,
   PiggyBank,
-  Repeat,
   ScrollText,
   Target,
   Tags,
@@ -23,16 +22,15 @@ import { useVersion } from "../api/hooks";
 import logo from "../assets/lebowski.png";
 
 const NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/", label: "Home", icon: LayoutDashboard },
+  { to: "/reports", label: "Reports", icon: ScrollText },
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { to: "/accounts", label: "Accounts", icon: Wallet },
   { to: "/categories", label: "Categories", icon: Tags },
   { to: "/budgets", label: "Budgets", icon: PiggyBank },
   { to: "/goals", label: "Goals & Loans", icon: Target },
-  { to: "/templates", label: "Planned", icon: Repeat },
-  { to: "/import", label: "Import", icon: Upload },
   { to: "/rules", label: "Rules", icon: BookOpen },
-  { to: "/reports", label: "Reports", icon: ScrollText },
+  { to: "/import", label: "Import", icon: Upload },
   { to: "/profile", label: "Profile", icon: UserRound },
 ];
 

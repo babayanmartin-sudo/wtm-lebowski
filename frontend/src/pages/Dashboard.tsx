@@ -90,7 +90,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Home</h1>
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1">

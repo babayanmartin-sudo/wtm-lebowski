@@ -20,7 +20,6 @@ import LoginPage from "./pages/Login";
 import ProfilePage from "./pages/Profile";
 import ReportsPage from "./pages/Reports";
 import RulesPage from "./pages/Rules";
-import TemplatesPage from "./pages/Templates";
 import TransactionsPage from "./pages/Transactions";
 
 export default function App() {
@@ -55,7 +54,7 @@ export default function App() {
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/budgets" element={<BudgetsPage />} />
             <Route path="/goals" element={<GoalsPage />} />
-            <Route path="/templates" element={<TemplatesPage />} />
+            <Route path="/templates" element={<Navigate to="/budgets" replace />} />
             <Route path="/import" element={<ImportPage />} />
             <Route path="/rules" element={<RulesPage />} />
             <Route path="/reports" element={<ReportsPage />} />
@@ -78,7 +77,7 @@ export default function App() {
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/budgets" element={<BudgetsPage />} />
           <Route path="/goals" element={<GoalsPage />} />
-          <Route path="/templates" element={<TemplatesPage />} />
+          <Route path="/templates" element={<Navigate to="/budgets" replace />} />
           <Route path="/import" element={<ImportPage />} />
           <Route path="/rules" element={<RulesPage />} />
           <Route path="/reports" element={<ReportsPage />} />
