@@ -24,29 +24,29 @@ export default function ProfilePage() {
         subtitle={`Account settings${version?.version ? ` · ${version.version}` : ""}`}
       />
 
-      <div className="mt-4 max-w-sm">
+      <div className="mt-4 grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
         <CollapsibleCard title="Change your password" icon={<KeyRound size={15} />}>
           <ChangePasswordForm />
         </CollapsibleCard>
-      </div>
 
-      {settings ? (
-        <div className="mt-4 grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-          <CollapsibleCard title="Budget thresholds">
-            <PreferencesForm settings={settings} />
-          </CollapsibleCard>
-          <CollapsibleCard title="Email connection settings">
-            <MailboxSyncForm settings={settings} accounts={accounts} />
-          </CollapsibleCard>
-          <CollapsibleCard title="AI Assistant">
-            <AiAssistantForm settings={settings} />
-          </CollapsibleCard>
-        </div>
-      ) : (
-        <div className="glass mt-4 max-w-sm p-6">
-          <LoadingState />
-        </div>
-      )}
+        {settings ? (
+          <>
+            <CollapsibleCard title="Budget thresholds">
+              <PreferencesForm settings={settings} />
+            </CollapsibleCard>
+            <CollapsibleCard title="Email connection settings">
+              <MailboxSyncForm settings={settings} accounts={accounts} />
+            </CollapsibleCard>
+            <CollapsibleCard title="AI Assistant">
+              <AiAssistantForm settings={settings} />
+            </CollapsibleCard>
+          </>
+        ) : (
+          <div className="glass p-6">
+            <LoadingState />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
