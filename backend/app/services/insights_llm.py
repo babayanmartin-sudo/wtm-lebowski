@@ -5,11 +5,14 @@ the loop hands the model a fixed set of read-only aggregation tools
 prompt, so each question only pulls the data it actually needs."""
 
 import json
+import logging
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from .insights_tools import TOOL_SCHEMAS, TOOLS
+
+logger = logging.getLogger(__name__)
 
 MAX_TOOL_ITERATIONS = 5
 
@@ -69,7 +72,14 @@ def _run_anthropic(db: Session, api_key: str, model: str, system_prompt: str, me
             raise InsightsError(str(e)) from e
 
         if resp.stop_reason != "tool_use":
-            return "".join(b.text for b in resp.content if b.type == "text").strip() or "No response."
+            text = "".join(b.text for b in resp.content if b.type == "text").strip()
+            if not text:
+                logger.warning(
+                    "insights: empty Anthropic reply — stop_reason=%s content_types=%s",
+                    resp.stop_reason,
+                    [b.type for b in resp.content],
+                )
+            return text or "No response."
 
         convo.append({"role": "assistant", "content": resp.content})
         tool_results = []
@@ -82,6 +92,7 @@ def _run_anthropic(db: Session, api_key: str, model: str, system_prompt: str, me
             )
         convo.append({"role": "user", "content": tool_results})
 
+    logger.warning("insights: Anthropic loop hit MAX_TOOL_ITERATIONS=%d without a final answer", MAX_TOOL_ITERATIONS)
     return "I wasn't able to finish looking that up — try a narrower question."
 
 
@@ -105,6 +116,12 @@ def _run_openai(db: Session, api_key: str, model: str, system_prompt: str, messa
 
         choice = resp.choices[0]
         if choice.finish_reason != "tool_calls" or not choice.message.tool_calls:
+            if not choice.message.content:
+                logger.warning(
+                    "insights: empty OpenAI reply — finish_reason=%s message=%s",
+                    choice.finish_reason,
+                    choice.message.model_dump(),
+                )
             return (choice.message.content or "No response.").strip()
 
         convo.append(choice.message.model_dump())
@@ -116,4 +133,5 @@ def _run_openai(db: Session, api_key: str, model: str, system_prompt: str, messa
             result = _run_tool(db, call.function.name, arguments)
             convo.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(result)})
 
+    logger.warning("insights: OpenAI loop hit MAX_TOOL_ITERATIONS=%d without a final answer", MAX_TOOL_ITERATIONS)
     return "I wasn't able to finish looking that up — try a narrower question."
