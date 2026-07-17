@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.13.1 — 2026-07-17
+
+### AI Assistant
+
+- Profile split into separate Anthropic and OpenAI cards — each has its
+  own API key/model fields, Test connection, and Save button.
+- Active-provider toggle moved from Profile into the Ask widget itself
+  (shows once both providers are configured).
+
 ## v1.13.0 — 2026-07-17
 
 ### AI Assistant
