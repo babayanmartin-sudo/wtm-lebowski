@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, History, Plus, RotateCcw, Send, Sparkles, X 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import {
@@ -392,6 +393,7 @@ function StatCell({
 function ChatMarkdown({ content }: { content: string }) {
   return (
     <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
       components={{
         p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
         ul: ({ children }) => <ul className="mb-2 list-disc space-y-1 pl-4 last:mb-0">{children}</ul>,
@@ -401,6 +403,16 @@ function ChatMarkdown({ content }: { content: string }) {
         code: ({ children }) => (
           <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-xs">{children}</code>
         ),
+        table: ({ children }) => (
+          <div className="mb-2 overflow-x-auto last:mb-0">
+            <table className="w-full border-collapse text-xs">{children}</table>
+          </div>
+        ),
+        thead: ({ children }) => <thead className="border-b border-white/10">{children}</thead>,
+        th: ({ children }) => (
+          <th className="px-2 py-1 text-left font-semibold text-gray-200">{children}</th>
+        ),
+        td: ({ children }) => <td className="border-t border-white/5 px-2 py-1">{children}</td>,
       }}
     >
       {content}
