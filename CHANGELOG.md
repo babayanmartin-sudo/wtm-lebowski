@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.12.1 — 2026-07-17
+
+### AI Assistant
+
+- Fixed OpenAI "Test connection" failing on gpt-5/o-series with
+  `Unsupported parameter: 'max_tokens'` — switched to
+  `max_completion_tokens`.
+
 ## v1.12.0 — 2026-07-17
 
 ### AI Assistant
