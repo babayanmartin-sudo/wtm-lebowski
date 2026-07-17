@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.11.5 — 2026-07-17
+
+### Ask widget (diagnostic only, no behavior change)
+
+- Log a warning when the LLM returns an empty reply ("No response.") or
+  the tool-use loop exhausts its iteration cap — records
+  stop_reason/finish_reason, content shape, and model so the next
+  occurrence is diagnosable from container logs.
+
 ## v1.11.4 — 2026-07-17
 
 ### Ask widget
