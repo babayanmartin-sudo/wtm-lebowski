@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.14.0 — 2026-07-17
+
+### Email sync
+
+- New Sync log, visible in Profile — every Mashreq/Amazon sync attempt
+  (manual or auto) now records imported/unmapped/unparsed counts and
+  any IMAP error, since a synced email gets marked read whether or not
+  it ends up imported. Auto-sync previously discarded these counts
+  entirely with no visibility at all.
+
 ## v1.13.3 — 2026-07-17
 
 ### Reports
