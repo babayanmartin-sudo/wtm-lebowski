@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.15.0 — 2026-07-17
+
+### Email sync
+
+- Mashreq/Amazon sync now commits straight to Transactions instead of
+  leaving a pending import to review — recognized category applies,
+  unrecognized lands as Uncategorized for later cleanup. No more
+  manual "commit" step for these two sources.
+
 ## v1.14.1 — 2026-07-17
 
 ### Email sync
