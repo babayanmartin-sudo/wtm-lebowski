@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.14.1 — 2026-07-17
+
+### Email sync
+
+- Fixed "synced but not in Transactions": auto-sync (and manual sync)
+  creates a pending Import that needs an explicit commit step, same as
+  a CSV upload — there was no way to find or commit one created by
+  auto-sync since nothing listed pending imports. Import page now
+  shows a "Pending imports" panel; Profile's Sync log links there and
+  says "queued for review" instead of the misleading "imported".
+
 ## v1.14.0 — 2026-07-17
 
 ### Email sync
