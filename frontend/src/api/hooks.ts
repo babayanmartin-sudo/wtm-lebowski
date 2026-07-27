@@ -22,6 +22,7 @@ import type {
   MashreqSyncResult,
   MashreqTestResult,
   OverallBudgetStatus,
+  PendingImportSummary,
   Projection,
   ReportFilters,
   ReportPreview,
@@ -108,7 +109,10 @@ export function useUpdateSettings() {
 }
 
 export function useMashreqSync() {
-  return useInvalidating(() => api.post<MashreqSyncResult>("/api/imports/mashreq-sync"), [["sync-log"]]);
+  return useInvalidating(
+    () => api.post<MashreqSyncResult>("/api/imports/mashreq-sync"),
+    [["sync-log"], ["imports", "pending"]],
+  );
 }
 
 export function useMashreqTest() {
@@ -119,17 +123,30 @@ export function useMashreqTest() {
 }
 
 export function useAmazonSync() {
-  return useInvalidating(() => api.post<AmazonSyncResult>("/api/imports/amazon-sync"), [["sync-log"]]);
+  return useInvalidating(
+    () => api.post<AmazonSyncResult>("/api/imports/amazon-sync"),
+    [["sync-log"], ["imports", "pending"]],
+  );
 }
 
 export function useSyncAll() {
-  return useInvalidating(() => api.post<SyncAllResult>("/api/imports/sync-all"), [["sync-log"]]);
+  return useInvalidating(
+    () => api.post<SyncAllResult>("/api/imports/sync-all"),
+    [["sync-log"], ["imports", "pending"]],
+  );
 }
 
 export function useSyncLog() {
   return useQuery({
     queryKey: ["sync-log"],
     queryFn: () => api.get<SyncLogEntry[]>("/api/imports/sync-log"),
+  });
+}
+
+export function usePendingImports() {
+  return useQuery({
+    queryKey: ["imports", "pending"],
+    queryFn: () => api.get<PendingImportSummary[]>("/api/imports/pending"),
   });
 }
 

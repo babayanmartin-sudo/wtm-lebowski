@@ -322,6 +322,16 @@ class ImportDetail(ImportOut):
     rows: list[ImportRowOut]
 
 
+class PendingImportSummary(BaseModel):
+    id: int
+    filename: str
+    account_id: int
+    account_name: str
+    status: str
+    created_at: datetime
+    row_count: int
+
+
 class MappingIn(BaseModel):
     mapping: dict  # field -> column index, e.g. {"date": 0, "amount": 3, ...}
     options: dict = {}

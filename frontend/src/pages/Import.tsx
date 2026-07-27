@@ -10,6 +10,7 @@ import {
   useImport,
   useInvalidating,
   useMashreqSync,
+  usePendingImports,
   useSettings,
   useSyncAll,
 } from "../api/hooks";
@@ -44,7 +45,10 @@ export default function ImportPage() {
   const [busy, setBusy] = useState(false);
   const [uncategorizedOnly, setUncategorizedOnly] = useState(true);
 
-  const commit = useInvalidating(() => api.post(`/api/imports/${importId}/commit`), MONEY_KEYS);
+  const commit = useInvalidating(
+    () => api.post(`/api/imports/${importId}/commit`),
+    [...MONEY_KEYS, ["imports", "pending"]],
+  );
   const mashreqSync = useMashreqSync();
 
   async function syncMashreq() {
@@ -282,6 +286,8 @@ export default function ImportPage() {
         </div>
       )}
 
+      {!importId && !imp && <PendingImportsList onOpen={setImportId} />}
+
       {/* Step 2: column mapping (first time, or re-opened from preview) */}
       {showMapping && (
         <div className="glass p-6">
@@ -515,6 +521,39 @@ export default function ImportPage() {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function PendingImportsList({ onOpen }: { onOpen: (id: number) => void }) {
+  const { data: pending = [] } = usePendingImports();
+  if (pending.length === 0) return null;
+
+  return (
+    <div className="glass mt-4 p-5">
+      <h2 className="mb-3 font-mono text-xs tracking-wide text-gray-500 uppercase">
+        Pending imports ({pending.length})
+      </h2>
+      <p className="mb-3 text-xs text-gray-500">
+        Parsed but not yet reviewed/committed — includes anything pulled in by auto-sync, which
+        doesn't open the review screen for you automatically.
+      </p>
+      <div className="flex flex-col gap-1.5">
+        {pending.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => onOpen(p.id)}
+            className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-white/5"
+          >
+            <span className="min-w-0 flex-1 truncate text-gray-200">{p.filename}</span>
+            <span className="shrink-0 text-xs text-gray-500">{p.account_name}</span>
+            <span className="shrink-0 text-xs text-gray-500">{p.row_count} rows</span>
+            <span className="shrink-0 text-xs text-gray-500">
+              {new Date(p.created_at).toLocaleDateString()}
+            </span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

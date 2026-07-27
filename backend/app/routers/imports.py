@@ -16,6 +16,7 @@ from ..schemas import (
     MashreqSyncResult,
     MashreqTestIn,
     MashreqTestResult,
+    PendingImportSummary,
     RowPatch,
     SyncAllResult,
     SyncLogOut,
@@ -311,6 +312,29 @@ def sync_all(db: Session = Depends(get_db)):
 @router.get("/sync-log", response_model=list[SyncLogOut])
 def get_sync_log(limit: int = 50, db: Session = Depends(get_db)):
     return db.scalars(select(SyncLog).order_by(SyncLog.ran_at.desc()).limit(min(limit, 200))).all()
+
+
+@router.get("/pending", response_model=list[PendingImportSummary])
+def get_pending_imports(db: Session = Depends(get_db)):
+    """Imports (CSV upload or Mashreq/Amazon sync) that were parsed but
+    never committed to real transactions — otherwise invisible once
+    created outside the upload flow (e.g. by auto-sync), since there was
+    no way to list them."""
+    imps = db.scalars(
+        select(Import).where(Import.status.in_(("mapping", "preview"))).order_by(Import.created_at.desc())
+    ).all()
+    return [
+        PendingImportSummary(
+            id=imp.id,
+            filename=imp.filename,
+            account_id=imp.account_id,
+            account_name=imp.account.name,
+            status=imp.status,
+            created_at=imp.created_at,
+            row_count=len(imp.rows),
+        )
+        for imp in imps
+    ]
 
 
 @router.get("/{import_id}", response_model=ImportDetail)

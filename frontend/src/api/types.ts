@@ -199,6 +199,16 @@ export interface SyncLogEntry {
   error: string | null;
 }
 
+export interface PendingImportSummary {
+  id: number;
+  filename: string;
+  account_id: number;
+  account_name: string;
+  status: string;
+  created_at: string;
+  row_count: number;
+}
+
 export interface SyncAllResult {
   mashreq: MashreqSyncResult | null;
   amazon: AmazonSyncResult | null;
