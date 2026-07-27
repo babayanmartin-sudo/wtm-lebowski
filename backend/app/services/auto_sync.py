@@ -51,11 +51,11 @@ def run_due_sync() -> None:
                 return
 
         try:
-            _run_mashreq_sync(db)
+            _run_mashreq_sync(db, trigger="auto")
         except Exception:
             logger.exception("auto Mashreq sync failed")
         try:
-            _run_amazon_sync(db)
+            _run_amazon_sync(db, trigger="auto")
         except Exception:
             logger.exception("auto Amazon sync failed")
 

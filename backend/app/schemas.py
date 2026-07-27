@@ -464,6 +464,17 @@ class SyncAllResult(BaseModel):
     errors: list[str]
 
 
+class SyncLogOut(BaseModel):
+    id: int
+    source: str
+    trigger: str
+    ran_at: datetime
+    imported_count: int
+    unmapped_count: int
+    unparsed_count: int
+    error: str | None
+
+
 # ---- insights (AI chat) ----
 class InsightsMessage(BaseModel):
     role: str  # "user"|"assistant"

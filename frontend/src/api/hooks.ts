@@ -30,6 +30,7 @@ import type {
   SavedReportDetail,
   Settings,
   SyncAllResult,
+  SyncLogEntry,
   Template,
   TransactionPage,
 } from "./types";
@@ -107,7 +108,7 @@ export function useUpdateSettings() {
 }
 
 export function useMashreqSync() {
-  return useInvalidating(() => api.post<MashreqSyncResult>("/api/imports/mashreq-sync"), []);
+  return useInvalidating(() => api.post<MashreqSyncResult>("/api/imports/mashreq-sync"), [["sync-log"]]);
 }
 
 export function useMashreqTest() {
@@ -118,11 +119,18 @@ export function useMashreqTest() {
 }
 
 export function useAmazonSync() {
-  return useInvalidating(() => api.post<AmazonSyncResult>("/api/imports/amazon-sync"), []);
+  return useInvalidating(() => api.post<AmazonSyncResult>("/api/imports/amazon-sync"), [["sync-log"]]);
 }
 
 export function useSyncAll() {
-  return useInvalidating(() => api.post<SyncAllResult>("/api/imports/sync-all"), []);
+  return useInvalidating(() => api.post<SyncAllResult>("/api/imports/sync-all"), [["sync-log"]]);
+}
+
+export function useSyncLog() {
+  return useQuery({
+    queryKey: ["sync-log"],
+    queryFn: () => api.get<SyncLogEntry[]>("/api/imports/sync-log"),
+  });
 }
 
 export function useInsightsTest() {

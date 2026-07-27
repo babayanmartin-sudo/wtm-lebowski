@@ -298,3 +298,21 @@ class InsightsConversation(Base):
     messages: Mapped[list] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class SyncLog(Base):
+    """One row per Mashreq/Amazon email-sync attempt (manual button or
+    auto-sync tick) — surfaces what would otherwise only be visible in
+    server logs, since fetch_unseen_by_subject marks alerts \\Seen
+    whether or not they end up imported."""
+
+    __tablename__ = "sync_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source: Mapped[str] = mapped_column(String)  # "mashreq" | "amazon"
+    trigger: Mapped[str] = mapped_column(String)  # "manual" | "auto"
+    ran_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    imported_count: Mapped[int] = mapped_column(Integer, default=0)
+    unmapped_count: Mapped[int] = mapped_column(Integer, default=0)
+    unparsed_count: Mapped[int] = mapped_column(Integer, default=0)
+    error: Mapped[str | None] = mapped_column(String, nullable=True)

@@ -7,6 +7,7 @@ import {
   useInsightsTest,
   useMashreqTest,
   useSettings,
+  useSyncLog,
   useUpdateSettings,
   useVersion,
 } from "../api/hooks";
@@ -43,6 +44,9 @@ export default function ProfilePage() {
             </CollapsibleCard>
             <CollapsibleCard title="Email connection settings">
               <MailboxSyncForm settings={settings} accounts={accounts} />
+            </CollapsibleCard>
+            <CollapsibleCard title="Sync log">
+              <SyncLogPanel />
             </CollapsibleCard>
             <CollapsibleCard title="AI Assistant — Anthropic">
               <AnthropicConfigForm settings={settings} />
@@ -665,6 +669,65 @@ function AssistantMemory({ settings }: { settings: Settings }) {
       <pre className="input h-auto max-h-48 overflow-y-auto whitespace-pre-wrap font-sans text-xs text-gray-300">
         {settings.insights_memory}
       </pre>
+    </div>
+  );
+}
+
+function SyncLogPanel() {
+  const { data: log = [], isLoading } = useSyncLog();
+
+  if (isLoading) return <LoadingState />;
+
+  if (log.length === 0) {
+    return (
+      <p className="text-sm text-gray-500">
+        No sync attempts yet — runs a "Sync Mashreq"/"Sync Amazon"/"Sync All" click, or auto-sync,
+        will show up here.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <p className="mb-1 text-xs text-gray-500">
+        Every Mashreq/Amazon sync attempt, manual or automatic — an email gets marked read as soon
+        as it's fetched, whether or not it ends up imported, so this is the only place a silently
+        skipped alert (unmapped card, unparsed format) shows up.
+      </p>
+      {log.map((entry) => {
+        const hasIssue = !!entry.error || entry.unmapped_count > 0 || entry.unparsed_count > 0;
+        return (
+          <div
+            key={entry.id}
+            className={`flex flex-col gap-1 rounded-lg border px-3 py-2 text-xs ${
+              entry.error
+                ? "border-rose-500/30 bg-rose-500/5"
+                : hasIssue
+                  ? "border-amber-500/30 bg-amber-500/5"
+                  : "border-white/5 bg-white/5"
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-medium text-gray-200 capitalize">
+                {entry.source}
+                <span className="ml-1.5 font-mono text-[10px] tracking-wide text-gray-500 uppercase">
+                  {entry.trigger}
+                </span>
+              </span>
+              <span className="shrink-0 text-gray-500">{new Date(entry.ran_at).toLocaleString()}</span>
+            </div>
+            {entry.error ? (
+              <p className="text-rose-300">{entry.error}</p>
+            ) : (
+              <p className="text-gray-400">
+                {entry.imported_count} imported
+                {entry.unmapped_count > 0 && `, ${entry.unmapped_count} unmapped card`}
+                {entry.unparsed_count > 0 && `, ${entry.unparsed_count} couldn't be parsed`}
+              </p>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -188,6 +188,17 @@ export interface InsightsTestResult {
   message: string;
 }
 
+export interface SyncLogEntry {
+  id: number;
+  source: "mashreq" | "amazon";
+  trigger: "manual" | "auto";
+  ran_at: string;
+  imported_count: number;
+  unmapped_count: number;
+  unparsed_count: number;
+  error: string | null;
+}
+
 export interface SyncAllResult {
   mashreq: MashreqSyncResult | null;
   amazon: AmazonSyncResult | null;

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..auth import require_auth
 from ..db import get_db
-from ..models import Account, ColumnPreset, Import, ImportRow, Split, Transaction
+from ..models import Account, ColumnPreset, Import, ImportRow, Split, SyncLog, Transaction
 from ..schemas import (
     AmazonSyncResult,
     ImportDetail,
@@ -18,6 +18,7 @@ from ..schemas import (
     MashreqTestResult,
     RowPatch,
     SyncAllResult,
+    SyncLogOut,
 )
 from ..services import importer
 from ..services.amazon_email import fetch_unseen_orders, fetch_unseen_refunds, parse_order_items, parse_refund_items
@@ -123,10 +124,14 @@ def mashreq_test(body: MashreqTestIn, db: Session = Depends(get_db)):
     return MashreqTestResult(ok=ok, message=message)
 
 
-def _run_mashreq_sync(db: Session) -> MashreqSyncResult | None:
+def _run_mashreq_sync(db: Session, trigger: str = "manual") -> MashreqSyncResult | None:
     """Core Mashreq sync logic, reused by the manual endpoint, /sync-all,
     and the auto-sync scheduler. Returns None if the mailbox isn't
-    configured (nothing to do), rather than raising."""
+    configured (nothing to do), rather than raising. Every attempt that
+    actually reaches the mailbox is recorded to SyncLog — alerts get
+    marked \\Seen whether or not they end up imported, so this is the
+    only place that surfaces unmapped/unparsed counts outside a manual
+    sync's toast."""
     mailbox = _load_mailbox_settings(db)
     if not mailbox.configured:
         return None
@@ -135,8 +140,12 @@ def _run_mashreq_sync(db: Session) -> MashreqSyncResult | None:
     try:
         alerts = fetch_unseen_alerts(mailbox.host, mailbox.port, mailbox.user, mailbox.password, mailbox.folder)
     except OSError as e:
+        db.add(SyncLog(source="mashreq", trigger=trigger, error=f"Couldn't reach the mailbox: {e}"))
+        db.commit()
         raise HTTPException(502, f"Couldn't reach the mailbox: {e}")
     except imaplib.IMAP4.error as e:
+        db.add(SyncLog(source="mashreq", trigger=trigger, error=f"IMAP error: {e}"))
+        db.commit()
         raise HTTPException(502, f"IMAP error: {e}")
 
     by_account: dict[int, list] = {}
@@ -176,6 +185,18 @@ def _run_mashreq_sync(db: Session) -> MashreqSyncResult | None:
         importer.finalize_rows(db, imp)
         summaries.append({"id": imp.id, "account_id": account_id, "count": len(parsed_alerts)})
 
+    imported_count = sum(s["count"] for s in summaries)
+    db.add(
+        SyncLog(
+            source="mashreq",
+            trigger=trigger,
+            imported_count=imported_count,
+            unmapped_count=unmapped_count,
+            unparsed_count=unparsed_count,
+        )
+    )
+    db.commit()
+
     return MashreqSyncResult(imports=summaries, unmapped_count=unmapped_count, unparsed_count=unparsed_count)
 
 
@@ -189,10 +210,11 @@ def mashreq_sync(db: Session = Depends(get_db)):
     return result
 
 
-def _run_amazon_sync(db: Session) -> AmazonSyncResult | None:
+def _run_amazon_sync(db: Session, trigger: str = "manual") -> AmazonSyncResult | None:
     """Core Amazon sync logic, reused by the manual endpoint, /sync-all,
     and the auto-sync scheduler. Returns None if the mailbox or default
-    account isn't configured (nothing to do), rather than raising."""
+    account isn't configured (nothing to do), rather than raising. Every
+    attempt that actually reaches the mailbox is recorded to SyncLog."""
     mailbox = _load_mailbox_settings(db)
     if not mailbox.configured:
         return None
@@ -205,8 +227,12 @@ def _run_amazon_sync(db: Session) -> AmazonSyncResult | None:
         order_emails = fetch_unseen_orders(mailbox.host, mailbox.port, mailbox.user, mailbox.password, mailbox.folder)
         refund_emails = fetch_unseen_refunds(mailbox.host, mailbox.port, mailbox.user, mailbox.password, mailbox.folder)
     except OSError as e:
+        db.add(SyncLog(source="amazon", trigger=trigger, error=f"Couldn't reach the mailbox: {e}"))
+        db.commit()
         raise HTTPException(502, f"Couldn't reach the mailbox: {e}")
     except imaplib.IMAP4.error as e:
+        db.add(SyncLog(source="amazon", trigger=trigger, error=f"IMAP error: {e}"))
+        db.commit()
         raise HTTPException(502, f"IMAP error: {e}")
 
     items = []
@@ -225,6 +251,8 @@ def _run_amazon_sync(db: Session) -> AmazonSyncResult | None:
         items.extend(parsed)
 
     if not items:
+        db.add(SyncLog(source="amazon", trigger=trigger, unparsed_count=unparsed_count))
+        db.commit()
         return AmazonSyncResult(imported_count=0, unparsed_count=unparsed_count, import_id=None)
 
     imp = Import(
@@ -245,6 +273,7 @@ def _run_amazon_sync(db: Session) -> AmazonSyncResult | None:
             )
         )
     db.add(imp)
+    db.add(SyncLog(source="amazon", trigger=trigger, imported_count=len(items), unparsed_count=unparsed_count))
     db.commit()
     importer.finalize_rows(db, imp)
 
@@ -277,6 +306,11 @@ def sync_all(db: Session = Depends(get_db)):
     except HTTPException as e:
         errors.append(f"Amazon: {e.detail}")
     return SyncAllResult(mashreq=mashreq_result, amazon=amazon_result, errors=errors)
+
+
+@router.get("/sync-log", response_model=list[SyncLogOut])
+def get_sync_log(limit: int = 50, db: Session = Depends(get_db)):
+    return db.scalars(select(SyncLog).order_by(SyncLog.ran_at.desc()).limit(min(limit, 200))).all()
 
 
 @router.get("/{import_id}", response_model=ImportDetail)
