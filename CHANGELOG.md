@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.15.1 — 2026-07-17
+
+### Email sync
+
+- Sync log in Profile now shows only the last 5 entries; the
+  underlying table self-prunes to the most recent 200 on every write
+  so it doesn't grow forever.
+
 ## v1.15.0 — 2026-07-17
 
 ### Email sync
