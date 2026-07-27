@@ -84,13 +84,16 @@ def test_amazon_sync_creates_import_with_line_items(seeded, monkeypatch):
     assert body["import_id"] is not None
 
     imp = c.get(f"/api/imports/{body['import_id']}").json()
-    assert imp["status"] == "preview"
+    assert imp["status"] == "done"  # committed straight to transactions, no review step
     assert imp["account_id"] == seeded["aed"]["id"]
     rows = imp["rows"]
     assert len(rows) == 2
     assert rows[0]["parsed_amount"] == -65.99
     assert rows[0]["parsed_date"] == "2026-07-07"
     assert rows[1]["parsed_amount"] == -19.62
+
+    txs = c.get(f"/api/transactions?account_id={seeded['aed']['id']}").json()["items"]
+    assert len(txs) == 2
 
 
 def test_amazon_sync_no_items_returns_no_import(seeded, monkeypatch):

@@ -55,13 +55,8 @@ export default function ImportPage() {
     setError("");
     try {
       const result = await mashreqSync.mutateAsync(undefined);
-      if (result.imports.length === 1) {
-        setImportId(result.imports[0].id);
-      } else if (result.imports.length > 1) {
-        toast(`Synced into ${result.imports.length} imports — open each from its account`);
-      } else {
-        toast("No new Mashreq alerts found");
-      }
+      const count = result.imports.reduce((s, i) => s + i.count, 0);
+      toast(count > 0 ? `Imported ${count} transaction(s) from Mashreq` : "No new Mashreq alerts found");
       if (result.unmapped_count > 0) {
         toast(`${result.unmapped_count} alert(s) skipped — unmapped card, add it in Profile`);
       }
@@ -79,11 +74,11 @@ export default function ImportPage() {
     setError("");
     try {
       const result = await amazonSync.mutateAsync(undefined);
-      if (result.import_id !== null) {
-        setImportId(result.import_id);
-      } else {
-        toast("No new Amazon orders found");
-      }
+      toast(
+        result.import_id !== null
+          ? `Imported ${result.imported_count} transaction(s) from Amazon`
+          : "No new Amazon orders found",
+      );
       if (result.unparsed_count > 0) {
         toast(`${result.unparsed_count} email(s) couldn't be parsed`);
       }
@@ -98,13 +93,10 @@ export default function ImportPage() {
     setError("");
     try {
       const result = await syncAll.mutateAsync(undefined);
-      if (result.mashreq && result.mashreq.imports.length === 1) {
-        setImportId(result.mashreq.imports[0].id);
-      } else if (result.amazon?.import_id != null) {
-        setImportId(result.amazon.import_id);
-      } else {
-        toast("No new alerts or orders found");
-      }
+      const mashreqCount = result.mashreq?.imports.reduce((s, i) => s + i.count, 0) ?? 0;
+      const amazonCount = result.amazon?.imported_count ?? 0;
+      const total = mashreqCount + amazonCount;
+      toast(total > 0 ? `Imported ${total} transaction(s)` : "No new alerts or orders found");
       if (result.errors.length > 0) {
         toast(result.errors.join("; "));
       }
@@ -535,8 +527,8 @@ function PendingImportsList({ onOpen }: { onOpen: (id: number) => void }) {
         Pending imports ({pending.length})
       </h2>
       <p className="mb-3 text-xs text-gray-500">
-        Parsed but not yet reviewed/committed — includes anything pulled in by auto-sync, which
-        doesn't open the review screen for you automatically.
+        CSV/XLSX uploads parsed but not yet reviewed/committed. Mashreq/Amazon sync imports
+        straight to Transactions and won't show up here.
       </p>
       <div className="flex flex-col gap-1.5">
         {pending.map((p) => (

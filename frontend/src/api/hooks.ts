@@ -111,7 +111,7 @@ export function useUpdateSettings() {
 export function useMashreqSync() {
   return useInvalidating(
     () => api.post<MashreqSyncResult>("/api/imports/mashreq-sync"),
-    [["sync-log"], ["imports", "pending"]],
+    [...MONEY_KEYS, ["sync-log"], ["imports", "pending"]],
   );
 }
 
@@ -125,14 +125,14 @@ export function useMashreqTest() {
 export function useAmazonSync() {
   return useInvalidating(
     () => api.post<AmazonSyncResult>("/api/imports/amazon-sync"),
-    [["sync-log"], ["imports", "pending"]],
+    [...MONEY_KEYS, ["sync-log"], ["imports", "pending"]],
   );
 }
 
 export function useSyncAll() {
   return useInvalidating(
     () => api.post<SyncAllResult>("/api/imports/sync-all"),
-    [["sync-log"], ["imports", "pending"]],
+    [...MONEY_KEYS, ["sync-log"], ["imports", "pending"]],
   );
 }
 

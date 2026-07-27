@@ -1,6 +1,5 @@
 import { Check, ChevronDown, KeyRound, Plug, Plus, Trash2 } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
-import { Link } from "react-router-dom";
 
 import { api, ApiError } from "../api/client";
 import {
@@ -691,14 +690,10 @@ function SyncLogPanel() {
   return (
     <div className="flex flex-col gap-1.5">
       <p className="mb-1 text-xs text-gray-500">
-        Every Mashreq/Amazon sync attempt, manual or automatic — an email gets marked read as soon
-        as it's fetched, whether or not it ends up queued. "Queued" means pulled into a pending
-        import, not yet posted as a transaction — review and commit it from the{" "}
-        <Link to="/import" className="underline hover:text-gray-300">
-          Import page
-        </Link>
-        . This is also the only place a silently skipped alert (unmapped card, unparsed format)
-        shows up.
+        Every Mashreq/Amazon sync attempt, manual or automatic. Recognized alerts/orders are
+        imported straight to Transactions (Uncategorized if the category couldn't be guessed) —
+        an email gets marked read as soon as it's fetched, so this is the only place a silently
+        skipped alert (unmapped card, unparsed format) shows up.
       </p>
       {log.map((entry) => {
         const hasIssue = !!entry.error || entry.unmapped_count > 0 || entry.unparsed_count > 0;
@@ -726,7 +721,7 @@ function SyncLogPanel() {
               <p className="text-rose-300">{entry.error}</p>
             ) : (
               <p className="text-gray-400">
-                {entry.imported_count} queued for review
+                {entry.imported_count} imported
                 {entry.unmapped_count > 0 && `, ${entry.unmapped_count} unmapped card`}
                 {entry.unparsed_count > 0 && `, ${entry.unparsed_count} couldn't be parsed`}
               </p>

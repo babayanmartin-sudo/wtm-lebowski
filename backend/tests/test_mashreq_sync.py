@@ -96,11 +96,17 @@ def test_sync_creates_import_for_mapped_card(seeded, monkeypatch):
     assert body["imports"][0]["count"] == 1
 
     imp = c.get(f"/api/imports/{body['imports'][0]['id']}").json()
-    assert imp["status"] == "preview"
+    assert imp["status"] == "done"  # committed straight to a transaction, no review step
     row = imp["rows"][0]
     assert row["parsed_amount"] == -220.0
     assert row["parsed_payee"] == "EGGSPECTATION RESTAURAN DUBAI AE"
     assert row["parsed_date"] == "2026-07-11"
+
+    txs = c.get(f"/api/transactions?account_id={seeded['aed']['id']}").json()["items"]
+    assert len(txs) == 1
+    assert txs[0]["payee"] == "EGGSPECTATION RESTAURAN DUBAI AE"
+    assert txs[0]["kind"] == "expense"
+    assert txs[0]["amount"] == 220.0
 
 
 def test_sync_skips_unmapped_card(seeded, monkeypatch):
@@ -127,8 +133,7 @@ def test_sync_dedupes_against_already_committed_alert(seeded, monkeypatch):
         imports_router, "fetch_unseen_alerts", lambda *a, **k: [(MASHREQ_SUBJECT, BODY)]
     )
 
-    first = c.post("/api/imports/mashreq-sync").json()
-    c.post(f"/api/imports/{first['imports'][0]['id']}/commit")
+    c.post("/api/imports/mashreq-sync")  # first sync commits straight to a transaction now
 
     second = c.post("/api/imports/mashreq-sync").json()
     imp = c.get(f"/api/imports/{second['imports'][0]['id']}").json()

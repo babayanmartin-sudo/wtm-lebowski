@@ -128,10 +128,13 @@ def mashreq_test(body: MashreqTestIn, db: Session = Depends(get_db)):
 def _run_mashreq_sync(db: Session, trigger: str = "manual") -> MashreqSyncResult | None:
     """Core Mashreq sync logic, reused by the manual endpoint, /sync-all,
     and the auto-sync scheduler. Returns None if the mailbox isn't
-    configured (nothing to do), rather than raising. Every attempt that
-    actually reaches the mailbox is recorded to SyncLog — alerts get
-    marked \\Seen whether or not they end up imported, so this is the
-    only place that surfaces unmapped/unparsed counts outside a manual
+    configured (nothing to do), rather than raising. Parsed alerts are
+    committed straight to transactions (unlike a CSV import, there's no
+    column-mapping step to review) — an unrecognized category just lands
+    as Uncategorized for later cleanup. Every attempt that actually
+    reaches the mailbox is recorded to SyncLog — alerts get marked
+    \\Seen whether or not they end up imported, so this is the only
+    place that surfaces unmapped/unparsed counts outside a manual
     sync's toast."""
     mailbox = _load_mailbox_settings(db)
     if not mailbox.configured:
@@ -184,6 +187,8 @@ def _run_mashreq_sync(db: Session, trigger: str = "manual") -> MashreqSyncResult
         db.add(imp)
         db.commit()
         importer.finalize_rows(db, imp)
+        _commit_import(db, imp)
+        db.commit()
         summaries.append({"id": imp.id, "account_id": account_id, "count": len(parsed_alerts)})
 
     imported_count = sum(s["count"] for s in summaries)
@@ -214,8 +219,11 @@ def mashreq_sync(db: Session = Depends(get_db)):
 def _run_amazon_sync(db: Session, trigger: str = "manual") -> AmazonSyncResult | None:
     """Core Amazon sync logic, reused by the manual endpoint, /sync-all,
     and the auto-sync scheduler. Returns None if the mailbox or default
-    account isn't configured (nothing to do), rather than raising. Every
-    attempt that actually reaches the mailbox is recorded to SyncLog."""
+    account isn't configured (nothing to do), rather than raising. Parsed
+    orders are committed straight to transactions (unlike a CSV import,
+    there's no column-mapping step to review) — an unrecognized category
+    just lands as Uncategorized for later cleanup. Every attempt that
+    actually reaches the mailbox is recorded to SyncLog."""
     mailbox = _load_mailbox_settings(db)
     if not mailbox.configured:
         return None
@@ -274,9 +282,11 @@ def _run_amazon_sync(db: Session, trigger: str = "manual") -> AmazonSyncResult |
             )
         )
     db.add(imp)
-    db.add(SyncLog(source="amazon", trigger=trigger, imported_count=len(items), unparsed_count=unparsed_count))
     db.commit()
     importer.finalize_rows(db, imp)
+    _commit_import(db, imp)
+    db.add(SyncLog(source="amazon", trigger=trigger, imported_count=len(items), unparsed_count=unparsed_count))
+    db.commit()
 
     return AmazonSyncResult(imported_count=len(items), unparsed_count=unparsed_count, import_id=imp.id)
 
@@ -435,13 +445,11 @@ def ignore_row(import_id: int, row_id: int, db: Session = Depends(get_db)):
     return imp
 
 
-@router.post("/{import_id}/commit", response_model=ImportOut)
-def commit_import(import_id: int, db: Session = Depends(get_db)):
-    imp = db.get(Import, import_id)
-    if not imp:
-        raise HTTPException(404, "Import not found")
-    if imp.status != "preview":
-        raise HTTPException(400, "Import is not ready to commit")
+def _commit_import(db: Session, imp: Import) -> int:
+    """Turn an import's parsed rows into real Transactions. Shared by the
+    manual review screen's commit button and pre-parsed sources (Mashreq/
+    Amazon sync) that skip the review step entirely and commit
+    immediately — both need identical rule-learning/dedupe handling."""
     account = imp.account
     created = 0
     for row in imp.rows:
@@ -489,6 +497,17 @@ def commit_import(import_id: int, db: Session = Depends(get_db)):
         if row.category_id and row.category_id != row.suggested_category_id and row.parsed_payee:
             learn(db, row.parsed_payee, row.category_id)
     imp.status = "done"
+    return created
+
+
+@router.post("/{import_id}/commit", response_model=ImportOut)
+def commit_import(import_id: int, db: Session = Depends(get_db)):
+    imp = db.get(Import, import_id)
+    if not imp:
+        raise HTTPException(404, "Import not found")
+    if imp.status != "preview":
+        raise HTTPException(400, "Import is not ready to commit")
+    _commit_import(db, imp)
     db.commit()
     return imp
 
