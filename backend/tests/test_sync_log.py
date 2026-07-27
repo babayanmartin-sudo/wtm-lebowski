@@ -29,6 +29,38 @@ def test_sync_log_empty_by_default(seeded):
     assert c.get("/api/imports/sync-log").json() == []
 
 
+def test_sync_log_limit_param_caps_results(seeded):
+    from app.routers.imports import _record_sync
+    from app.db import SessionLocal
+
+    c = seeded["client"]
+    db = SessionLocal()
+    try:
+        for _ in range(8):
+            _record_sync(db, source="mashreq", trigger="auto", imported_count=1)
+    finally:
+        db.close()
+
+    assert len(c.get("/api/imports/sync-log?limit=5").json()) == 5
+    assert len(c.get("/api/imports/sync-log?limit=20").json()) == 8
+
+
+def test_sync_log_prunes_beyond_retention(seeded, monkeypatch):
+    from app.routers.imports import SYNC_LOG_RETENTION, _record_sync
+    from app.db import SessionLocal
+
+    monkeypatch.setattr("app.routers.imports.SYNC_LOG_RETENTION", 3)
+    c = seeded["client"]
+    db = SessionLocal()
+    try:
+        for _ in range(5):
+            _record_sync(db, source="mashreq", trigger="auto", imported_count=1)
+    finally:
+        db.close()
+
+    assert len(c.get("/api/imports/sync-log?limit=50").json()) == 3
+
+
 def test_sync_log_records_manual_run_with_counts(seeded, monkeypatch):
     c = seeded["client"]
     _configure_mashreq(c, {"7694": seeded["aed"]["id"]})

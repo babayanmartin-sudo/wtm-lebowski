@@ -136,10 +136,10 @@ export function useSyncAll() {
   );
 }
 
-export function useSyncLog() {
+export function useSyncLog(limit = 5) {
   return useQuery({
-    queryKey: ["sync-log"],
-    queryFn: () => api.get<SyncLogEntry[]>("/api/imports/sync-log"),
+    queryKey: ["sync-log", limit],
+    queryFn: () => api.get<SyncLogEntry[]>(`/api/imports/sync-log?limit=${limit}`),
   });
 }
 

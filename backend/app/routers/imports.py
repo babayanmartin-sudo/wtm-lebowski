@@ -73,6 +73,23 @@ def _load_mailbox_settings(db: Session) -> MailboxSettings:
     )
 
 
+SYNC_LOG_RETENTION = 200
+
+
+def _record_sync(db: Session, **fields) -> None:
+    """Insert a SyncLog row and trim the table to the most recent
+    SYNC_LOG_RETENTION entries — otherwise this grows forever, one row
+    per sync attempt (auto-sync ticks every 15+ min)."""
+    db.add(SyncLog(**fields))
+    db.commit()
+    stale_ids = db.scalars(
+        select(SyncLog.id).order_by(SyncLog.ran_at.desc()).offset(SYNC_LOG_RETENTION)
+    ).all()
+    if stale_ids:
+        db.query(SyncLog).filter(SyncLog.id.in_(stale_ids)).delete(synchronize_session=False)
+        db.commit()
+
+
 @router.post("", response_model=ImportDetail, status_code=201)
 async def upload(
     file: UploadFile = File(...),
@@ -144,12 +161,10 @@ def _run_mashreq_sync(db: Session, trigger: str = "manual") -> MashreqSyncResult
     try:
         alerts = fetch_unseen_alerts(mailbox.host, mailbox.port, mailbox.user, mailbox.password, mailbox.folder)
     except OSError as e:
-        db.add(SyncLog(source="mashreq", trigger=trigger, error=f"Couldn't reach the mailbox: {e}"))
-        db.commit()
+        _record_sync(db, source="mashreq", trigger=trigger, error=f"Couldn't reach the mailbox: {e}")
         raise HTTPException(502, f"Couldn't reach the mailbox: {e}")
     except imaplib.IMAP4.error as e:
-        db.add(SyncLog(source="mashreq", trigger=trigger, error=f"IMAP error: {e}"))
-        db.commit()
+        _record_sync(db, source="mashreq", trigger=trigger, error=f"IMAP error: {e}")
         raise HTTPException(502, f"IMAP error: {e}")
 
     by_account: dict[int, list] = {}
@@ -192,16 +207,14 @@ def _run_mashreq_sync(db: Session, trigger: str = "manual") -> MashreqSyncResult
         summaries.append({"id": imp.id, "account_id": account_id, "count": len(parsed_alerts)})
 
     imported_count = sum(s["count"] for s in summaries)
-    db.add(
-        SyncLog(
-            source="mashreq",
-            trigger=trigger,
-            imported_count=imported_count,
-            unmapped_count=unmapped_count,
-            unparsed_count=unparsed_count,
-        )
+    _record_sync(
+        db,
+        source="mashreq",
+        trigger=trigger,
+        imported_count=imported_count,
+        unmapped_count=unmapped_count,
+        unparsed_count=unparsed_count,
     )
-    db.commit()
 
     return MashreqSyncResult(imports=summaries, unmapped_count=unmapped_count, unparsed_count=unparsed_count)
 
@@ -236,12 +249,10 @@ def _run_amazon_sync(db: Session, trigger: str = "manual") -> AmazonSyncResult |
         order_emails = fetch_unseen_orders(mailbox.host, mailbox.port, mailbox.user, mailbox.password, mailbox.folder)
         refund_emails = fetch_unseen_refunds(mailbox.host, mailbox.port, mailbox.user, mailbox.password, mailbox.folder)
     except OSError as e:
-        db.add(SyncLog(source="amazon", trigger=trigger, error=f"Couldn't reach the mailbox: {e}"))
-        db.commit()
+        _record_sync(db, source="amazon", trigger=trigger, error=f"Couldn't reach the mailbox: {e}")
         raise HTTPException(502, f"Couldn't reach the mailbox: {e}")
     except imaplib.IMAP4.error as e:
-        db.add(SyncLog(source="amazon", trigger=trigger, error=f"IMAP error: {e}"))
-        db.commit()
+        _record_sync(db, source="amazon", trigger=trigger, error=f"IMAP error: {e}")
         raise HTTPException(502, f"IMAP error: {e}")
 
     items = []
@@ -260,8 +271,7 @@ def _run_amazon_sync(db: Session, trigger: str = "manual") -> AmazonSyncResult |
         items.extend(parsed)
 
     if not items:
-        db.add(SyncLog(source="amazon", trigger=trigger, unparsed_count=unparsed_count))
-        db.commit()
+        _record_sync(db, source="amazon", trigger=trigger, unparsed_count=unparsed_count)
         return AmazonSyncResult(imported_count=0, unparsed_count=unparsed_count, import_id=None)
 
     imp = Import(
@@ -285,8 +295,8 @@ def _run_amazon_sync(db: Session, trigger: str = "manual") -> AmazonSyncResult |
     db.commit()
     importer.finalize_rows(db, imp)
     _commit_import(db, imp)
-    db.add(SyncLog(source="amazon", trigger=trigger, imported_count=len(items), unparsed_count=unparsed_count))
     db.commit()
+    _record_sync(db, source="amazon", trigger=trigger, imported_count=len(items), unparsed_count=unparsed_count)
 
     return AmazonSyncResult(imported_count=len(items), unparsed_count=unparsed_count, import_id=imp.id)
 
