@@ -16,8 +16,23 @@ def test_parse_alert_happy_path():
     assert r is not None
     assert r.card_suffix == "7694"
     assert r.amount == 220.0
+    assert r.currency == "AED"
     assert r.merchant == "EGGSPECTATION RESTAURAN DUBAI AE"
     assert r.date == datetime(2026, 7, 11, 13, 22)
+
+
+def test_parse_alert_foreign_currency():
+    """Purchases abroad (e.g. EUR) were previously dropped entirely — the
+    regex only matched literal "AED"."""
+    body = BODY.replace(
+        "purchase of AED 220.00 at EGGSPECTATION RESTAURAN DUBAI AE",
+        "purchase of EUR 20.30 at CLEOPATRA LIMASSOL CY",
+    )
+    r = parse_alert(SUBJECT, body)
+    assert r is not None
+    assert r.amount == 20.30
+    assert r.currency == "EUR"
+    assert r.merchant == "CLEOPATRA LIMASSOL CY"
 
 
 def test_parse_alert_wrong_subject_returns_none():

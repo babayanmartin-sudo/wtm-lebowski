@@ -15,7 +15,7 @@ SUBJECT = "Transaction Confirmation on Mashreq Card"
 
 _ALERT_RE = re.compile(
     r"ending with (?P<suffix>\d{4}).*?"
-    r"purchase of AED\s*(?P<amount>[\d,]+\.\d{2})\s*"
+    r"purchase of (?P<currency>[A-Z]{3})\s*(?P<amount>[\d,]+\.\d{2})\s*"
     r"at (?P<merchant>.+?)\s+on\s+"
     r"(?P<timestamp>\d{2}-[A-Z]{3}-\d{4}\s+\d{2}:\d{2}\s+[AP]M)",
     re.DOTALL,
@@ -26,6 +26,7 @@ _ALERT_RE = re.compile(
 class ParsedAlert:
     card_suffix: str
     amount: float
+    currency: str
     merchant: str
     date: datetime
 
@@ -44,6 +45,7 @@ def parse_alert(subject: str, body: str) -> ParsedAlert | None:
     return ParsedAlert(
         card_suffix=m.group("suffix"),
         amount=amount,
+        currency=m.group("currency"),
         merchant=m.group("merchant").strip(),
         date=dt,
     )

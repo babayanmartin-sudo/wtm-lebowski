@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..auth import require_auth
+from ..config import BASE_CURRENCY
 from ..db import get_db
 from ..models import Account, ColumnPreset, Import, ImportRow, Split, SyncLog, Transaction
 from ..schemas import (
@@ -26,7 +27,7 @@ from ..services.amazon_email import fetch_unseen_orders, fetch_unseen_refunds, p
 from ..services.mashreq_email import fetch_unseen_alerts, parse_alert
 from ..services.mashreq_email import test_connection as mashreq_test_connection
 from ..services.matcher import is_ignored, learn, learn_ignore, normalize, suggest
-from ..services.rates import to_base
+from ..services.rates import get_rate, to_base
 from ..services.settings import (
     AMAZON_DEFAULT_ACCOUNT_ID_KEY,
     AMAZON_SYNC_ENABLED_KEY,
@@ -183,6 +184,7 @@ def _run_mashreq_sync(db: Session, trigger: str = "manual") -> MashreqSyncResult
 
     summaries = []
     for account_id, parsed_alerts in by_account.items():
+        account = db.get(Account, account_id)
         imp = Import(
             filename=f"Mashreq sync {parsed_alerts[0].date.date().isoformat()}",
             account_id=account_id,
@@ -190,12 +192,20 @@ def _run_mashreq_sync(db: Session, trigger: str = "manual") -> MashreqSyncResult
             mapping={},
         )
         for i, alert in enumerate(parsed_alerts):
+            # the alert states the purchase in its original currency (e.g. a
+            # EUR purchase abroad) — convert to the account's own currency so
+            # parsed_amount means what the CSV-import path assumes it means
+            amount = alert.amount
+            if account and alert.currency != account.currency:
+                amount = to_base(db, alert.amount, alert.currency, alert.date.date())
+                if account.currency != BASE_CURRENCY:
+                    amount = round(amount / get_rate(db, account.currency, alert.date.date()), 2)
             imp.rows.append(
                 ImportRow(
                     row_index=i,
-                    raw=[f"{alert.merchant} — {alert.date.isoformat()}"],
+                    raw=[f"{alert.merchant} — {alert.date.isoformat()} ({alert.currency} {alert.amount})"],
                     parsed_date=alert.date.date(),
-                    parsed_amount=-alert.amount,
+                    parsed_amount=-amount,
                     parsed_payee=alert.merchant,
                 )
             )

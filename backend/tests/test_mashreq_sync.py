@@ -122,6 +122,38 @@ def test_sync_skips_unmapped_card(seeded, monkeypatch):
     assert body["unmapped_count"] == 1
 
 
+def test_sync_converts_foreign_currency_to_account_currency(seeded, monkeypatch):
+    """A purchase abroad (e.g. EUR) was previously dropped as unparsed —
+    the regex only matched literal AED. Now it's parsed and converted to
+    the account's currency using the day's exchange rate."""
+    from datetime import date
+
+    from app.db import SessionLocal
+    from app.models import ExchangeRate
+
+    db = SessionLocal()
+    try:
+        db.add(ExchangeRate(date=date(2026, 7, 11), currency="EUR", rate_to_base=4.0))
+        db.commit()
+    finally:
+        db.close()
+
+    c = seeded["client"]
+    _configure(c, {"7694": seeded["aed"]["id"]})
+    eur_body = BODY.replace("AED 220.00", "EUR 20.30")
+    monkeypatch.setattr(imports_router, "fetch_unseen_alerts", lambda *a, **k: [(MASHREQ_SUBJECT, eur_body)])
+
+    r = c.post("/api/imports/mashreq-sync")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["unparsed_count"] == 0
+    assert len(body["imports"]) == 1
+
+    txs = c.get(f"/api/transactions?account_id={seeded['aed']['id']}").json()["items"]
+    assert len(txs) == 1
+    assert txs[0]["amount"] == 81.2  # 20.30 EUR * 4.0 AED/EUR
+
+
 def test_sync_dedupes_against_already_committed_alert(seeded, monkeypatch):
     """A second sync picking up the same forwarded alert (e.g. re-forwarded
     by mistake) should flag it as a duplicate against the transaction the
