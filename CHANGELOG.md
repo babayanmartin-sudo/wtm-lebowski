@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.15.2 — 2026-07-29
+
+### Email sync
+
+- Fixed Mashreq purchases abroad (non-AED currency, e.g. EUR) being
+  silently dropped as "unparsed" — the alert regex only matched literal
+  "AED". Now captures any currency and converts to the account's
+  currency using the day's exchange rate.
+
 ## v1.15.1 — 2026-07-17
 
 ### Email sync
