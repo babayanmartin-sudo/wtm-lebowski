@@ -44,6 +44,7 @@ export default function ImportPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [uncategorizedOnly, setUncategorizedOnly] = useState(true);
+  const [unmarkingAll, setUnmarkingAll] = useState(false);
 
   const commit = useInvalidating(
     () => api.post(`/api/imports/${importId}/commit`),
@@ -168,6 +169,18 @@ export default function ImportPage() {
 
   async function unmarkDuplicate(row: ImportRow) {
     await patchRow(row, { is_duplicate: false });
+  }
+
+  async function unmarkAllDuplicates() {
+    setUnmarkingAll(true);
+    try {
+      await api.post(`/api/imports/${importId}/unmark-all-duplicates`);
+      refetch();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to unmark duplicates");
+    } finally {
+      setUnmarkingAll(false);
+    }
   }
 
   async function ignoreRow(row: ImportRow) {
@@ -356,6 +369,14 @@ export default function ImportPage() {
             {dupes > 0 && (
               <span className="flex items-center gap-1 text-amber-300">
                 <CopyX size={14} /> {dupes} duplicates skipped
+                <button
+                  title="Unmark every duplicate in this import — use for a bulk historical import where rows legitimately share the same date and amount"
+                  className="ml-1 rounded px-1.5 py-0.5 text-xs text-amber-200 hover:bg-white/10 hover:underline"
+                  onClick={unmarkAllDuplicates}
+                  disabled={unmarkingAll}
+                >
+                  {unmarkingAll ? "…" : "not duplicates — import all"}
+                </button>
               </span>
             )}
             <span className="flex-1" />

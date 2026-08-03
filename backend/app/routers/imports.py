@@ -441,6 +441,24 @@ def patch_row(import_id: int, row_id: int, body: RowPatch, db: Session = Depends
     return imp
 
 
+@router.post("/{import_id}/unmark-all-duplicates", response_model=ImportDetail)
+def unmark_all_duplicates(import_id: int, db: Session = Depends(get_db)):
+    """Bulk version of patch_row's is_duplicate=False — for a legitimate
+    bulk-import scenario (e.g. an initial historical dump where many
+    rows share date+amount by coincidence, not because they're actually
+    duplicates) clicking "not a duplicate" one row at a time doesn't
+    scale to hundreds of rows."""
+    imp = db.get(Import, import_id)
+    if not imp:
+        raise HTTPException(404, "Import not found")
+    for row in imp.rows:
+        if row.is_duplicate:
+            row.is_duplicate = False
+            row.skip = False
+    db.commit()
+    return imp
+
+
 @router.post("/{import_id}/rows/{row_id}/ignore", response_model=ImportDetail)
 def ignore_row(import_id: int, row_id: int, db: Session = Depends(get_db)):
     """Mark this row and every same-merchant row in this import as ignored,
