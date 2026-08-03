@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.16.0 — 2026-08-03
+
+### Categories
+
+- Categories now have real icons (list rows + an icon picker in the
+  edit modal), same system as Accounts. Category.icon was already
+  stored but never rendered — this wasn't a mobile-only bug, it just
+  hadn't been built yet.
+
 ## v1.15.4 — 2026-08-03
 
 ### Goals & Loans
