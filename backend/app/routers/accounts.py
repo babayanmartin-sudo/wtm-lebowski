@@ -9,7 +9,7 @@ from ..db import get_db
 from ..models import Account, Split, Transaction
 from ..schemas import AccountIn, AccountOut, ReconcileIn, ReconcileResult
 from ..services.balances import balance_in_base, compute_balances
-from ..services.rates import to_base
+from ..services.rates import get_base_currency, recompute_all_amount_base, to_base
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"], dependencies=[Depends(require_auth)])
 
@@ -38,11 +38,14 @@ def _enforce_single_main(db: Session, acc: Account) -> None:
 def create_account(body: AccountIn, db: Session = Depends(get_db)):
     if db.scalar(select(Account).where(Account.name == body.name)):
         raise HTTPException(409, "Account name already exists")
+    old_base = get_base_currency(db)
     acc = Account(**body.model_dump())
     db.add(acc)
     db.flush()
     _enforce_single_main(db, acc)
     db.commit()
+    if get_base_currency(db) != old_base:
+        recompute_all_amount_base(db)
     return _with_balance(db, acc, compute_balances(db))
 
 
@@ -58,10 +61,16 @@ def update_account(account_id: int, body: AccountIn, db: Session = Depends(get_d
     )
     if has_tx and body.currency != acc.currency:
         raise HTTPException(400, "Cannot change currency of an account with transactions")
+    old_base = get_base_currency(db)
     for key, value in body.model_dump().items():
         setattr(acc, key, value)
     _enforce_single_main(db, acc)
     db.commit()
+    # base currency is dynamic (whichever account is is_main) — becoming
+    # or un-becoming main, or changing the main account's own currency,
+    # can shift it, which makes every stored amount_base stale
+    if get_base_currency(db) != old_base:
+        recompute_all_amount_base(db)
     return _with_balance(db, acc, compute_balances(db))
 
 

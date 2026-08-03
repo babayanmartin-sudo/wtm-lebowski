@@ -32,7 +32,7 @@ import {
   SuccessIcon,
 } from "../components/ui";
 import RateTicker from "../components/RateTicker";
-import { fmtMoney } from "../lib/format";
+import { fmtMoney, getBaseCurrency } from "../lib/format";
 import { toast } from "../lib/toast";
 import { ACCOUNT_ICON_KEYS, getAccountIcon } from "../lib/icons";
 
@@ -74,6 +74,7 @@ export default function AccountsPage() {
     isError: accountsIsError,
     error: accountsError,
   } = useAccounts();
+  const baseCurrency = getBaseCurrency(accounts);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
   const [pageError, setPageError] = useState("");
@@ -230,6 +231,7 @@ export default function AccountsPage() {
               <SortableAccountItem
                 key={acc.id}
                 acc={acc}
+                baseCurrency={baseCurrency}
                 viewMode={viewMode}
                 onOpen={() => navigate(`/transactions?account=${acc.id}`)}
                 onSetMain={() => setMain(acc)}
@@ -254,6 +256,7 @@ export default function AccountsPage() {
             <AccountItemBody
               key={acc.id}
               acc={acc}
+              baseCurrency={baseCurrency}
               viewMode={viewMode}
               onOpen={() => navigate(`/transactions?account=${acc.id}`)}
               onSetMain={() => setMain(acc)}
@@ -409,6 +412,7 @@ export default function AccountsPage() {
 
 interface AccountItemProps {
   acc: Account;
+  baseCurrency: string;
   viewMode: "card" | "list";
   onOpen: () => void;
   onSetMain: () => void;
@@ -424,6 +428,7 @@ interface AccountItemProps {
 
 function AccountItemBody({
   acc,
+  baseCurrency,
   viewMode,
   onOpen,
   onSetMain,
@@ -538,8 +543,8 @@ function AccountItemBody({
         {actions}
       </div>
       <p className="mt-4 text-2xl font-semibold tabular-nums">{fmtMoney(acc.balance, acc.currency)}</p>
-      {acc.currency !== "AED" && (
-        <p className="text-sm text-gray-500 tabular-nums">≈ {fmtMoney(acc.balance_base, "AED")}</p>
+      {acc.currency !== baseCurrency && (
+        <p className="text-sm text-gray-500 tabular-nums">≈ {fmtMoney(acc.balance_base, baseCurrency)}</p>
       )}
     </div>
   );

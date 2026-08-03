@@ -3,11 +3,10 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..auth import require_auth
-from ..config import BASE_CURRENCY
 from ..db import get_db
 from ..models import Loan, Transaction
 from ..schemas import LoanIn, LoanOut
-from ..services.rates import get_rate
+from ..services.rates import convert
 
 router = APIRouter(prefix="/api/loans", tags=["loans"], dependencies=[Depends(require_auth)])
 
@@ -15,32 +14,17 @@ _DIRECTIONS = ("debt", "receivable")
 
 
 def _out(db: Session, loan: Loan) -> LoanOut:
+    # Converts each transaction's own (amount, currency) directly to
+    # loan.currency — exact when they already match (the common case, no
+    # rate math at all), cross-converted through the rate anchor
+    # otherwise. Deliberately never reads amount_base: that's a cache of
+    # amount converted to the *display* base currency (which is dynamic —
+    # see get_base_currency), a different and unrelated conversion target
+    # from loan.currency, and re-deriving one from the other risks the
+    # kind of silent drift a previous version of this function had.
     kind = "expense" if loan.direction == "debt" else "income"
-    if loan.currency == BASE_CURRENCY:
-        # principal_amount is in loan.currency (== base here) — amount_base
-        # is directly comparable, no per-row conversion needed
-        paid = db.scalar(
-            select(func.sum(Transaction.amount_base)).where(
-                Transaction.loan_id == loan.id, Transaction.kind == kind
-            )
-        ) or 0.0
-    else:
-        # principal_amount is in a non-base currency (e.g. a EUR loan).
-        # When the transaction's own currency already matches, use its
-        # amount directly — exact, no conversion. amount_base was computed
-        # from whatever rate was resolved at transaction-creation time;
-        # re-deriving via today's get_rate() for that date can silently
-        # drift from that original figure once the rates table is
-        # backfilled/refreshed, so it's only a fallback for a genuine
-        # currency mismatch (transaction in a different currency than the
-        # loan), not the common case.
-        txs = db.scalars(
-            select(Transaction).where(Transaction.loan_id == loan.id, Transaction.kind == kind)
-        ).all()
-        paid = sum(
-            t.amount if t.currency == loan.currency else t.amount_base / get_rate(db, loan.currency, t.date)
-            for t in txs
-        )
+    txs = db.scalars(select(Transaction).where(Transaction.loan_id == loan.id, Transaction.kind == kind)).all()
+    paid = sum(convert(db, t.amount, t.currency, loan.currency, t.date) for t in txs)
     out = LoanOut.model_validate(loan)
     out.paid = round(paid, 2)
     out.remaining = round(loan.principal_amount - paid, 2)

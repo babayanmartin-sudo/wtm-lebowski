@@ -1,3 +1,9 @@
+/** Mirrors backend get_base_currency(): whichever account is flagged
+ * is_main, or "AED" (the app's fixed rate-cache anchor) if none is set. */
+export function getBaseCurrency(accounts: { currency: string; is_main: boolean }[]): string {
+  return accounts.find((a) => a.is_main)?.currency ?? "AED";
+}
+
 export function fmtMoney(amount: number, currency?: string): string {
   const formatted = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,

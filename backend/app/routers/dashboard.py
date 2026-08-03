@@ -6,13 +6,12 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from ..auth import require_auth
-from ..config import BASE_CURRENCY
 from ..db import get_db
 from ..models import Account, Category, Split, Transaction
 from ..schemas import TransactionOut
 from ..services.balances import balance_in_base, compute_balances
 from ..services.forecast import project_net_worth
-from ..services.rates import to_base
+from ..services.rates import get_base_currency, to_base
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"], dependencies=[Depends(require_auth)])
 
@@ -51,7 +50,7 @@ def summary(
     granularity, series = _series(db, start, end, account_id, cat_ids, excluded_ids, transfer_flows)
 
     return {
-        "base_currency": BASE_CURRENCY,
+        "base_currency": get_base_currency(db),
         "date_from": start.isoformat(),
         "date_to": end.isoformat(),
         "account_id": account_id,
@@ -79,7 +78,7 @@ def projection(months: int = Query(default=12, ge=1, le=36), db: Session = Depen
         sum(balance_in_base(db, a, balances.get(a.id, a.initial_balance)) for a in accounts), 2
     )
     return {
-        "base_currency": BASE_CURRENCY,
+        "base_currency": get_base_currency(db),
         "current_net_worth": current,
         "points": project_net_worth(db, current, months),
     }

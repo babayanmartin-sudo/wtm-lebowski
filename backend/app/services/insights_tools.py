@@ -11,7 +11,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..config import BASE_CURRENCY
+from .rates import get_base_currency
 from ..models import Account, Category
 from ..routers.budgets import compute_budget_status
 from ..routers.dashboard import _by_category, _category_ids_with_children, _period, _totals
@@ -32,7 +32,7 @@ def get_summary(
     cat_ids = _category_ids_with_children(db, category_id)
     totals = _totals(db, start, end, account_id, cat_ids)
     return {
-        "base_currency": BASE_CURRENCY,
+        "base_currency": get_base_currency(db),
         "date_from": start.isoformat(),
         "date_to": end.isoformat(),
         "income": round(totals.get("income") or 0.0, 2),
@@ -147,7 +147,7 @@ def get_accounts_balances(db: Session) -> dict:
     balances = compute_balances(db)
     accounts = db.scalars(select(Account).where(Account.archived.is_(False))).all()
     return {
-        "base_currency": BASE_CURRENCY,
+        "base_currency": get_base_currency(db),
         "accounts": [
             {
                 "name": a.name,

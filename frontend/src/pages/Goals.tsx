@@ -3,10 +3,10 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "../api/client";
-import { useGoals, useInvalidating, useLoans } from "../api/hooks";
+import { useAccounts, useGoals, useInvalidating, useLoans } from "../api/hooks";
 import type { Goal, Loan } from "../api/types";
 import { ColorPicker, EmptyState, ErrorState, Field, LoadingState, Modal, PageHeader } from "../components/ui";
-import { fmtDate, fmtMoney, today } from "../lib/format";
+import { fmtDate, fmtMoney, getBaseCurrency, today } from "../lib/format";
 import { toast } from "../lib/toast";
 
 interface Draft {
@@ -33,6 +33,8 @@ export default function GoalsPage() {
     isError: goalsIsError,
     error: goalsError,
   } = useGoals();
+  const { data: accounts = [] } = useAccounts();
+  const baseCurrency = getBaseCurrency(accounts);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [contributing, setContributing] = useState<Goal | null>(null);
   const [amount, setAmount] = useState("");
@@ -312,7 +314,7 @@ export default function GoalsPage() {
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Target (AED)">
+              <Field label={`Target (${baseCurrency})`}>
                 <input
                   type="number"
                   step="0.01"

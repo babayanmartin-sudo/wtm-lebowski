@@ -9,7 +9,7 @@ import { MONEY_KEYS, useAccounts, useInvalidating } from "../api/hooks";
 import type { Account } from "../api/types";
 import RateTicker from "../components/RateTicker";
 import { ErrorState, LoadingState, PALETTE } from "../components/ui";
-import { fmtMoney } from "../lib/format";
+import { fmtMoney, getBaseCurrency } from "../lib/format";
 import { ACCOUNT_ICON_KEYS, getAccountIcon } from "../lib/icons";
 
 const TYPES = ["cash", "bank", "card", "savings"];
@@ -44,6 +44,7 @@ const empty: Draft = {
 
 export default function MobileAccounts() {
   const { data: accounts = [], isLoading, isError, error: loadError } = useAccounts();
+  const baseCurrency = getBaseCurrency(accounts);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState("");
 
@@ -121,6 +122,7 @@ export default function MobileAccounts() {
               <SortableMobileAccountCard
                 key={acc.id}
                 acc={acc}
+                baseCurrency={baseCurrency}
                 onSetMain={() => acc.is_main || save.mutate({ ...acc, is_main: true })}
                 onToggleNetWorth={() => save.mutate({ ...acc, exclude_from_net_worth: !acc.exclude_from_net_worth })}
                 onEdit={() => setDraft({ ...acc })}
@@ -137,6 +139,7 @@ export default function MobileAccounts() {
             <MobileAccountCard
               key={acc.id}
               acc={acc}
+              baseCurrency={baseCurrency}
               onSetMain={() => acc.is_main || save.mutate({ ...acc, is_main: true })}
               onToggleNetWorth={() => save.mutate({ ...acc, exclude_from_net_worth: !acc.exclude_from_net_worth })}
               onEdit={() => setDraft({ ...acc })}
@@ -251,6 +254,7 @@ export default function MobileAccounts() {
 
 interface MobileAccountCardProps {
   acc: Account;
+  baseCurrency: string;
   onSetMain: () => void;
   onToggleNetWorth: () => void;
   onEdit: () => void;
@@ -263,6 +267,7 @@ interface MobileAccountCardProps {
 
 function MobileAccountCard({
   acc,
+  baseCurrency,
   onSetMain,
   onToggleNetWorth,
   onEdit,
@@ -317,8 +322,8 @@ function MobileAccountCard({
         {acc.exclude_from_net_worth ? " · excluded" : ""}
       </p>
       <p className="truncate text-2xl font-bold tabular-nums">{fmtMoney(acc.balance, acc.currency)}</p>
-      {acc.currency !== "AED" && (
-        <p className="truncate text-xs text-black/60 tabular-nums">≈ {fmtMoney(acc.balance_base, "AED")}</p>
+      {acc.currency !== baseCurrency && (
+        <p className="truncate text-xs text-black/60 tabular-nums">≈ {fmtMoney(acc.balance_base, baseCurrency)}</p>
       )}
     </div>
   );

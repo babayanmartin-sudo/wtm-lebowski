@@ -6,7 +6,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..auth import require_auth
-from ..config import BASE_CURRENCY
 from ..db import get_db
 from ..models import Account, ColumnPreset, Import, ImportRow, Split, SyncLog, Transaction
 from ..schemas import (
@@ -27,7 +26,7 @@ from ..services.amazon_email import fetch_unseen_orders, fetch_unseen_refunds, p
 from ..services.mashreq_email import fetch_unseen_alerts, parse_alert
 from ..services.mashreq_email import test_connection as mashreq_test_connection
 from ..services.matcher import is_ignored, learn, learn_ignore, normalize, suggest
-from ..services.rates import get_rate, to_base
+from ..services.rates import convert, to_base
 from ..services.settings import (
     AMAZON_DEFAULT_ACCOUNT_ID_KEY,
     AMAZON_SYNC_ENABLED_KEY,
@@ -197,9 +196,7 @@ def _run_mashreq_sync(db: Session, trigger: str = "manual") -> MashreqSyncResult
             # parsed_amount means what the CSV-import path assumes it means
             amount = alert.amount
             if account and alert.currency != account.currency:
-                amount = to_base(db, alert.amount, alert.currency, alert.date.date())
-                if account.currency != BASE_CURRENCY:
-                    amount = round(amount / get_rate(db, account.currency, alert.date.date()), 2)
+                amount = convert(db, alert.amount, alert.currency, account.currency, alert.date.date())
             imp.rows.append(
                 ImportRow(
                     row_index=i,

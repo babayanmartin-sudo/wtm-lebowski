@@ -4,7 +4,7 @@ from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from ..models import Account, Transaction
-from .rates import get_rate
+from .rates import to_base
 
 
 def compute_balances(db: Session, as_of: date | None = None) -> dict[int, float]:
@@ -46,4 +46,4 @@ def compute_balances(db: Session, as_of: date | None = None) -> dict[int, float]
 
 
 def balance_in_base(db: Session, account: Account, balance: float, on_date: date | None = None) -> float:
-    return round(balance * get_rate(db, account.currency, on_date), 2)
+    return to_base(db, balance, account.currency, on_date)

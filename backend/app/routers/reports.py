@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from starlette.responses import StreamingResponse
 
 from ..auth import require_auth
-from ..config import BASE_CURRENCY
+from ..services.rates import get_base_currency
 from ..db import get_db
 from ..models import Category, SavedReport, Split, Transaction
 from ..schemas import ReportFiltersIn, SavedReportDetail, SavedReportIn, SavedReportOut
@@ -50,7 +50,7 @@ def _preview_for(db: Session, filters: ReportFiltersIn) -> dict:
         by_category_income = [c for c in by_category_income if c["category_id"] in included]
 
     return {
-        "base_currency": BASE_CURRENCY,
+        "base_currency": get_base_currency(db),
         "date_from": start.isoformat(),
         "date_to": end.isoformat(),
         "total": round(income + expense, 2),

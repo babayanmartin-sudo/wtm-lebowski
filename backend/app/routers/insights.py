@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..auth import require_auth
-from ..config import BASE_CURRENCY
+from ..services.rates import get_base_currency
 from ..db import get_db
 from ..models import Account, InsightsConversation
 from ..schemas import (
@@ -72,7 +72,7 @@ def ask(body: InsightsAskIn, db: Session = Depends(get_db)):
     memory = get_str_setting(db, INSIGHTS_MEMORY_KEY, "") or ""
     system_prompt = (
         "You are a spending-insights assistant for a personal finance tracker. "
-        f"Today's date is {date.today().isoformat()}. Base currency is {BASE_CURRENCY}. "
+        f"Today's date is {date.today().isoformat()}. Base currency is {get_base_currency(db)}. "
         f"The user's accounts: {', '.join(a.name for a in accounts) or 'none yet'}. "
         "Answer using the provided tools — never guess numbers. Be concise and specific, "
         "state amounts with the currency, and avoid generic financial advice. "

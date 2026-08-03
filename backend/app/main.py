@@ -14,13 +14,18 @@ async def lifespan(app: FastAPI):
     init_db()
     db = SessionLocal()
     try:
-        from .services.rates import refresh_rates
+        from .services.rates import recompute_all_amount_base, refresh_rates
         from .services.recurring import materialize_due
 
         try:
             refresh_rates(db)
         except Exception:
             pass  # offline is fine, we fall back to last known rates
+        # base currency is dynamic (whichever account is is_main) — cheap
+        # to recompute unconditionally at startup for personal-app scale,
+        # and removes an entire class of "amount_base went stale" bugs
+        # (rate cache backfilled, main account changed while down, etc.)
+        recompute_all_amount_base(db)
         materialize_due(db)
     finally:
         db.close()

@@ -12,6 +12,7 @@ import {
 
 import { api } from "../api/client";
 import {
+  useAccounts,
   useBudgets,
   useBudgetStatus,
   useCategories,
@@ -37,7 +38,7 @@ import {
   SegmentedToggle,
 } from "../components/ui";
 import { CHART_COLORS, chartTooltipProps } from "../lib/charts";
-import { fmtMoney, fmtMonth } from "../lib/format";
+import { fmtMoney, fmtMonth, getBaseCurrency } from "../lib/format";
 import { toast } from "../lib/toast";
 import { toISO } from "../lib/period";
 import { useSessionState } from "../lib/session";
@@ -81,6 +82,8 @@ function BudgetsBody() {
   const [forecastMonths, setForecastMonths] = useSessionState("budgets.forecastMonths", 12);
   const { data: forecast } = useProjection(forecastMonths);
   const { data: settings } = useSettings();
+  const { data: accounts = [] } = useAccounts();
+  const baseCurrency = getBaseCurrency(accounts);
   const threshold = settings?.budget_threshold ?? 80;
   const { data: overall } = useOverallBudgetStatus(month);
   const updateSettings = useUpdateSettings();
@@ -148,7 +151,7 @@ function BudgetsBody() {
     <div>
       <PageHeader
         title="Budgets"
-        subtitle="Monthly or yearly spending limits per category (AED)"
+        subtitle={`Monthly or yearly spending limits per category (${baseCurrency})`}
         actions={
           <>
             <PeriodPicker
@@ -390,7 +393,7 @@ function BudgetsBody() {
                   <option value="yearly">Yearly</option>
                 </select>
               </Field>
-              <Field label={`${draft.period === "yearly" ? "Yearly" : "Monthly"} limit (AED)`}>
+              <Field label={`${draft.period === "yearly" ? "Yearly" : "Monthly"} limit (${baseCurrency})`}>
                 <input
                   type="number"
                   step="0.01"
