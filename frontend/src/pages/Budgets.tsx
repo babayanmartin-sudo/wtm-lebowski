@@ -203,7 +203,8 @@ function BudgetsBody() {
               }`}
               onClick={() => setCapEditing(true)}
             >
-              {overall ? fmtMoney(overall.spent) : "…"} / {overall?.cap !== null && overall?.cap !== undefined ? fmtMoney(overall.cap) : "not set"} AED
+              {overall ? fmtMoney(overall.spent) : "…"} /{" "}
+              {overall?.cap !== null && overall?.cap !== undefined ? fmtMoney(overall.cap) : "not set"} {baseCurrency}
             </button>
           )}
         </div>
@@ -220,7 +221,7 @@ function BudgetsBody() {
               Total · {fmtMonth(month)} <span className="text-xs text-gray-500">(monthly-equivalent)</span>
             </span>
             <span className={`tabular-nums ${totalSpent > totalLimit ? "text-rose-400" : "text-gray-400"}`}>
-              {fmtMoney(totalSpent)} / {fmtMoney(totalLimit)} AED
+              {fmtMoney(totalSpent)} / {fmtMoney(totalLimit)} {baseCurrency}
             </span>
           </div>
           <ProgressBar value={totalLimit > 0 ? totalSpent / totalLimit : 0} threshold={threshold} />

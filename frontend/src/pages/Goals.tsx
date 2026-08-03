@@ -118,7 +118,7 @@ export default function GoalsPage() {
       1,
       Math.round((new Date(g.target_date).getTime() - Date.now()) / (30 * 24 * 3600 * 1000)),
     );
-    return `${fmtMoney(remaining / months)} AED/month to hit ${fmtDate(g.target_date)}`;
+    return `${fmtMoney(remaining / months)} ${baseCurrency}/month to hit ${fmtDate(g.target_date)}`;
   }
 
   return (
@@ -284,7 +284,8 @@ export default function GoalsPage() {
                   </div>
                 </div>
                 <p className="mt-4 text-lg font-semibold tabular-nums">
-                  {fmtMoney(g.saved)} <span className="text-sm text-gray-500">/ {fmtMoney(g.target_amount)} AED</span>
+                  {fmtMoney(g.saved)}{" "}
+                  <span className="text-sm text-gray-500">/ {fmtMoney(g.target_amount)} {baseCurrency}</span>
                 </p>
                 {projection(g) && <p className="mt-1 text-xs text-gray-400">{projection(g)}</p>}
                 <button
