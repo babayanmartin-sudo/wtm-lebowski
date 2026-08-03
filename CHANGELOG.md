@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.18.0 — 2026-08-04
+
+### Import
+
+- Added mass "not a duplicate" — a "not duplicates — import all" link
+  next to the duplicates-skipped banner clears the flag on every
+  duplicate-flagged row in one call, for bulk historical imports where
+  many rows legitimately share date+amount.
+
 ## v1.17.1 — 2026-08-04
 
 ### Base currency
