@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.15.3 — 2026-08-03
+
+### Goals & Loans
+
+- Fixed a non-AED loan's "paid" showing the AED-converted amount
+  instead of the loan's own currency — a 200 EUR payment on a 500 EUR
+  loan showed as 800/500 instead of 200/500.
+
 ## v1.15.2 — 2026-07-29
 
 ### Email sync
