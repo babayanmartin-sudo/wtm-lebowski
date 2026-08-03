@@ -20,6 +20,7 @@ import type { Category } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
 import { ColorDot, ColorPicker, ErrorState, Field, LoadingState, Modal, PageHeader } from "../components/ui";
 import { fmtMoney } from "../lib/format";
+import { CATEGORY_ICON_KEYS, getCategoryIcon } from "../lib/icons";
 import { toast } from "../lib/toast";
 import { type PickerMode, parseISO, periodFor, periodLabel, shiftAnchor, toISO } from "../lib/period";
 
@@ -136,6 +137,7 @@ export default function CategoriesPage() {
   function Row({ cat, child }: { cat: Category; child?: boolean }) {
     const parent = cat.parent_id ? categories.find((c) => c.id === cat.parent_id) : undefined;
     const cascadedExcluded = !!parent?.excluded_from_reports && !cat.excluded_from_reports;
+    const Icon = getCategoryIcon(cat.icon);
     return (
       <div
         className={`group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white/5 ${
@@ -143,7 +145,12 @@ export default function CategoriesPage() {
         } ${child ? "ml-6" : ""}`}
       >
         {child && <CornerDownRight size={13} className="text-gray-600" />}
-        <ColorDot color={cat.color} />
+        <span
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white"
+          style={{ background: cat.color }}
+        >
+          <Icon size={13} />
+        </span>
         <button className="flex-1 truncate text-left text-sm hover:underline" onClick={() => setDrillCat(cat)}>
           {cat.name}
         </button>
@@ -274,6 +281,27 @@ export default function CategoriesPage() {
             </Field>
             <Field label="Color">
               <ColorPicker value={draft.color} onChange={(color) => setDraft({ ...draft, color })} />
+            </Field>
+            <Field label="Icon">
+              <div className="flex flex-wrap gap-2">
+                {CATEGORY_ICON_KEYS.map((key) => {
+                  const Icon = getCategoryIcon(key);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setDraft({ ...draft, icon: key })}
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${
+                        draft.icon === key
+                          ? "border-lime-400 bg-lime-400/20 text-lime-300"
+                          : "border-white/10 bg-white/5 text-gray-400 hover:bg-white/10"
+                      }`}
+                    >
+                      <Icon size={16} />
+                    </button>
+                  );
+                })}
+              </div>
             </Field>
             {error && <p className="text-xs text-rose-400">{error}</p>}
             <button className="btn-primary" onClick={submit} disabled={!draft.name.trim()}>
