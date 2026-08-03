@@ -18,7 +18,7 @@ FUZZY_THRESHOLD = 85
 
 _CARD_RE = re.compile(r"\*+\d+|\d{4,}")  # masked card numbers, long digit runs
 _DATE_RE = re.compile(r"\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}")
-_NON_ALNUM_RE = re.compile(r"[^A-Z0-9 ]+")
+_NON_ALNUM_RE = re.compile(r"[^\w ]+", re.UNICODE)  # \w keeps letters from any script (Cyrillic etc), not just A-Z
 _DIGITS_RE = re.compile(r"\b\d+\b")
 _SPACES_RE = re.compile(r"\s+")
 

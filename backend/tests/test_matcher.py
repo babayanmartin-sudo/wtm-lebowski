@@ -9,6 +9,15 @@ def test_normalize_collapses_punctuation():
     assert normalize("NOON.COM - ORDER #555") == "NOON COM ORDER"
 
 
+def test_normalize_keeps_non_latin_scripts():
+    """Regression: _NON_ALNUM_RE was ASCII-only ([^A-Z0-9 ]+), so any
+    Cyrillic (or other non-Latin) payee normalized to an empty string —
+    silently breaking sibling category-apply on import (empty string is
+    falsy) and fuzzy/rule matching generally for non-Latin merchants."""
+    assert normalize("Переводчики&Редакторы") == "ПЕРЕВОДЧИКИ РЕДАКТОРЫ"
+    assert normalize("Поддержка") == "ПОДДЕРЖКА"
+
+
 def test_learn_same_payee_twice_in_one_commit_no_duplicate_rule(seeded):
     """Two rows with the same merchant categorized in one import commit
     must produce a single rule, not one per row."""
