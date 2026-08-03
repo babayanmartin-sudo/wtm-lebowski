@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.17.0 — 2026-08-04
+
+### Base currency
+
+- Base currency is now dynamic — it follows whichever account is
+  flagged "main," instead of always converting everything to a fixed
+  AED. A single-RUB (or any non-AED) account setup now sees totals in
+  its own currency, not AED. Falls back to AED only if no account is
+  marked main, so existing installs see no change unless they touch
+  it.
+- Every cached amount-in-base-currency value gets recomputed
+  automatically whenever the main account (or its currency) changes,
+  and once on every app startup — so this also fixes any past drift
+  from a stale conversion.
+- Loans no longer touch base currency at all — paid/remaining convert
+  straight from each transaction's own amount to the loan's currency.
+
 ## v1.16.2 — 2026-08-03
 
 ### Import
