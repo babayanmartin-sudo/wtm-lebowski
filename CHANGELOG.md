@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.16.2 — 2026-08-03
+
+### Import
+
+- Fixed payee matching breaking entirely for non-Latin scripts (e.g.
+  Cyrillic) — normalize() stripped them to an empty string, which
+  silently disabled "apply category to matching rows" during import,
+  plus fuzzy/rule matching and ignore rules generally for those
+  merchants.
+
 ## v1.16.1 — 2026-08-03
 
 ### Categories
