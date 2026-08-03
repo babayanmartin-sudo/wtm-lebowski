@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.17.1 — 2026-08-04
+
+### Base currency
+
+- Fixed remaining hardcoded "AED" labels missed in v1.17.0: overall
+  budget / total budget figures, and goal target/pace figures.
+
 ## v1.17.0 — 2026-08-04
 
 ### Base currency
