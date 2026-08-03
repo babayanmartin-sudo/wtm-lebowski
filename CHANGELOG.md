@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.15.4 — 2026-08-03
+
+### Goals & Loans
+
+- Fixed non-AED loan "paid" still drifting after v1.15.3's fix — that
+  fix reverse-converted via a rate looked up at read time, which could
+  differ from the rate resolved when the transaction was created if
+  exchange_rates was backfilled/refreshed since. Now uses the
+  transaction's own amount directly when its currency already matches
+  the loan's, no rate math involved.
+
 ## v1.15.3 — 2026-08-03
 
 ### Goals & Loans
