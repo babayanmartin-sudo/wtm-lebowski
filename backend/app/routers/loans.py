@@ -3,9 +3,11 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..auth import require_auth
+from ..config import BASE_CURRENCY
 from ..db import get_db
 from ..models import Loan, Transaction
 from ..schemas import LoanIn, LoanOut
+from ..services.rates import get_rate
 
 router = APIRouter(prefix="/api/loans", tags=["loans"], dependencies=[Depends(require_auth)])
 
@@ -14,11 +16,22 @@ _DIRECTIONS = ("debt", "receivable")
 
 def _out(db: Session, loan: Loan) -> LoanOut:
     kind = "expense" if loan.direction == "debt" else "income"
-    paid = db.scalar(
-        select(func.sum(Transaction.amount_base)).where(
-            Transaction.loan_id == loan.id, Transaction.kind == kind
-        )
-    ) or 0.0
+    if loan.currency == BASE_CURRENCY:
+        # principal_amount is in loan.currency (== base here) — amount_base
+        # is directly comparable, no per-row conversion needed
+        paid = db.scalar(
+            select(func.sum(Transaction.amount_base)).where(
+                Transaction.loan_id == loan.id, Transaction.kind == kind
+            )
+        ) or 0.0
+    else:
+        # principal_amount is in a non-base currency (e.g. a EUR loan) —
+        # amount_base is AED, so it must be converted back to loan.currency
+        # at each transaction's own rate, not compared to it directly
+        txs = db.scalars(
+            select(Transaction).where(Transaction.loan_id == loan.id, Transaction.kind == kind)
+        ).all()
+        paid = sum(t.amount_base / get_rate(db, loan.currency, t.date) for t in txs)
     out = LoanOut.model_validate(loan)
     out.paid = round(paid, 2)
     out.remaining = round(loan.principal_amount - paid, 2)

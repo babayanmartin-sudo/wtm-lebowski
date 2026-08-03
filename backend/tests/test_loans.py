@@ -113,6 +113,38 @@ def test_debt_loan_reduces_via_linked_expense(seeded):
     assert updated["remaining"] == 700.0
 
 
+def test_eur_loan_paid_stays_in_loan_currency_not_aed(seeded):
+    """Regression: paid/remaining were computed from amount_base (always
+    AED), so a EUR loan compared its EUR principal against an AED-converted
+    "paid" figure — a 200 EUR payment against a 500 EUR loan showed as
+    800/500 (200 EUR * rate 4.0) instead of 200/500."""
+    from datetime import date
+
+    from app.db import SessionLocal
+    from app.models import ExchangeRate
+
+    db = SessionLocal()
+    try:
+        db.add(ExchangeRate(date=date(2026, 7, 1), currency="EUR", rate_to_base=4.0))
+        db.commit()
+    finally:
+        db.close()
+
+    c = seeded["client"]
+    eur_account = c.post(
+        "/api/accounts", json={"name": "EUR Card", "currency": "EUR", "initial_balance": 0}
+    ).json()
+    loan = _debt_loan(c, principal_amount=500, currency="EUR")
+    c.post(
+        "/api/transactions",
+        json=_expense(seeded, amount=200, account_id=eur_account["id"], loan_id=loan["id"]),
+    )
+
+    updated = c.get("/api/loans").json()[0]
+    assert updated["paid"] == 200.0
+    assert updated["remaining"] == 300.0
+
+
 def test_receivable_loan_reduces_via_linked_income(seeded):
     c = seeded["client"]
     loan = _receivable_loan(c, principal_amount=1000)
