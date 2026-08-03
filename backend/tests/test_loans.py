@@ -145,6 +145,50 @@ def test_eur_loan_paid_stays_in_loan_currency_not_aed(seeded):
     assert updated["remaining"] == 300.0
 
 
+def test_eur_loan_paid_unaffected_by_later_rate_changes(seeded):
+    """Regression: an earlier fix reverse-converted amount_base back to
+    loan.currency via get_rate() looked up at read time. But amount_base
+    was computed from whatever rate was resolved at transaction-creation
+    time — if the exchange_rates table is later backfilled/refreshed with
+    a different rate for that same date, dividing by the new rate drifts
+    away from the original amount. When the transaction's own currency
+    already matches the loan's, its amount should be used directly."""
+    from datetime import date
+
+    from app.db import SessionLocal
+    from app.models import ExchangeRate
+
+    db = SessionLocal()
+    try:
+        db.add(ExchangeRate(date=date(2026, 7, 1), currency="EUR", rate_to_base=4.0))
+        db.commit()
+    finally:
+        db.close()
+
+    c = seeded["client"]
+    eur_account = c.post(
+        "/api/accounts", json={"name": "EUR Card", "currency": "EUR", "initial_balance": 0}
+    ).json()
+    loan = _receivable_loan(c, principal_amount=530, currency="EUR")
+    c.post(
+        "/api/transactions",
+        json=_income(seeded, amount=1000, account_id=eur_account["id"], loan_id=loan["id"]),
+    )
+
+    # rate for that same date gets refreshed/corrected afterwards
+    db = SessionLocal()
+    try:
+        row = db.query(ExchangeRate).filter_by(date=date(2026, 7, 1), currency="EUR").first()
+        row.rate_to_base = 4.23734200011017
+        db.commit()
+    finally:
+        db.close()
+
+    updated = c.get("/api/loans").json()[0]
+    assert updated["paid"] == 1000.0
+    assert updated["remaining"] == -470.0
+
+
 def test_receivable_loan_reduces_via_linked_income(seeded):
     c = seeded["client"]
     loan = _receivable_loan(c, principal_amount=1000)

@@ -25,13 +25,22 @@ def _out(db: Session, loan: Loan) -> LoanOut:
             )
         ) or 0.0
     else:
-        # principal_amount is in a non-base currency (e.g. a EUR loan) —
-        # amount_base is AED, so it must be converted back to loan.currency
-        # at each transaction's own rate, not compared to it directly
+        # principal_amount is in a non-base currency (e.g. a EUR loan).
+        # When the transaction's own currency already matches, use its
+        # amount directly — exact, no conversion. amount_base was computed
+        # from whatever rate was resolved at transaction-creation time;
+        # re-deriving via today's get_rate() for that date can silently
+        # drift from that original figure once the rates table is
+        # backfilled/refreshed, so it's only a fallback for a genuine
+        # currency mismatch (transaction in a different currency than the
+        # loan), not the common case.
         txs = db.scalars(
             select(Transaction).where(Transaction.loan_id == loan.id, Transaction.kind == kind)
         ).all()
-        paid = sum(t.amount_base / get_rate(db, loan.currency, t.date) for t in txs)
+        paid = sum(
+            t.amount if t.currency == loan.currency else t.amount_base / get_rate(db, loan.currency, t.date)
+            for t in txs
+        )
     out = LoanOut.model_validate(loan)
     out.paid = round(paid, 2)
     out.remaining = round(loan.principal_amount - paid, 2)
