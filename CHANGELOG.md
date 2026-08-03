@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.16.1 — 2026-08-03
+
+### Categories
+
+- Fixed row action buttons (Drill down, Add subcategory, Exclude,
+  Edit, Archive, Delete) being invisible and unusable on mobile — they
+  were hover-only reveal, and touch devices have no hover state. Now
+  always visible on mobile; desktop keeps the hover-fade.
+
 ## v1.16.0 — 2026-08-03
 
 ### Categories
