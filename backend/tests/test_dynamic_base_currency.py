@@ -25,6 +25,21 @@ def test_base_currency_defaults_to_anchor_when_no_main_account(seeded):
         db.close()
 
 
+def test_base_currency_defaults_to_shared_currency_when_single_currency_no_main(client):
+    """Regression: a single-RUB (or any single-currency, non-AED) setup
+    with no is_main chosen shouldn't be silently forced onto the AED
+    anchor — only genuinely ambiguous setups (0 or 2+ currencies, no
+    main) fall back to it."""
+    c = client
+    c.post("/api/accounts", json={"name": "RUB Card", "currency": "RUB", "initial_balance": 0})
+    c.post("/api/accounts", json={"name": "RUB Cash", "currency": "RUB", "initial_balance": 0})
+    db = SessionLocal()
+    try:
+        assert get_base_currency(db) == "RUB"
+    finally:
+        db.close()
+
+
 def test_base_currency_follows_main_account(seeded):
     c = seeded["client"]
     c.put(f"/api/accounts/{seeded['aed']['id']}", json={"name": "AED Bank", "currency": "AED", "is_main": True})

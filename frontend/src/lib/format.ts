@@ -1,7 +1,18 @@
 /** Mirrors backend get_base_currency(): whichever account is flagged
- * is_main, or "AED" (the app's fixed rate-cache anchor) if none is set. */
-export function getBaseCurrency(accounts: { currency: string; is_main: boolean }[]): string {
-  return accounts.find((a) => a.is_main)?.currency ?? "AED";
+ * is_main. If none is set, the shared currency when every account uses
+ * the same one — only falls back to "AED" (the app's fixed rate-cache
+ * anchor) when that's still ambiguous. */
+export function getBaseCurrency(accounts: { currency: string; is_main: boolean; archived?: boolean }[]): string {
+  const main = accounts.find((a) => a.is_main);
+  if (main) return main.currency;
+  const currencies = new Set(accounts.filter((a) => !a.archived).map((a) => a.currency));
+  return currencies.size === 1 ? [...currencies][0] : "AED";
+}
+
+/** Whether currency labels/conversion lines are worth showing at all —
+ * pointless noise when every account already uses the same currency. */
+export function hasMultipleCurrencies(accounts: { currency: string; archived?: boolean }[]): boolean {
+  return new Set(accounts.filter((a) => !a.archived).map((a) => a.currency)).size > 1;
 }
 
 export function fmtMoney(amount: number, currency?: string): string {

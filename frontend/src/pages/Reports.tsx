@@ -9,7 +9,7 @@ import type { Category, ReportFilters, Transaction } from "../api/types";
 import PeriodPicker from "../components/PeriodPicker";
 import { Badge, ColorDot, ErrorState, Field, LoadingState, Modal, PageHeader, Select } from "../components/ui";
 import { CHART_COLORS, chartTooltipProps } from "../lib/charts";
-import { fmtMoney } from "../lib/format";
+import { fmtMoney, hasMultipleCurrencies } from "../lib/format";
 import {
   bucketLabel,
   encodeCustomRange,
@@ -57,6 +57,7 @@ export default function ReportsPage() {
 
   const { data, isLoading, isError, error } = useReportPreview(filters);
   const { data: accounts = [] } = useAccounts();
+  const showCurrency = hasMultipleCurrencies(accounts);
   const { data: categories = [] } = useCategories();
   const { data: savedReports = [] } = useSavedReports();
   const activeAccounts = useMemo(() => accounts.filter((a) => !a.archived), [accounts]);
@@ -287,10 +288,21 @@ export default function ReportsPage() {
       ) : (
         <>
           <div className="glass grid grid-cols-1 divide-y divide-[var(--color-line)] sm:grid-cols-4 sm:divide-x sm:divide-y-0">
-            <StatCell label="Income" value={data ? fmtMoney(data.income, data.base_currency) : "…"} color="text-emerald-400" />
-            <StatCell label="Expense" value={data ? fmtMoney(data.expense, data.base_currency) : "…"} color="text-rose-400" />
+            <StatCell
+              label="Income"
+              value={data ? fmtMoney(data.income, showCurrency ? data.base_currency : undefined) : "…"}
+              color="text-emerald-400"
+            />
+            <StatCell
+              label="Expense"
+              value={data ? fmtMoney(data.expense, showCurrency ? data.base_currency : undefined) : "…"}
+              color="text-rose-400"
+            />
             <StatCell label="Transactions" value={data ? String(data.count) : "…"} />
-            <StatCell label="Average" value={data ? fmtMoney(data.average, data.base_currency) : "…"} />
+            <StatCell
+              label="Average"
+              value={data ? fmtMoney(data.average, showCurrency ? data.base_currency : undefined) : "…"}
+            />
           </div>
 
           <div className="glass p-5">
@@ -354,7 +366,7 @@ export default function ReportsPage() {
                 title="Expense"
                 items={data?.by_category ?? []}
                 emptyText="No expenses matched."
-                baseCurrency={data?.base_currency}
+                baseCurrency={showCurrency ? data?.base_currency : undefined}
                 activeCategoryId={includeIds.length === 1 ? includeIds[0] : null}
                 onToggle={toggleIncludeCategory}
               />
@@ -362,7 +374,7 @@ export default function ReportsPage() {
                 title="Income"
                 items={data?.by_category_income ?? []}
                 emptyText="No income matched."
-                baseCurrency={data?.base_currency}
+                baseCurrency={showCurrency ? data?.base_currency : undefined}
                 activeCategoryId={includeIds.length === 1 ? includeIds[0] : null}
                 onToggle={toggleIncludeCategory}
               />

@@ -71,11 +71,17 @@ def get_rate(db: Session, currency: str, on_date: date | None = None) -> float:
 
 def get_base_currency(db: Session) -> str:
     """The display/aggregation currency — whichever account is flagged
-    is_main, or ANCHOR if none is set (matches pre-dynamic-base
-    behavior exactly, so installs with no main account picked yet see
-    no change)."""
+    is_main. If none is set: the account currency, when every
+    non-archived account shares one — a single-RUB (or any single-
+    currency) install shouldn't be forced onto ANCHOR just because
+    nobody explicitly picked a main account. Only falls back to
+    ANCHOR when that's still ambiguous (no accounts, or genuinely
+    mixed currencies with no main chosen)."""
     main = db.scalar(select(Account).where(Account.is_main.is_(True)).limit(1))
-    return main.currency if main else BASE_CURRENCY
+    if main:
+        return main.currency
+    currencies = {a.currency for a in db.scalars(select(Account).where(Account.archived.is_(False)))}
+    return currencies.pop() if len(currencies) == 1 else BASE_CURRENCY
 
 
 def convert(db: Session, amount: float, from_currency: str, to_currency: str, on_date: date | None = None) -> float:
