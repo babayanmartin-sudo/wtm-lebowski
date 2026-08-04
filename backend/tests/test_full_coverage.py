@@ -236,6 +236,9 @@ def test_transaction_crud_filters_pagination(seeded):
 
 
 def test_transaction_amount_filter(seeded):
+    """Filter compares the *signed* amount (expense negative, income
+    positive, matching how amounts are displayed) — not the raw
+    magnitude, so "> 1000" doesn't also match a -2000 expense."""
     c = seeded["client"]
     for amount in (10.0, 20.0, 30.0):
         c.post(
@@ -243,10 +246,28 @@ def test_transaction_amount_filter(seeded):
             json=_tx(seeded, amount=amount,
                      splits=[{"category_id": seeded["food"]["id"], "amount": amount, "note": ""}]),
         )
-    assert c.get("/api/transactions?amount_op=eq&amount_value=20").json()["total"] == 1
-    assert c.get("/api/transactions?amount_op=gt&amount_value=15").json()["total"] == 2
-    assert c.get("/api/transactions?amount_op=lt&amount_value=25").json()["total"] == 2
+    assert c.get("/api/transactions?amount_op=eq&amount_value=-20").json()["total"] == 1
+    assert c.get("/api/transactions?amount_op=gt&amount_value=-25").json()["total"] == 2
+    assert c.get("/api/transactions?amount_op=lt&amount_value=-15").json()["total"] == 2
     assert c.get("/api/transactions?amount_op=bogus&amount_value=20").status_code == 400
+
+
+def test_transaction_amount_filter_respects_sign(seeded):
+    c = seeded["client"]
+    c.post(
+        "/api/transactions",
+        json=_tx(seeded, kind="expense", amount=2000.0,
+                 splits=[{"category_id": seeded["food"]["id"], "amount": 2000.0, "note": ""}]),
+    )
+    c.post(
+        "/api/transactions",
+        json=_tx(seeded, kind="income", amount=5000.0,
+                 splits=[{"category_id": seeded["salary"]["id"], "amount": 5000.0, "note": ""}]),
+    )
+    # "> 1000" should only match the 5000 income, not the -2000 expense
+    r = c.get("/api/transactions?amount_op=gt&amount_value=1000").json()
+    assert r["total"] == 1
+    assert r["items"][0]["kind"] == "income"
 
 
 def test_transaction_sum_base_nets_by_kind_excludes_transfers(seeded):

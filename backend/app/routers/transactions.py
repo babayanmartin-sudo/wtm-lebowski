@@ -73,12 +73,16 @@ def list_transactions(
         like = f"%{q}%"
         stmt = stmt.where(or_(Transaction.payee.ilike(like), Transaction.note.ilike(like)))
     if amount_op and amount_value is not None:
+        # Signed to match how amounts are displayed (expense negative,
+        # income positive, transfer unsigned) — otherwise "> 1000" would
+        # also match a -2000 expense, which reads as < 1000 to the user.
+        signed_amount = case((Transaction.kind == "expense", -Transaction.amount_base), else_=Transaction.amount_base)
         if amount_op == "eq":
-            stmt = stmt.where(Transaction.amount_base == amount_value)
+            stmt = stmt.where(signed_amount == amount_value)
         elif amount_op == "gt":
-            stmt = stmt.where(Transaction.amount_base > amount_value)
+            stmt = stmt.where(signed_amount > amount_value)
         else:
-            stmt = stmt.where(Transaction.amount_base < amount_value)
+            stmt = stmt.where(signed_amount < amount_value)
 
     sub = stmt.subquery()
     total = db.scalar(select(func.count()).select_from(sub)) or 0
