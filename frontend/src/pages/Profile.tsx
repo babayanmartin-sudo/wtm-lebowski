@@ -82,7 +82,7 @@ function CollapsibleCard({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="glass w-full max-w-sm overflow-hidden lg:max-w-none">
+    <div className={`glass w-full max-w-sm lg:max-w-none ${open ? "" : "overflow-hidden"}`}>
       <button
         type="button"
         className="flex w-full items-center justify-between gap-2 p-6 text-left"
