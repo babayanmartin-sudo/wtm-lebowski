@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.20.0 — 2026-08-04
+
+### Budgets
+
+- Added a "Year starting month" setting (Profile → Preferences) so yearly
+  budget consumption can track a financial year instead of the calendar
+  year — e.g. set August for a year that runs Aug-Jul. Monthly budgets are
+  unaffected; only the yearly-budget spend window shifts.
+
 ## v1.19.0 — 2026-08-04
 
 ### Base currency
