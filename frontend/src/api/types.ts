@@ -143,6 +143,7 @@ export interface Settings {
   llm_openai_model: string;
   llm_max_tokens: number; // 0 = uncapped
   insights_memory: string;
+  fiscal_year_start_month: number; // 1-12, 1 = calendar year
 }
 
 export interface InsightsMessage {

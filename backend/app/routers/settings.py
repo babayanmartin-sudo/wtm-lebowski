@@ -12,9 +12,11 @@ from ..services.settings import (
     BUDGET_THRESHOLD_KEY,
     DEFAULT_AUTO_SYNC_FREQUENCY_MINUTES,
     DEFAULT_BUDGET_THRESHOLD,
+    DEFAULT_FISCAL_YEAR_START_MONTH,
     DEFAULT_LLM_MAX_TOKENS,
     DEFAULT_SYNC_IMAP_FOLDER,
     DEFAULT_SYNC_IMAP_PORT,
+    FISCAL_YEAR_START_MONTH_KEY,
     INSIGHTS_MEMORY_KEY,
     LLM_ANTHROPIC_API_KEY_KEY,
     LLM_ANTHROPIC_MODEL_KEY,
@@ -75,6 +77,10 @@ def get_settings(db: Session = Depends(get_db)):
         llm_openai_model=get_llm_credentials(db, "openai")[1],
         llm_max_tokens=get_int_setting(db, LLM_MAX_TOKENS_KEY, DEFAULT_LLM_MAX_TOKENS),
         insights_memory=get_str_setting(db, INSIGHTS_MEMORY_KEY, "") or "",
+        fiscal_year_start_month=get_int_setting(
+            db, FISCAL_YEAR_START_MONTH_KEY, DEFAULT_FISCAL_YEAR_START_MONTH
+        )
+        or DEFAULT_FISCAL_YEAR_START_MONTH,
     )
 
 
@@ -127,5 +133,7 @@ def update_settings(body: SettingsIn, db: Session = Depends(get_db)):
         set_int_setting(db, LLM_MAX_TOKENS_KEY, fields["llm_max_tokens"])
     if "insights_memory" in fields:
         set_str_setting(db, INSIGHTS_MEMORY_KEY, fields["insights_memory"])
+    if "fiscal_year_start_month" in fields:
+        set_int_setting(db, FISCAL_YEAR_START_MONTH_KEY, fields["fiscal_year_start_month"])
     db.commit()
     return get_settings(db)

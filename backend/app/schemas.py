@@ -393,6 +393,14 @@ class SettingsIn(BaseModel):
     llm_openai_model: str | None = None
     llm_max_tokens: int | None = None  # 0 = uncapped (see UNCAPPED_LLM_MAX_TOKENS)
     insights_memory: str | None = None
+    fiscal_year_start_month: int | None = None  # 1-12, 1 = calendar year
+
+    @field_validator("fiscal_year_start_month")
+    @classmethod
+    def validate_fiscal_year_start_month(cls, v: int | None) -> int | None:
+        if v is not None and not (1 <= v <= 12):
+            raise ValueError("fiscal_year_start_month must be between 1 and 12")
+        return v
 
     @field_validator("auto_sync_frequency_minutes")
     @classmethod
@@ -435,6 +443,7 @@ class SettingsOut(BaseModel):
     llm_openai_model: str
     llm_max_tokens: int  # 0 = uncapped
     insights_memory: str
+    fiscal_year_start_month: int
 
 
 class MashreqSyncImportSummary(BaseModel):

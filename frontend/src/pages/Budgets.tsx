@@ -38,6 +38,7 @@ import {
   SegmentedToggle,
 } from "../components/ui";
 import { CHART_COLORS, chartTooltipProps } from "../lib/charts";
+import { MONTH_NAMES } from "../lib/period";
 import { fmtMoney, fmtMonth, getBaseCurrency, hasMultipleCurrencies } from "../lib/format";
 import { toast } from "../lib/toast";
 import { toISO } from "../lib/period";
@@ -152,7 +153,13 @@ function BudgetsBody() {
     <div>
       <PageHeader
         title="Budgets"
-        subtitle={`Monthly or yearly spending limits per category${showCurrency ? ` (${baseCurrency})` : ""}`}
+        subtitle={`Monthly or yearly spending limits per category${showCurrency ? ` (${baseCurrency})` : ""}${
+          settings && settings.fiscal_year_start_month !== 1
+            ? ` — yearly budgets track a ${MONTH_NAMES[settings.fiscal_year_start_month - 1]}-${
+                MONTH_NAMES[(settings.fiscal_year_start_month + 10) % 12]
+              } year`
+            : ""
+        }`}
         actions={
           <>
             <PeriodPicker

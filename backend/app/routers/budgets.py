@@ -8,7 +8,13 @@ from ..auth import require_auth
 from ..db import get_db
 from ..models import Budget, Category, Split, Transaction
 from ..schemas import BudgetIn, BudgetOut, BudgetStatus, OverallBudgetStatus
-from ..services.settings import OVERALL_MONTHLY_CAP_KEY, get_float_setting
+from ..services.settings import (
+    DEFAULT_FISCAL_YEAR_START_MONTH,
+    FISCAL_YEAR_START_MONTH_KEY,
+    OVERALL_MONTHLY_CAP_KEY,
+    get_float_setting,
+    get_int_setting,
+)
 from .dashboard import _excluded_category_ids
 
 router = APIRouter(prefix="/api/budgets", tags=["budgets"], dependencies=[Depends(require_auth)])
@@ -91,13 +97,26 @@ def overall_budget_status(month: str | None = Query(default=None), db: Session =
     return OverallBudgetStatus(cap=cap, spent=round(spent, 2), month=m)
 
 
+def fiscal_year_bounds(month: str, start_month: int) -> tuple[str, str]:
+    """[start, end) ISO date bounds of the fiscal year containing `month`
+    ("YYYY-MM"), given the year's starting month (1 = calendar year)."""
+    y, m = int(month[:4]), int(month[5:7])
+    fy_start_year = y if m >= start_month else y - 1
+    fy_end_year = fy_start_year + 1
+    return f"{fy_start_year:04d}-{start_month:02d}-01", f"{fy_end_year:04d}-{start_month:02d}-01"
+
+
 def compute_budget_status(db: Session, month: str) -> list[BudgetStatus]:
     """Spend (base currency) per budget, in that budget's own window — the
-    given month for monthly budgets, the whole year for yearly ones. Child
-    category spend rolls up into the parent's budget."""
-    year = month[:4]
+    given month for monthly budgets, the whole fiscal year for yearly ones
+    (calendar year unless a fiscal_year_start_month setting is configured).
+    Child category spend rolls up into the parent's budget."""
+    start_month = get_int_setting(db, FISCAL_YEAR_START_MONTH_KEY, DEFAULT_FISCAL_YEAR_START_MONTH) or (
+        DEFAULT_FISCAL_YEAR_START_MONTH
+    )
+    fy_start, fy_end = fiscal_year_bounds(month, start_month)
     monthly_spent = _spent_by_category(db, func.strftime("%Y-%m", Transaction.date) == month)
-    yearly_spent = _spent_by_category(db, func.strftime("%Y", Transaction.date) == year)
+    yearly_spent = _spent_by_category(db, Transaction.date >= fy_start, Transaction.date < fy_end)
 
     parent_of = {
         c.id: c.parent_id for c in db.scalars(select(Category)) if c.parent_id is not None
@@ -121,11 +140,11 @@ def compute_budget_status(db: Session, month: str) -> list[BudgetStatus]:
     return result
 
 
-def _spent_by_category(db: Session, date_filter) -> dict[int, float]:
+def _spent_by_category(db: Session, *date_filters) -> dict[int, float]:
     rows = db.execute(
         select(Split.category_id, func.sum(Split.amount_base))
         .join(Transaction, Transaction.id == Split.transaction_id)
-        .where(Transaction.kind == "expense", date_filter, Split.category_id.isnot(None))
+        .where(Transaction.kind == "expense", *date_filters, Split.category_id.isnot(None))
         .group_by(Split.category_id)
     ).all()
     return {cid: (total or 0.0) for cid, total in rows}

@@ -51,6 +51,10 @@ LEGACY_LLM_MODEL_KEY = "llm_model"
 INSIGHTS_MEMORY_KEY = "insights_memory"
 INSIGHTS_MEMORY_MAX_CHARS = 4000
 
+# 1 = January (calendar year, the default). 8 = fiscal year running Aug-Jul.
+FISCAL_YEAR_START_MONTH_KEY = "fiscal_year_start_month"
+DEFAULT_FISCAL_YEAR_START_MONTH = 1
+
 
 def get_float_setting(db: Session, key: str, default: float | None) -> float | None:
     row = db.get(Setting, key)

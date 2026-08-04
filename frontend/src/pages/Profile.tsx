@@ -175,9 +175,25 @@ function ChangePasswordForm() {
 /** Local state initialized straight from `settings` (mounted only once it
  * has loaded) — avoids the effect-driven resync race where a background
  * refetch could overwrite an in-progress, unsaved edit. */
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
 function PreferencesForm({ settings }: { settings: Settings }) {
   const updateSettings = useUpdateSettings();
   const [threshold, setThreshold] = useState(String(settings.budget_threshold));
+  const [fiscalYearStartMonth, setFiscalYearStartMonth] = useState(settings.fiscal_year_start_month);
   const [error, setError] = useState("");
 
   async function saveThreshold() {
@@ -186,6 +202,16 @@ function PreferencesForm({ settings }: { settings: Settings }) {
     if (!(value > 0 && value <= 100)) return;
     try {
       await updateSettings.mutateAsync({ budget_threshold: value });
+      toast("Preferences updated");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save");
+    }
+  }
+
+  async function saveFiscalYearStartMonth(month: number) {
+    setFiscalYearStartMonth(month);
+    try {
+      await updateSettings.mutateAsync({ fiscal_year_start_month: month });
       toast("Preferences updated");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save");
@@ -209,6 +235,19 @@ function PreferencesForm({ settings }: { settings: Settings }) {
       <p className="text-xs text-gray-500">
         Budget bars turn amber at this percentage of the limit, and a toast fires when a
         transaction pushes a budget to or past it.
+      </p>
+      <Field label="Year starting month">
+        <Select
+          className="input"
+          value={fiscalYearStartMonth}
+          onChange={(v) => v && saveFiscalYearStartMonth(v)}
+          allowEmpty={false}
+          options={MONTH_NAMES.map((name, i) => ({ value: i + 1, label: name }))}
+        />
+      </Field>
+      <p className="text-xs text-gray-500">
+        Yearly budgets track spending against a 12-month window starting this month instead of
+        the calendar year — e.g. pick August for a financial year that runs Aug-Jul.
       </p>
     </>
   );
