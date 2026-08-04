@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.20.1 — 2026-08-04
+
+### Profile
+
+- Fixed the "Year starting month" dropdown getting clipped past June —
+  the collapsible settings panel's `overflow-hidden` (meant only to
+  round its corners while collapsed) was also clipping the open Select
+  popup rendered above it.
+
 ## v1.20.0 — 2026-08-04
 
 ### Budgets
