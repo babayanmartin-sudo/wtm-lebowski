@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.19.0 — 2026-08-04
+
+### Base currency
+
+- Fixed `get_base_currency()` falling back to the fixed AED anchor whenever
+  no account was flagged as main — even when every account shared one
+  single (non-AED) currency. A fresh single-currency setup with no main
+  account chosen now correctly uses that shared currency instead of AED.
+- Reports and Budgets pages no longer show a currency suffix/label at all
+  unless the user actually has accounts in more than one currency.
+
 ## v1.18.0 — 2026-08-04
 
 ### Import
