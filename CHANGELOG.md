@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.21.0 — 2026-08-04
+
+### Transactions
+
+- Fixed the Amount filter comparing raw magnitude instead of the signed,
+  displayed amount — "> 1000" incorrectly matched a -2000 expense
+  alongside a 5000 income. Now expenses compare negative, income
+  positive, matching what's shown in the list.
+
 ## v1.20.1 — 2026-08-04
 
 ### Profile
