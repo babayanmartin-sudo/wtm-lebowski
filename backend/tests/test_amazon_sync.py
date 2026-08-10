@@ -1,3 +1,5 @@
+import pytest
+
 import app.routers.imports as imports_router
 
 AMAZON_SUBJECT = 'Ordered: "SLEEPHEAD®Toddler Travel..." and 3 more items'
@@ -33,6 +35,13 @@ def _configure_mailbox(client):
             "mashreq_imap_password": "secret",
         },
     )
+
+
+@pytest.fixture(autouse=True)
+def _no_shipped(monkeypatch):
+    """"Shipped:" emails are a separate IMAP fetch from "Ordered:" ones —
+    none of these tests exercise that path, so stub it out everywhere."""
+    monkeypatch.setattr(imports_router, "fetch_unseen_shipped", lambda *a, **k: [])
 
 
 def _no_refunds(monkeypatch):

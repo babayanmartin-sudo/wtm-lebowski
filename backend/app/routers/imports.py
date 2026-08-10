@@ -22,7 +22,13 @@ from ..schemas import (
     SyncLogOut,
 )
 from ..services import importer
-from ..services.amazon_email import fetch_unseen_orders, fetch_unseen_refunds, parse_order_items, parse_refund_items
+from ..services.amazon_email import (
+    fetch_unseen_orders,
+    fetch_unseen_refunds,
+    fetch_unseen_shipped,
+    parse_order_items,
+    parse_refund_items,
+)
 from ..services.mashreq_email import fetch_unseen_alerts, parse_alert
 from ..services.mashreq_email import test_connection as mashreq_test_connection
 from ..services.matcher import is_ignored, learn, learn_ignore, normalize, suggest
@@ -254,6 +260,7 @@ def _run_amazon_sync(db: Session, trigger: str = "manual") -> AmazonSyncResult |
 
     try:
         order_emails = fetch_unseen_orders(mailbox.host, mailbox.port, mailbox.user, mailbox.password, mailbox.folder)
+        order_emails += fetch_unseen_shipped(mailbox.host, mailbox.port, mailbox.user, mailbox.password, mailbox.folder)
         refund_emails = fetch_unseen_refunds(mailbox.host, mailbox.port, mailbox.user, mailbox.password, mailbox.folder)
     except OSError as e:
         _record_sync(db, source="amazon", trigger=trigger, error=f"Couldn't reach the mailbox: {e}")

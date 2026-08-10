@@ -1,17 +1,21 @@
-"""Parse Amazon "Ordered: ..." confirmation emails and fetch them over IMAP
-from the same dedicated forwarding mailbox used for Mashreq alerts.
+"""Parse Amazon "Ordered: ..." and "Shipped: ..." confirmation emails and
+fetch them over IMAP from the same dedicated forwarding mailbox used for
+Mashreq alerts.
 
-Amazon ships at least two different plain-text templates for this
-notification:
-- "digest" style: `* item name\n  Quantity: N\n  price AED`, price always
-  has a clean decimal.
-- "single big item" style: item name / product-link lines, then a blank
-  line, `Quantity: N`, then a separate `AED<digits>` line where the cents
-  come from a superscript run in the original HTML and collapse into the
-  integer with NO decimal point in plain text (e.g. `AED10020` for
-  AED100.20) — unusable on its own. That template does reliably print a
-  correct `Total AED<amount>` per order, though, which is used as a
-  fallback for single-item orders.
+Amazon ships at least three different plain-text templates for these
+notifications:
+- "digest" style ("Ordered:"): `* item name\n  Quantity: N\n  price AED`,
+  price always has a clean decimal.
+- "single big item" style ("Ordered:"): item name / product-link lines,
+  then a blank line, `Quantity: N`, then a separate `AED<digits>` line
+  where the cents come from a superscript run in the original HTML and
+  collapse into the integer with NO decimal point in plain text (e.g.
+  `AED10020` for AED100.20) — unusable on its own. That template does
+  reliably print a correct `Total AED<amount>` per order, though, which
+  is used as a fallback for single-item orders.
+- "shipped" style ("Shipped:"): same `* item name\n  Quantity: N\n  price
+  AED` shape as the digest template, but the price is a bare integer with
+  no decimal point at all (e.g. `4299 AED`, not `4299.00 AED`).
 
 One email can bundle several orders; order boundaries only matter here to
 resolve the single-item Total fallback — otherwise every line item
@@ -24,11 +28,17 @@ from datetime import date
 from . import email_utils
 
 SUBJECT = "Ordered:"
+SUBJECT_SHIPPED = "Shipped:"
 SUBJECT_REFUND = "Refund on order"
 
 _ORDER_SPLIT_RE = re.compile(r"Order #")
 _QUANTITY_RE = re.compile(r"Quantity:\s*(?P<qty>\d+)")
-_PRICE_BEFORE_AED_RE = re.compile(r"([\d,]+\.\d+)\s*AED")
+# Decimal point optional here only: the "Shipped:" template prints a bare
+# integer whenever the price has no cents (e.g. "4299 AED"). The AED-after
+# form must keep requiring a decimal — that's how the "single big item"
+# template's unusable glued-digit price ("AED10020", no decimal, no
+# space) is told apart from a real amount, forcing the Total fallback.
+_PRICE_BEFORE_AED_RE = re.compile(r"([\d,]+(?:\.\d+)?)\s*AED")
 _PRICE_AFTER_AED_RE = re.compile(r"AED\s*([\d,]+\.\d+)")
 _TOTAL_RE = re.compile(r"Total\s*AED\s*([\d,]+\.\d+)")
 
@@ -71,7 +81,7 @@ def _price_near(chunk: str, pos: int) -> float | None:
 
 
 def parse_order_items(subject: str, body: str, received: date) -> list[ParsedItem]:
-    if SUBJECT not in subject:
+    if SUBJECT not in subject and SUBJECT_SHIPPED not in subject:
         return []
 
     items: list[ParsedItem] = []
@@ -122,6 +132,13 @@ def parse_refund_items(subject: str, body: str, received: date) -> list[ParsedIt
 def fetch_unseen_orders(host: str, port: str, user: str, password: str, folder: str) -> list[tuple[str, str, date]]:
     """(subject, plaintext body, message date) for unseen Amazon order emails."""
     return email_utils.fetch_unseen_by_subject(host, port, user, password, folder, SUBJECT)
+
+
+def fetch_unseen_shipped(host: str, port: str, user: str, password: str, folder: str) -> list[tuple[str, str, date]]:
+    """(subject, plaintext body, message date) for unseen Amazon "Shipped:"
+    emails — a separate IMAP subject search since IMAP SUBJECT match is a
+    plain substring, not an OR of two."""
+    return email_utils.fetch_unseen_by_subject(host, port, user, password, folder, SUBJECT_SHIPPED)
 
 
 def fetch_unseen_refunds(host: str, port: str, user: str, password: str, folder: str) -> list[tuple[str, str, date]]:

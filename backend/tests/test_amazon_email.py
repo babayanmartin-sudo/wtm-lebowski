@@ -1,8 +1,40 @@
 from datetime import date
 
-from app.services.amazon_email import SUBJECT, SUBJECT_REFUND, parse_order_items, parse_refund_items
+from app.services.amazon_email import SUBJECT, SUBJECT_REFUND, SUBJECT_SHIPPED, parse_order_items, parse_refund_items
 
 SUBJECT_LINE = 'Ordered: "SLEEPHEAD®Toddler Travel..." and 3 more items'
+
+SHIPPED_SUBJECT_LINE = 'Shipped: "Apple iPhone 17 Pro 256 GB:..."'
+
+# Real "Shipped:" template: same * name / Quantity: N / price AED shape as
+# the digest template, but the price is a bare integer (no decimal point).
+SHIPPED_BODY = """
+    Your package was shipped!
+Ordered
+
+Shipped
+
+Out for delivery
+
+Delivered
+
+Arriving today 8 AM – 1 PM
+
+Daria - Dubai
+
+Order #
+402-0718569-5797902
+
+Track package
+https://www.amazon.ae/progress-tracker/package?orderId=402-0718569-5797902
+
+* Apple iPhone 17 Pro 256 GB: 6.3-inch Display with ProMotion up to 120Hz, A19 Pro Chip, Breakthrough Battery Life, Pro Fusion Camera System with Center Stage Front Camera; Cosmic Orange
+  Quantity: 1
+  4299 AED
+
+Total
+4299 AED
+"""
 
 BODY = """
 Thanks for your order!
@@ -95,7 +127,22 @@ def test_parse_order_items_happy_path():
 
 
 def test_parse_order_items_wrong_subject_returns_empty():
-    assert parse_order_items("Shipped: your order", BODY, date(2026, 7, 7)) == []
+    assert parse_order_items("Delivered: your order", BODY, date(2026, 7, 7)) == []
+
+
+def test_parse_order_items_shipped_subject_matches():
+    """"Shipped:" is a real, supported subject — a different notification
+    template for the same underlying order, not noise."""
+    assert parse_order_items("Shipped: your order", BODY, date(2026, 7, 7)) != []
+
+
+def test_parse_shipped_template_bare_integer_price():
+    items = parse_order_items(SHIPPED_SUBJECT_LINE, SHIPPED_BODY, date(2026, 8, 9))
+    assert len(items) == 1
+    assert items[0].name.startswith("Apple iPhone 17 Pro")
+    assert items[0].quantity == 1
+    assert items[0].price == 4299.0
+    assert SUBJECT_SHIPPED in SHIPPED_SUBJECT_LINE
 
 
 def test_parse_order_items_forwarded_subject_still_matches():
