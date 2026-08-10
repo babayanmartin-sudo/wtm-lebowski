@@ -578,7 +578,10 @@ export default function TransactionsPage() {
                   <span className="block truncate text-sm">
                     {tx.payee || tx.note || (tx.kind === "transfer" ? "Transfer" : "—")}
                   </span>
-                  <span className="block text-xs text-gray-500">{acc?.name}</span>
+                  <span className="block truncate text-xs text-gray-500">
+                    {acc?.name}
+                    {tx.note && tx.payee ? ` · ${tx.note}` : ""}
+                  </span>
                 </span>
                 <span className="hidden w-44 shrink-0 text-xs sm:block">{categoryLabel(tx)}</span>
                 <span

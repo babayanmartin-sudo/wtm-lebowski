@@ -312,6 +312,7 @@ export default function MobileTransactions() {
                       <p className="truncate text-xs text-gray-500">
                         {acc?.name}
                         {cat ? ` · ${cat.name}` : ""}
+                        {tx.note && tx.payee ? ` · ${tx.note}` : ""}
                       </p>
                     </div>
                     <span
