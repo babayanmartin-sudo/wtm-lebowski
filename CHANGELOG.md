@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.22.0 — 2026-08-10
+
+### Transactions
+
+- The Note field was invisible in the list whenever a transaction also
+  had a payee (it was only ever shown as a payee fallback). Now shown
+  alongside the account name on both desktop and mobile.
+
 ## v1.21.0 — 2026-08-04
 
 ### Transactions
