@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.23.0 — 2026-08-10
+
+### Import
+
+- Amazon sync now also recognizes "Shipped:" notification emails, not
+  just "Ordered:" ones — same digest-style layout, but the price prints
+  as a bare integer with no decimal point (e.g. "4299 AED"). Fetched via
+  a separate IMAP subject search alongside the existing Ordered/Refund
+  ones.
+
 ## v1.22.0 — 2026-08-10
 
 ### Transactions
