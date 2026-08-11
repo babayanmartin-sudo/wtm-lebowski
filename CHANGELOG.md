@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.24.0 — 2026-08-11
+
+### Transactions
+
+- Added CSV export — a new "Export" button on the Transactions page (and
+  mobile) downloads exactly the currently filtered/visible list (account,
+  category, kind, date range, search, amount filter), not just the
+  current page, as a CSV.
+
 ## v1.23.0 — 2026-08-10
 
 ### Import
