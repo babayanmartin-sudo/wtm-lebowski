@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.24.1 — 2026-08-11
+
+### Transactions
+
+- Fixed non-ASCII text (e.g. Cyrillic) turning into mojibake when opening
+  an exported CSV in Excel — the file lacked a UTF-8 BOM, so Excel
+  guessed a local codepage instead of UTF-8. Applies to both the
+  Transactions export and the saved-report CSV export.
+
 ## v1.24.0 — 2026-08-11
 
 ### Transactions
