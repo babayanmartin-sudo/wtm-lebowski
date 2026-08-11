@@ -126,6 +126,7 @@ def export_report_csv(report_id: int, db: Session = Depends(get_db)):
     stmt = _apply_filters(stmt, filters.account_id, cat_ids, exclude_cat_ids=exclude_cat_ids)
 
     buf = io.StringIO()
+    buf.write("﻿")  # UTF-8 BOM — without it Excel guesses a local codepage and mangles Cyrillic/non-ASCII
     writer = csv.writer(buf)
     writer.writerow(["date", "payee", "category", "amount"])
     for d, payee, category_id, amount in db.execute(stmt.order_by(Transaction.date)).all():

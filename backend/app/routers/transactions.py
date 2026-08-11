@@ -185,6 +185,7 @@ def export_transactions_csv(
         return "; ".join(names) if names else "Uncategorized"
 
     buf = io.StringIO()
+    buf.write("﻿")  # UTF-8 BOM — without it Excel guesses a local codepage and mangles Cyrillic/non-ASCII
     writer = csv.writer(buf)
     writer.writerow(["date", "kind", "account", "payee", "note", "category", "amount", "currency"])
     for tx in txs:

@@ -117,6 +117,6 @@ def test_export_csv_returns_rows(seeded):
     r = c.get(f"/api/reports/{report_id}/export.csv")
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/csv")
-    lines = r.text.strip().splitlines()
+    lines = r.content.decode("utf-8-sig").strip().splitlines()
     assert lines[0] == "date,payee,category,amount"
     assert any("Carrefour" in line for line in lines[1:])

@@ -25,7 +25,7 @@ def test_export_csv_includes_all_matching_rows_unpaged(seeded):
     r = c.get("/api/transactions/export.csv?limit=2")  # limit ignored by export
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/csv")
-    rows = list(csv.reader(io.StringIO(r.text)))
+    rows = list(csv.reader(io.StringIO(r.content.decode("utf-8-sig"))))
     assert rows[0] == ["date", "kind", "account", "payee", "note", "category", "amount", "currency"]
     assert len(rows) - 1 == 5
 
@@ -72,3 +72,17 @@ def test_export_csv_category_and_transfer_labels(seeded):
     by_kind = {row[1]: row for row in rows}
     assert by_kind["expense"][5] == "Food"
     assert by_kind["transfer"][5].startswith("Transfer to")
+
+
+def test_export_csv_has_utf8_bom_for_cyrillic(seeded):
+    c = seeded["client"]
+    cat = c.post("/api/categories", json={"name": "Поддержка", "kind": "expense"}).json()
+    c.post(
+        "/api/transactions",
+        json=_tx(seeded, payee="Тест", splits=[{"category_id": cat["id"], "amount": 10, "note": ""}]),
+    )
+    r = c.get("/api/transactions/export.csv")
+    assert r.content[:3] == b"\xef\xbb\xbf"
+    text = r.content.decode("utf-8-sig")
+    assert "Тест" in text
+    assert "Поддержка" in text
