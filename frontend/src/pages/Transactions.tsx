@@ -1,4 +1,4 @@
-import { ArrowLeftRight, ArrowRight, ChevronLeft, ChevronRight, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, ChevronLeft, ChevronRight, Download, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -86,7 +86,7 @@ export default function TransactionsPage() {
     setPickerDate(toISO(new Date()));
   }
 
-  const { data, isLoading, isError, error } = useTransactions({
+  const filterParams = {
     account_id: accountId,
     category_id: categoryId && categoryId !== UNCATEGORIZED_ID ? categoryId : undefined,
     uncategorized: categoryId === UNCATEGORIZED_ID ? "true" : undefined,
@@ -97,9 +97,22 @@ export default function TransactionsPage() {
     q,
     amount_op: amountOp || undefined,
     amount_value: amountOp && amountValue !== "" ? Number(amountValue) : undefined,
+  };
+
+  const { data, isLoading, isError, error } = useTransactions({
+    ...filterParams,
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
   });
+
+  const exportHref = useMemo(() => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(filterParams)) {
+      if (v !== undefined && v !== "") qs.set(k, String(v));
+    }
+    return `/api/transactions/export.csv?${qs}`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountId, categoryId, loanId, period.from, period.to, kind, q, amountOp, amountValue]);
 
   const bulk = useInvalidating(
     (body: { ids: number[]; action: string; category_id?: number | null; account_id?: number; kind?: string }) =>
@@ -302,6 +315,9 @@ export default function TransactionsPage() {
                 <RotateCcw size={13} /> Reset
               </button>
             )}
+            <a className="btn-ghost h-9 px-3 text-sm" href={exportHref} download="transactions.csv">
+              <Download size={14} /> Export
+            </a>
             <button className="btn-primary" onClick={() => setCreating(true)}>
               <Plus size={16} /> Add
             </button>

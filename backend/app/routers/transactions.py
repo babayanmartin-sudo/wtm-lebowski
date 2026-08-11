@@ -1,6 +1,10 @@
+import csv
+import io
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session, selectinload
+from starlette.responses import StreamingResponse
 
 from ..auth import require_auth
 from ..db import get_db
@@ -24,26 +28,25 @@ router = APIRouter(
 )
 
 
-@router.get("", response_model=TransactionPage)
-def list_transactions(
-    db: Session = Depends(get_db),
-    account_id: int | None = None,
-    category_id: int | None = None,
-    uncategorized: bool = False,
-    loan_id: int | None = None,
-    kind: str | None = None,
-    date_from: str | None = None,
-    date_to: str | None = None,
-    q: str | None = None,
-    amount_op: str | None = None,
-    amount_value: float | None = None,
-    limit: int = Query(default=50, le=200),
-    offset: int = 0,
+def _apply_transaction_filters(
+    db: Session,
+    stmt,
+    account_id: int | None,
+    category_id: int | None,
+    uncategorized: bool,
+    loan_id: int | None,
+    kind: str | None,
+    date_from: str | None,
+    date_to: str | None,
+    q: str | None,
+    amount_op: str | None,
+    amount_value: float | None,
 ):
+    """Shared by the paginated list endpoint and the CSV export — the
+    export must see exactly the same rows the list would, just unpaged."""
     if amount_op and amount_op not in ("eq", "gt", "lt"):
         raise HTTPException(400, "amount_op must be 'eq', 'gt', or 'lt'")
 
-    stmt = select(Transaction)
     if account_id:
         stmt = stmt.where(
             or_(Transaction.account_id == account_id, Transaction.transfer_account_id == account_id)
@@ -84,6 +87,40 @@ def list_transactions(
         else:
             stmt = stmt.where(signed_amount < amount_value)
 
+    return stmt
+
+
+@router.get("", response_model=TransactionPage)
+def list_transactions(
+    db: Session = Depends(get_db),
+    account_id: int | None = None,
+    category_id: int | None = None,
+    uncategorized: bool = False,
+    loan_id: int | None = None,
+    kind: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    q: str | None = None,
+    amount_op: str | None = None,
+    amount_value: float | None = None,
+    limit: int = Query(default=50, le=200),
+    offset: int = 0,
+):
+    stmt = _apply_transaction_filters(
+        db,
+        select(Transaction),
+        account_id,
+        category_id,
+        uncategorized,
+        loan_id,
+        kind,
+        date_from,
+        date_to,
+        q,
+        amount_op,
+        amount_value,
+    )
+
     sub = stmt.subquery()
     total = db.scalar(select(func.count()).select_from(sub)) or 0
     sum_base = db.scalar(
@@ -99,6 +136,78 @@ def list_transactions(
         .offset(offset)
     ).all()
     return TransactionPage(items=items, total=total, sum_base=round(sum_base, 2))
+
+
+@router.get("/export.csv")
+def export_transactions_csv(
+    db: Session = Depends(get_db),
+    account_id: int | None = None,
+    category_id: int | None = None,
+    uncategorized: bool = False,
+    loan_id: int | None = None,
+    kind: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    q: str | None = None,
+    amount_op: str | None = None,
+    amount_value: float | None = None,
+):
+    """Every transaction matching the same filters as GET / (unpaged) —
+    keeps the export in lockstep with whatever the list is currently
+    showing, rather than duplicating filter logic."""
+    stmt = _apply_transaction_filters(
+        db,
+        select(Transaction),
+        account_id,
+        category_id,
+        uncategorized,
+        loan_id,
+        kind,
+        date_from,
+        date_to,
+        q,
+        amount_op,
+        amount_value,
+    )
+    txs = db.scalars(
+        stmt.options(selectinload(Transaction.splits))
+        .order_by(Transaction.date.desc(), Transaction.id.desc())
+    ).all()
+
+    accounts = {a.id: a for a in db.scalars(select(Account))}
+    categories = {c.id: c for c in db.scalars(select(Category))}
+
+    def category_label(tx: Transaction) -> str:
+        if tx.kind == "transfer":
+            to = accounts.get(tx.transfer_account_id)
+            return f"Transfer to {to.name}" if to else "Transfer"
+        names = [categories[s.category_id].name for s in tx.splits if s.category_id in categories]
+        return "; ".join(names) if names else "Uncategorized"
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["date", "kind", "account", "payee", "note", "category", "amount", "currency"])
+    for tx in txs:
+        acc = accounts.get(tx.account_id)
+        writer.writerow(
+            [
+                tx.date.isoformat(),
+                tx.kind,
+                acc.name if acc else "",
+                tx.payee,
+                tx.note,
+                category_label(tx),
+                tx.amount,
+                tx.currency,
+            ]
+        )
+    buf.seek(0)
+
+    return StreamingResponse(
+        buf,
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="transactions.csv"'},
+    )
 
 
 @router.post("", response_model=TransactionSaveOut, status_code=201)

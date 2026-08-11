@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Plus, RotateCcw, Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Plus, RotateCcw, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -67,6 +67,25 @@ export default function MobileTransactions() {
 
   const hasActiveFilter = Boolean(accountId || categoryId || kind || (amountOp && amountValue !== ""));
   const hasFilterChips = hasActiveFilter || !isCurrentMonth;
+
+  const exportHref = useMemo(() => {
+    const qs = new URLSearchParams();
+    const params: Record<string, string | number | undefined> = {
+      q,
+      account_id: accountId,
+      category_id: categoryId && categoryId !== UNCATEGORIZED_ID ? categoryId : undefined,
+      uncategorized: categoryId === UNCATEGORIZED_ID ? "true" : undefined,
+      kind,
+      amount_op: amountOp || undefined,
+      amount_value: amountOp && amountValue !== "" ? Number(amountValue) : undefined,
+      date_from: period.from,
+      date_to: period.to,
+    };
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== "") qs.set(k, String(v));
+    }
+    return `/api/transactions/export.csv?${qs}`;
+  }, [q, accountId, categoryId, kind, amountOp, amountValue, period.from, period.to]);
 
   function clearFilters() {
     setAccountId("");
@@ -149,13 +168,23 @@ export default function MobileTransactions() {
         />
       </div>
 
-      <button
-        onClick={() => setShowFilters((v) => !v)}
-        className="input flex items-center justify-between text-gray-300"
-      >
-        Filters{hasActiveFilter ? " (active)" : ""}
-        <span className="text-xs text-gray-500">{showFilters ? "Hide" : "Show"}</span>
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setShowFilters((v) => !v)}
+          className="input flex flex-1 items-center justify-between text-gray-300"
+        >
+          Filters{hasActiveFilter ? " (active)" : ""}
+          <span className="text-xs text-gray-500">{showFilters ? "Hide" : "Show"}</span>
+        </button>
+        <a
+          className="rounded-full bg-white/5 p-2.5 text-gray-400 active:bg-white/10"
+          href={exportHref}
+          download="transactions.csv"
+          title="Export CSV"
+        >
+          <Download size={15} />
+        </a>
+      </div>
 
       {showFilters && (
         <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/5 p-3">
