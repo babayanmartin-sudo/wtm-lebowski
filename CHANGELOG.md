@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.25.1 — 2026-08-11
+
+### Templates
+
+- v1.25.0 only fixed auto-post at the moment you save a template.
+  Ongoing recurrence (e.g. a monthly template posting itself every 1st)
+  still needed the server restarted, since `materialize_due()` otherwise
+  only ran at startup. It now runs every 60s alongside the existing
+  mailbox auto-sync check, so due templates post themselves without any
+  user action.
+
 ## v1.25.0 — 2026-08-11
 
 ### Templates
