@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.25.0 — 2026-08-11
+
+### Templates
+
+- Fixed "Post automatically" doing nothing when checked on a template
+  that's already due — `materialize_due()` only ran at app startup, so
+  toggling the flag on (via create or edit) silently waited for the next
+  restart. Now posts immediately when the template is already due.
+
 ## v1.24.1 — 2026-08-11
 
 ### Transactions
