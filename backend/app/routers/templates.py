@@ -35,6 +35,12 @@ def create_template(body: TemplateIn, db: Session = Depends(get_db)):
     expire_if_past_end(t)
     db.add(t)
     db.commit()
+    if t.auto_post:
+        # A template can be created already past-due (e.g. next_due
+        # backdated) — materialize_due() otherwise only runs at app
+        # startup, so it wouldn't post until the next restart.
+        materialize_due(db)
+        db.refresh(t)
     return t
 
 
@@ -48,6 +54,12 @@ def update_template(template_id: int, body: TemplateIn, db: Session = Depends(ge
         setattr(t, key, value)
     expire_if_past_end(t)
     db.commit()
+    if t.auto_post:
+        # Flipping auto_post on for an already-due template must post
+        # immediately — materialize_due() otherwise only runs at app
+        # startup, so nothing would happen until the next restart.
+        materialize_due(db)
+        db.refresh(t)
     return t
 
 
