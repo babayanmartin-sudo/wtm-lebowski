@@ -32,6 +32,41 @@ def test_frequency_round_trip(seeded):
     assert d["auto_sync_frequency_minutes"] == 30.0
 
 
+def test_run_due_templates_posts_regardless_of_auto_sync_setting(seeded):
+    """Template auto-post has no on/off setting of its own (per-template
+    via Template.auto_post) — run_due_templates must post a due template
+    even with auto-sync (mailbox sync) left disabled."""
+    c = seeded["client"]
+    t = c.post(
+        "/api/templates",
+        json={
+            "name": "Gym",
+            "kind": "expense",
+            "account_id": seeded["aed"]["id"],
+            "amount": 100,
+            "category_id": seeded["food"]["id"],
+            "frequency": "monthly",
+            "interval": 1,
+            "next_due": "2026-06-01",
+            "auto_post": False,  # created inactive-to-post so the tick does the posting, not create_template
+        },
+    ).json()
+    assert c.get("/api/transactions").json()["total"] == 0
+
+    from app.db import SessionLocal
+    from app.models import Template
+
+    db = SessionLocal()
+    try:
+        db.get(Template, t["id"]).auto_post = True
+        db.commit()
+    finally:
+        db.close()
+
+    auto_sync.run_due_templates()
+    assert c.get("/api/transactions").json()["total"] > 0
+
+
 def test_run_due_sync_noop_when_disabled(seeded):
     from app.db import SessionLocal
 

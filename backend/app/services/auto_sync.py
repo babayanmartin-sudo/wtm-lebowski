@@ -25,7 +25,26 @@ async def auto_sync_loop() -> None:
             run_due_sync()
         except Exception:
             logger.exception("auto-sync tick failed")
+        try:
+            run_due_templates()
+        except Exception:
+            logger.exception("template auto-post tick failed")
         await asyncio.sleep(CHECK_INTERVAL_SECONDS)
+
+
+def run_due_templates() -> None:
+    """Posts any due auto_post templates. Runs every tick unconditionally
+    (unlike mailbox auto-sync, template auto-post has no on/off setting of
+    its own — it's per-template via Template.auto_post) — otherwise a
+    template due on the 1st would only post once someone happens to open
+    the app or edit the template that day."""
+    from .recurring import materialize_due
+
+    db = SessionLocal()
+    try:
+        materialize_due(db)
+    finally:
+        db.close()
 
 
 def run_due_sync() -> None:
