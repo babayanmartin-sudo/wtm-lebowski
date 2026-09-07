@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.25.3 — 2026-09-07
+
+### Mobile
+
+- Fixed "View Transactions" from a Loan not applying the loan filter on
+  mobile — the mobile Transactions page never read the `?loan=` URL
+  param at all, unlike desktop, so it landed on the unfiltered list.
+
 ## v1.25.2 — 2026-09-07
 
 ### Mobile
