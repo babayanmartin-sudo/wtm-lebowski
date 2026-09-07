@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.25.2 — 2026-09-07
+
+### Mobile
+
+- Fixed the Date field on the "New transaction" form overflowing off
+  screen on mobile — its `Field` wrapper had no `min-width: 0`, so a
+  native date input's intrinsic content width could push past the flex
+  container instead of shrinking to fit.
+
 ## v1.25.1 — 2026-08-11
 
 ### Templates
