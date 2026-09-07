@@ -107,7 +107,7 @@ export function ErrorState({ error }: { error: unknown }) {
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="flex flex-col gap-1.5">
+    <label className="flex min-w-0 flex-col gap-1.5">
       <span className="text-xs font-medium text-gray-400">{label}</span>
       {children}
     </label>
