@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.25.4 — 2026-09-07
+
+### Mobile
+
+- v1.25.2 only fixed the *outer* grid item's min-width; the Date field
+  still overflowed because the `<input>` itself is a flex item one level
+  further in (inside `Field`'s flex-col), and flex/grid items default to
+  `min-width: auto` independently at every level. Moved the fix to the
+  shared `.input` class itself so it's not dependent on ancestor markup.
+
 ## v1.25.3 — 2026-09-07
 
 ### Mobile
