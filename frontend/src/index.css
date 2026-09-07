@@ -66,7 +66,12 @@ body {
   }
 
   .input {
-    @apply w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-lime-400/60 focus:bg-white/10;
+    /* min-w-0 overrides the flex/grid item default of min-width: auto,
+       which otherwise clamps shrinking to the content's intrinsic width —
+       most visible on native <input type="date"> on mobile, whose
+       intrinsic width can exceed a narrow flex/grid track and overflow
+       the viewport instead of actually shrinking to w-full. */
+    @apply w-full min-w-0 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-lime-400/60 focus:bg-white/10;
   }
 
   .btn-primary,
