@@ -34,6 +34,11 @@ export default function MobileTransactions() {
     null,
     searchParams.get("category") ? Number(searchParams.get("category")) : undefined,
   );
+  const [loanId, setLoanId] = useSessionState<string | null>(
+    "transactions.loan",
+    null,
+    searchParams.get("loan") ?? undefined,
+  );
   const [kind, setKind] = useSessionState("transactions.kind", "");
   const [amountOp, setAmountOp] = useSessionState<"" | "eq" | "gt" | "lt">("transactions.amountOp", "");
   const [amountValue, setAmountValue] = useSessionState("transactions.amountValue", "");
@@ -56,6 +61,7 @@ export default function MobileTransactions() {
     account_id: accountId,
     category_id: categoryId && categoryId !== UNCATEGORIZED_ID ? categoryId : undefined,
     uncategorized: categoryId === UNCATEGORIZED_ID ? "true" : undefined,
+    loan_id: loanId ?? undefined,
     kind,
     amount_op: amountOp || undefined,
     amount_value: amountOp && amountValue !== "" ? Number(amountValue) : undefined,
@@ -65,7 +71,9 @@ export default function MobileTransactions() {
     offset: 0,
   });
 
-  const hasActiveFilter = Boolean(accountId || categoryId || kind || (amountOp && amountValue !== ""));
+  const hasActiveFilter = Boolean(
+    accountId || categoryId || loanId || kind || (amountOp && amountValue !== ""),
+  );
   const hasFilterChips = hasActiveFilter || !isCurrentMonth;
 
   const exportHref = useMemo(() => {
@@ -75,6 +83,7 @@ export default function MobileTransactions() {
       account_id: accountId,
       category_id: categoryId && categoryId !== UNCATEGORIZED_ID ? categoryId : undefined,
       uncategorized: categoryId === UNCATEGORIZED_ID ? "true" : undefined,
+      loan_id: loanId ?? undefined,
       kind,
       amount_op: amountOp || undefined,
       amount_value: amountOp && amountValue !== "" ? Number(amountValue) : undefined,
@@ -85,10 +94,11 @@ export default function MobileTransactions() {
       if (v !== undefined && v !== "") qs.set(k, String(v));
     }
     return `/api/transactions/export.csv?${qs}`;
-  }, [q, accountId, categoryId, kind, amountOp, amountValue, period.from, period.to]);
+  }, [q, accountId, categoryId, loanId, kind, amountOp, amountValue, period.from, period.to]);
 
   function clearFilters() {
     setAccountId("");
+    setLoanId(null);
     setCategoryId(null);
     setKind("");
     setAmountOp("");
@@ -276,6 +286,14 @@ export default function MobileTransactions() {
             <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
               {kind}
               <button onClick={() => setKind("")}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {loanId && (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              {loans.find((l) => String(l.id) === loanId)?.name ?? `#${loanId}`}
+              <button onClick={() => setLoanId(null)}>
                 <X size={12} />
               </button>
             </span>
