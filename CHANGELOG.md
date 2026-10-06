@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.25.5 — 2026-10-06
+
+### Security
+
+- Fixed a path traversal in the SPA catch-all route: an encoded `../` in
+  the URL could escape the static directory and serve arbitrary files,
+  including the database and `secret_key`. The resolved path must now
+  stay inside the static dir; anything else falls back to `index.html`.
+  Rotate `secret_key`, the IMAP password and LLM API keys after upgrading.
+
 ## v1.25.4 — 2026-09-07
 
 ### Mobile

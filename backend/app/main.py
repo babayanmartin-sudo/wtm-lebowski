@@ -89,9 +89,14 @@ def version():
 if STATIC_DIR.is_dir():
     app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
 
+    static_root = STATIC_DIR.resolve()
+
     @app.get("/{path:path}")
     def spa(path: str):
-        file = STATIC_DIR / path
-        if path and file.is_file():
+        # Resolve and confine to STATIC_DIR — the path param arrives
+        # URL-decoded, so "/..%2f..%2fdata%2fapp.db" would otherwise
+        # escape the static dir and serve the DB / secret_key.
+        file = (static_root / path).resolve()
+        if path and file.is_relative_to(static_root) and file.is_file():
             return FileResponse(file)
-        return FileResponse(STATIC_DIR / "index.html")
+        return FileResponse(static_root / "index.html")
