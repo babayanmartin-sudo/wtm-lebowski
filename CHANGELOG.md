@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.25.6 — 2026-10-18
+
+### Transactions
+
+- The Amount filter now ignores sign: `= 100` and `= -100` both find a
+  100 expense, and `> 1000` matches both expenses and income over 1000
+  (use the Type filter to narrow to one). Previously `= 100` never
+  matched an expense, which looked like the filter only worked once a
+  decimal separator was typed.
+- It now compares against the amount shown in the list (account
+  currency) instead of the amount converted to the main currency, so
+  `=` matches what you see on non-main-currency accounts.
+
 ## v1.25.5 — 2026-10-06
 
 ### Security

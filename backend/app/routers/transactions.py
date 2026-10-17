@@ -76,16 +76,17 @@ def _apply_transaction_filters(
         like = f"%{q}%"
         stmt = stmt.where(or_(Transaction.payee.ilike(like), Transaction.note.ilike(like)))
     if amount_op and amount_value is not None:
-        # Signed to match how amounts are displayed (expense negative,
-        # income positive, transfer unsigned) — otherwise "> 1000" would
-        # also match a -2000 expense, which reads as < 1000 to the user.
-        signed_amount = case((Transaction.kind == "expense", -Transaction.amount_base), else_=Transaction.amount_base)
+        # Magnitude of the amount as displayed in the list (account
+        # currency, not amount_base), sign-insensitive on both sides:
+        # "= 100" and "= -100" both find a 100 expense. Narrow by
+        # expense/income with the kind filter instead.
+        target = abs(amount_value)
         if amount_op == "eq":
-            stmt = stmt.where(signed_amount == amount_value)
+            stmt = stmt.where(func.abs(Transaction.amount - target) < 0.005)
         elif amount_op == "gt":
-            stmt = stmt.where(signed_amount > amount_value)
+            stmt = stmt.where(Transaction.amount > target)
         else:
-            stmt = stmt.where(signed_amount < amount_value)
+            stmt = stmt.where(Transaction.amount < target)
 
     return stmt
 
