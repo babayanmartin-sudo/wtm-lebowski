@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.25.7 — 2026-11-02
+
+### Loans
+
+- Loans can now be created in RUB (and any other currency an account
+  uses). The loan form had its own hardcoded 7-currency list without
+  RUB; all currency pickers now share one list, the loan form also
+  offers every currency your accounts use, and new loans default to the
+  main currency instead of AED.
+
 ## v1.25.6 — 2026-10-18
 
 ### Transactions

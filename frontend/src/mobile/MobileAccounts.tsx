@@ -11,9 +11,9 @@ import RateTicker from "../components/RateTicker";
 import { ErrorState, LoadingState, PALETTE } from "../components/ui";
 import { fmtMoney, getBaseCurrency } from "../lib/format";
 import { ACCOUNT_ICON_KEYS, getAccountIcon } from "../lib/icons";
+import { CURRENCIES } from "../lib/currency";
 
 const TYPES = ["cash", "bank", "card", "savings"];
-const CURRENCIES = ["AED", "USD", "EUR", "RUB", "AMD", "GBP", "CHF", "TRY", "GEL", "RSD"];
 
 interface Draft {
   id?: number;

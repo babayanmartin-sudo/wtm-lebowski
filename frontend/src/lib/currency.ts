@@ -1,3 +1,5 @@
+export const CURRENCIES = ["AED", "USD", "EUR", "RUB", "AMD", "GBP", "CHF", "TRY", "GEL", "RSD", "JPY", "INR", "SAR"];
+
 const FLAGS: Record<string, string> = {
   AED: "🇦🇪",
   USD: "🇺🇸",

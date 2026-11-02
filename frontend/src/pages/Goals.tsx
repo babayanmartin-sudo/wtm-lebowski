@@ -7,6 +7,7 @@ import { useAccounts, useGoals, useInvalidating, useLoans } from "../api/hooks";
 import type { Goal, Loan } from "../api/types";
 import { ColorPicker, EmptyState, ErrorState, Field, LoadingState, Modal, PageHeader } from "../components/ui";
 import { fmtDate, fmtMoney, getBaseCurrency, today } from "../lib/format";
+import { CURRENCIES } from "../lib/currency";
 import { toast } from "../lib/toast";
 
 interface Draft {
@@ -130,7 +131,7 @@ export default function GoalsPage() {
           <button
             className="btn-primary"
             onClick={() =>
-              setLoanDraft({ name: "", direction: "debt", principal_amount: "", currency: "AED", color: "#f97316" })
+              setLoanDraft({ name: "", direction: "debt", principal_amount: "", currency: baseCurrency, color: "#f97316" })
             }
           >
             <Plus size={16} /> Add loan
@@ -408,13 +409,11 @@ export default function GoalsPage() {
                   value={loanDraft.currency}
                   onChange={(e) => setLoanDraft({ ...loanDraft, currency: e.target.value })}
                 >
-                  <option value="AED">AED</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="GBP">GBP</option>
-                  <option value="JPY">JPY</option>
-                  <option value="INR">INR</option>
-                  <option value="SAR">SAR</option>
+                  {[...new Set([...CURRENCIES, ...accounts.map((a) => a.currency), loanDraft.currency])].map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
                 </select>
               </Field>
             </div>
